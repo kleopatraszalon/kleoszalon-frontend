@@ -1,0 +1,96 @@
+.event-modal-overlay {
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.event-modal {
+  background: #fff;
+  border-radius: 16px;
+  width: 900px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.25s ease-in-out;
+  font-family: "Inter", sans-serif;
+}
+
+.event-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-left: 6px solid var(--accent, #4caf50);
+  padding: 16px 20px;
+  background-color: #f9fafb;
+}
+
+.employee-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.employee-photo {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.event-modal-body {
+  padding: 24px;
+  line-height: 1.6;
+}
+
+.event-section {
+  margin-top: 20px;
+}
+
+.event-section h4 {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.event-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 16px 24px;
+  background: #f5f5f5;
+  border-top: 1px solid #e5e5e5;
+}
+
+.primary-btn {
+  background: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.danger-btn {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #666;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}

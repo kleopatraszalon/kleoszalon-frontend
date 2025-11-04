@@ -1,0 +1,232 @@
+// src/pages/Register.tsx
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import logo from "../assets/kleo_logo.png";
+
+interface FormData {
+  full_name: string;
+  email: string;
+  password: string;
+  zip_code: string;
+  city: string;
+  address: string;
+  birth_date: string;
+  gender: string;
+  heard_about_us: string;
+  nearest_salon: string;
+  newsletter: boolean;
+  loyalty_program: boolean;
+  consent: boolean;
+}
+
+const Register: React.FC = () => {
+  const navigate = useNavigate();
+  const [formData, setFormData] = useState<FormData>({
+    full_name: "",
+    email: "",
+    password: "",
+    zip_code: "",
+    city: "",
+    address: "",
+    birth_date: "",
+    gender: "",
+    heard_about_us: "",
+    nearest_salon: "",
+    newsletter: false,
+    loyalty_program: false,
+    consent: false,
+  });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.target;
+    if (target instanceof HTMLInputElement) {
+      const value = target.type === "checkbox" ? target.checked : target.value;
+      setFormData((prev) => ({ ...prev, [target.name]: value }));
+    } else if (target instanceof HTMLSelectElement) {
+      setFormData((prev) => ({ ...prev, [target.name]: target.value }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    if (!formData.consent) {
+      setError("Az adatkezelési feltételek elfogadása kötelező.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.post("http://localhost:5000/api/register", formData, {
+        withCredentials: true,
+      });
+
+      if (response.data.success) {
+        alert("Sikeres regisztráció! Ellenőrizd az emailedet.");
+        navigate("/login");
+      } else {
+        setError(response.data.error || "Hiba a regisztráció során.");
+      }
+    } catch (err: any) {
+      console.error("Regisztráció hiba:", err);
+      setError(err.response?.data?.error || "Hálózati hiba történt.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#f9f5f0]">
+      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-lg text-center">
+        <img src={logo} alt="Kleoszalon logó" className="mx-auto mb-6 w-32 h-auto" />
+        <h2 className="text-2xl font-semibold text-gray-700 mb-6">Kleoszalon Regisztráció</h2>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-left">
+          <input
+            type="text"
+            name="full_name"
+            placeholder="Teljes név"
+            value={formData.full_name}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="email"
+            name="email"
+            placeholder="E-mail"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="password"
+            name="password"
+            placeholder="Jelszó"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="text"
+            name="zip_code"
+            placeholder="Irányítószám"
+            value={formData.zip_code}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="text"
+            name="city"
+            placeholder="Város"
+            value={formData.city}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="text"
+            name="address"
+            placeholder="Cím"
+            value={formData.address}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="date"
+            name="birth_date"
+            placeholder="Születési dátum"
+            value={formData.birth_date}
+            onChange={handleChange}
+            required
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          >
+            <option value="">Nem</option>
+            <option value="male">Férfi</option>
+            <option value="female">Nő</option>
+          </select>
+          <input
+            type="text"
+            name="heard_about_us"
+            placeholder="Hogyan hallott rólunk?"
+            value={formData.heard_about_us}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+          <input
+            type="text"
+            name="nearest_salon"
+            placeholder="Legközelebbi szalon"
+            value={formData.nearest_salon}
+            onChange={handleChange}
+            className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
+          />
+
+          {/* Checkboxok */}
+          <div className="flex flex-col space-y-2 mt-2">
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="newsletter"
+                checked={formData.newsletter}
+                onChange={handleChange}
+                className="mr-2"
+              />
+              Kérek értesítést az akciókról
+            </label>
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="loyalty_program"
+                checked={formData.loyalty_program}
+                onChange={handleChange}
+                className="mr-2"
+              />
+              Részt kívánok venni a pontgyűjtő rendszerben
+            </label>
+            <label className="inline-flex items-center">
+              <input
+                type="checkbox"
+                name="consent"
+                checked={formData.consent}
+                onChange={handleChange}
+                className="mr-2"
+                required
+              />
+              Elfogadom az adatkezelési feltételeket
+            </label>
+          </div>
+
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className={`w-full py-3 rounded-xl font-medium text-white mt-4 ${
+              loading ? "bg-gray-400 cursor-not-allowed" : "bg-[#d4a373] hover:bg-[#c29260]"
+            }`}
+          >
+            {loading ? "Regisztráció..." : "Regisztráció"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default Register;

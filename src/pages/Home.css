@@ -1,0 +1,145 @@
+/* === Layout alapok === */
+.home-container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+}
+
+/* === Sidebar === */
+.sidebar {
+  width: 240px;
+  background-color: #d4b56a;
+  color: #222;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #c4a65a;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.sidebar .logo {
+  padding: 1.5rem;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 2px solid #e6d5a8;
+}
+
+.sidebar .logo img {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Menülista */
+.sidebar nav {
+  flex: 1;
+  padding: 1rem;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar nav li {
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-weight: 500;
+}
+
+.sidebar nav li:hover {
+  background-color: #b89950;
+  color: white;
+}
+
+/* === Calendar fő rész === */
+.calendar-container {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.rbc-calendar {
+  height: 100%;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Nagy naptár események */
+.rbc-event {
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+}
+
+/* Naptár rács */
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #eee;
+}
+
+.rbc-header {
+  background: #f4f1e1;
+  font-weight: 600;
+  padding: 0.5rem;
+  border-bottom: 2px solid #e6d5a8;
+}
+
+/* === Modal (react-modal) === */
+.ReactModal__Overlay {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  z-index: 1000 !important;
+}
+
+.ReactModal__Content {
+  position: relative;
+  width: 400px;
+  max-width: 90vw;
+  margin: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+  inset: 0 !important;
+}
+
+.ReactModal__Content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #444;
+}
+
+.ReactModal__Content p {
+  margin-bottom: 0.6rem;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.ReactModal__Content button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background-color: #d4b56a;
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.ReactModal__Content button:hover {
+  background-color: #b89950;
+  color: white;
+}
