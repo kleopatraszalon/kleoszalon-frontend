@@ -4,7 +4,7 @@ import EmployeeCreateModal from "../components/EmployeeCreateModal";
 import EventDetailsModal from "../components/EventDetailsModal";
 
 type Employee = {
-  id: string;
+  id: string | number;
   first_name?: string;
   last_name?: string;
   full_name?: string;
@@ -16,7 +16,6 @@ type Employee = {
   location_id?: string | null;
   location_name?: string | null;
   active?: boolean;
-  // fontos, mert az EventDetailsModal használja
   position_name?: string;
   login_name?: string;
 };
@@ -25,6 +24,7 @@ type EventType = {
   title?: string;
   start?: string | Date;
   end?: string | Date;
+  notes?: string;
 };
 
 /** Életkor számítása születési dátumból (YYYY-MM-DD) */
@@ -35,23 +35,14 @@ function calcAge(birth_date?: string): number | null {
 
   const now = new Date();
   let age = now.getFullYear() - d.getFullYear();
-
   const hadBirthdayThisYear =
     now.getMonth() > d.getMonth() ||
     (now.getMonth() === d.getMonth() && now.getDate() >= d.getDate());
-
-  if (!hadBirthdayThisYear) {
-    age -= 1;
-  }
-
+  if (!hadBirthdayThisYear) age -= 1;
   return age;
 }
 
 const EmployeesList: React.FC = () => {
-  // próbáljuk mindkettő kulcs alatt, ahogy eddig
-  const token =
-    localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
-
   // összes munkatárs a szervertől
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   // mutassuk-e az inaktívakat is
@@ -68,12 +59,8 @@ const EmployeesList: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const [selectedEvent, setSelectedEvent] = useState<EventType | undefined>(
-    undefined
-  );
-  const [selectedEmployee, setSelectedEmployee] = useState<
-    Employee | undefined
-  >(undefined);
+  const [selectedEvent, setSelectedEvent] = useState<EventType | undefined>(undefined);
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | undefined>(undefined);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -81,52 +68,49 @@ const EmployeesList: React.FC = () => {
 
   // ---- Dolgozók betöltése szerverről ----
   const loadEmployees = async () => {
-    // ha nincs token, jelezzük és nem kérdezünk a backendtől
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
+
     if (!token) {
       setAuthError("Nincs token – jelentkezz be először.");
       setAllEmployees([]);
       return;
     }
 
-    const url = includeInactive
-      ? "http://localhost:5000/api/employees?include_inactive=1"
-      : "http://localhost:5000/api/employees";
+    const url = includeInactive ? "/api/employees?include_inactive=1" : "/api/employees";
 
     try {
       setLoading(true);
       setAuthError("");
 
       const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
+      const text = await response.text();
+      let data: unknown = [];
+      try {
+        data = text ? JSON.parse(text) : [];
+      } catch {
+        data = [];
+      }
+
       if (response.status === 401 || response.status === 403) {
-        // nincs jogosultság vagy lejárt token
         setAuthError("Nincs jogosultság vagy lejárt a bejelentkezés.");
         setAllEmployees([]);
         return;
       }
-
       if (!response.ok) {
         throw new Error(`HTTP hiba! státusz: ${response.status}`);
       }
-
-      const data = await response.json();
-
       if (!Array.isArray(data)) {
-        throw new Error(
-          "Nem tömb érkezett /api/employees-ről: " + JSON.stringify(data)
-        );
+        throw new Error("Nem tömb érkezett /api/employees-ről.");
       }
 
-      setAllEmployees(data);
+      setAllEmployees(data as Employee[]);
     } catch (err) {
       console.error("Dolgozók betöltése hiba:", err);
-      setAuthError(
-        "Dolgozók betöltése nem sikerült. Ellenőrizd a hálózatot vagy a szervert."
-      );
+      setAuthError("Dolgozók betöltése nem sikerült. Ellenőrizd a hálózatot vagy a szervert.");
       setAllEmployees([]);
     } finally {
       setLoading(false);
@@ -137,15 +121,13 @@ const EmployeesList: React.FC = () => {
   useEffect(() => {
     loadEmployees();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [includeInactive, token]);
+  }, [includeInactive]);
 
   // ---- Szűrt lista a keresés / feltételek alapján ----
   const filtered = useMemo(() => {
     return allEmployees.filter((emp) => {
       const displayName =
-        emp.full_name ||
-        `${emp.last_name || ""} ${emp.first_name || ""}`.trim() ||
-        "";
+        emp.full_name || `${emp.last_name || ""} ${emp.first_name || ""}`.trim() || "";
       const nameLower = displayName.toLowerCase();
       const qualificationText = (emp.qualification || "").toLowerCase();
 
@@ -153,37 +135,26 @@ const EmployeesList: React.FC = () => {
       const wageVal = emp.monthly_wage ?? 0;
 
       // névre keresés
-      if (
-        search.trim() &&
-        !nameLower.includes(search.trim().toLowerCase())
-      ) {
+      if (search.trim() && !nameLower.includes(search.trim().toLowerCase())) {
         return false;
       }
 
       // végzettség
       if (
         filterQualification.trim() &&
-        !qualificationText.includes(
-          filterQualification.trim().toLowerCase()
-        )
+        !qualificationText.includes(filterQualification.trim().toLowerCase())
       ) {
         return false;
       }
 
       // min életkor
-      if (minAge && ageVal !== null && ageVal < Number(minAge)) {
-        return false;
-      }
+      if (minAge && ageVal !== null && ageVal < Number(minAge)) return false;
 
       // max életkor
-      if (maxAge && ageVal !== null && ageVal > Number(maxAge)) {
-        return false;
-      }
+      if (maxAge && ageVal !== null && ageVal > Number(maxAge)) return false;
 
       // min bér
-      if (minWage && wageVal < Number(minWage)) {
-        return false;
-      }
+      if (minWage && wageVal < Number(minWage)) return false;
 
       return true;
     });
@@ -192,7 +163,27 @@ const EmployeesList: React.FC = () => {
   // ---- Dolgozóra kattintás -> megnyitjuk a részletező modált ----
   const handleEmployeeClick = (emp: Employee) => {
     setSelectedEmployee(emp);
-    setSelectedEvent(undefined); // most nincs event, de később lehet
+    setSelectedEvent({
+      title:
+        emp.full_name ||
+        `${emp.last_name || ""} ${emp.first_name || ""}`.trim() ||
+        String(emp.id),
+      notes: JSON.stringify(
+        {
+          id: emp.id,
+          location: emp.location_name ?? emp.location_id ?? "—",
+          birth_date: emp.birth_date ?? "—",
+          age: calcAge(emp.birth_date) ?? "—",
+          qualification: emp.qualification ?? "—",
+          monthly_wage: emp.monthly_wage ?? "—",
+          position_name: emp.position_name ?? "—",
+          login_name: emp.login_name ?? "—",
+          active: emp.active ? "aktív" : "inaktív",
+        },
+        null,
+        2
+      ),
+    });
     setIsDetailsOpen(true);
   };
 
@@ -204,18 +195,13 @@ const EmployeesList: React.FC = () => {
         {/* Fejléc + gombok */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">
-              Munkatársak
-            </h1>
+            <h1 className="text-xl font-semibold text-gray-800 dark:text-gray-100">Munkatársak</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Dolgozók listája, szűrés és keresés. Kattints egy dolgozóra a
-              részletekhez.
+              Dolgozók listája, szűrés és keresés. Kattints egy dolgozóra a részletekhez.
             </p>
 
             {authError && (
-              <p className="mt-2 text-xs text-red-500 font-medium">
-                {authError}
-              </p>
+              <p className="mt-2 text-xs text-red-500 font-medium">{authError}</p>
             )}
           </div>
 
@@ -235,9 +221,7 @@ const EmployeesList: React.FC = () => {
               }`}
               onClick={() => setIncludeInactive((prev) => !prev)}
             >
-              {includeInactive
-                ? "Csak aktívak mutatása"
-                : "Inaktív dolgozók is"}
+              {includeInactive ? "Csak aktívak mutatása" : "Inaktív dolgozók is"}
             </button>
           </div>
         </div>
@@ -267,9 +251,7 @@ const EmployeesList: React.FC = () => {
                 className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700 focus:outline-none focus:ring-2 focus:ring-gray-400"
                 placeholder="pl. Kozmetikus OKJ"
                 value={filterQualification}
-                onChange={(e) =>
-                  setFilterQualification(e.target.value)
-                }
+                onChange={(e) => setFilterQualification(e.target.value)}
               />
             </div>
 
@@ -322,9 +304,7 @@ const EmployeesList: React.FC = () => {
 
             {/* találatszám */}
             <div className="flex items-end">
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                {filtered.length} találat
-              </div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">{filtered.length} találat</div>
             </div>
           </div>
         </div>
@@ -341,9 +321,7 @@ const EmployeesList: React.FC = () => {
                 <tr>
                   <th className="px-4 py-2 font-medium">Név</th>
                   <th className="px-4 py-2 font-medium">Telephely</th>
-                  <th className="px-4 py-2 font-medium">
-                    Születési dátum
-                  </th>
+                  <th className="px-4 py-2 font-medium">Születési dátum</th>
                   <th className="px-4 py-2 font-medium">Életkor</th>
                   <th className="px-4 py-2 font-medium">Végzettség</th>
                   <th className="px-4 py-2 font-medium">Havibér (Ft)</th>
@@ -355,14 +333,12 @@ const EmployeesList: React.FC = () => {
                   const ageVal = calcAge(emp.birth_date);
                   const displayName =
                     emp.full_name ||
-                    `${emp.last_name || ""} ${
-                      emp.first_name || ""
-                    }`.trim() ||
+                    `${emp.last_name || ""} ${emp.first_name || ""}`.trim() ||
                     "Névtelen";
 
                   return (
                     <tr
-                      key={emp.id}
+                      key={String(emp.id)}
                       className="border-t border-gray-200 dark:border-neutral-700 hover:bg-gray-50 hover:dark:bg-neutral-700/30 cursor-pointer"
                       onClick={() => handleEmployeeClick(emp)}
                     >
@@ -380,9 +356,7 @@ const EmployeesList: React.FC = () => {
                       </td>
 
                       <td className="px-4 py-2 text-gray-700 dark:text-gray-200">
-                        {emp.location_name ??
-                          emp.location_id ??
-                          "—"}
+                        {emp.location_name ?? emp.location_id ?? "—"}
                       </td>
 
                       <td className="px-4 py-2 text-gray-700 dark:text-gray-200">
@@ -398,9 +372,7 @@ const EmployeesList: React.FC = () => {
                       </td>
 
                       <td className="px-4 py-2 text-gray-700 dark:text-gray-200">
-                        {emp.monthly_wage
-                          ? `${emp.monthly_wage} Ft`
-                          : "—"}
+                        {emp.monthly_wage ? `${emp.monthly_wage} Ft` : "—"}
                       </td>
 
                       <td className="px-4 py-2 text-gray-700 dark:text-gray-200">
@@ -440,32 +412,29 @@ const EmployeesList: React.FC = () => {
       <EventDetailsModal
         isOpen={isDetailsOpen}
         onRequestClose={() => setIsDetailsOpen(false)}
-        event={selectedEvent ?? undefined}
+        event={selectedEvent}
         employee={
           selectedEmployee
             ? {
                 ...selectedEmployee,
-                location_name:
-                  selectedEmployee.location_name ?? undefined,
+                id: String(selectedEmployee.id),
+                // null -> undefined: a modal típusa általában string | undefined
+                location_name: selectedEmployee.location_name ?? undefined,
               }
             : undefined
         }
         onEmployeeStatusChanged={({ id, active }) => {
-          // frissítjük a listát lokálisan, hogy ne kelljen új fetch
           setAllEmployees((prev) =>
-            prev.map((emp) =>
-              emp.id === id ? { ...emp, active } : emp
-            )
+            prev.map((e) => (String(e.id) === id ? { ...e, active } : e))
           );
         }}
+        /* Ha a modal támogatja:
         onEmployeeCredentialsChanged={({ id, login_name }) => {
-          // ha login_name változik, frissítjük helyben
-          setAllEmployees((prev) =>
-            prev.map((emp) =>
-              emp.id === id ? { ...emp, login_name } : emp
-            )
+          setAllEmployees(prev =>
+            prev.map(e => (String(e.id) === id ? { ...e, login_name } : e))
           );
         }}
+        */
       />
     </div>
   );

@@ -33,7 +33,7 @@ interface EventDetailsModalProps {
 
 // Egy szolgáltatás, ahogy a DB-ből jön
 interface ServiceRow {
-  id: string;
+  id: string | number;
   name: string;
   description?: string | null;
   price?: number | null;
@@ -56,7 +56,9 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   // !!! egyszer globálisan: Modal.setAppElement("#root")
 
   const token =
-    localStorage.getItem("token") || localStorage.getItem("kleo_token");
+    localStorage.getItem("token") ||
+    localStorage.getItem("kleo_token") ||
+    "";
 
   // ---------- Tabs ----------
   const [activeTab, setActiveTab] = useState<TabKey>("alap");
@@ -77,20 +79,17 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   const [credsSuccess, setCredsSuccess] = useState("");
 
   // ---------- Szolgáltatások fül állapot ----------
-  // teljes szolgáltatáslista a rendszerből
   const [services, setServices] = useState<ServiceRow[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesErr, setServicesErr] = useState("");
 
-  // dolgozóhoz rendelt szolgáltatások lokális pipálása/idő állítása
-  // ez egy ideiglenes kapcsolat itt frontenden.
   // kulcs: service_id -> { checked, custom_minutes }
   const [employeeServices, setEmployeeServices] = useState<
     Record<
       string,
       {
         checked: boolean;
-        custom_minutes: string; // szöveg, hogy inputból tudd kezelni
+        custom_minutes: string;
       }
     >
   >({});
@@ -105,18 +104,14 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     setCredsError("");
     setCredsSuccess("");
     setActiveTab("alap");
-
-    // ha később majd backend adja vissza, hogy ez a dolgozó milyen szolgáltatásokat végezhet
-    // akkor itt be tudod inicializálni employeeServices-t.
     setEmployeeServices({});
   }, [employee]);
 
-  // szolgáltatáslista betöltése, ha megnyitjuk a modált VAGY átváltunk a "szolg" fülre
+  // szolgáltatáslista betöltése a "szolg" fül megnyitásakor
   useEffect(() => {
-    if (!isOpen) return;
-    if (activeTab !== "szolg") return;
+    if (!isOpen || activeTab !== "szolg") return;
 
-    // ha már be van töltve és nincs hiba, nem kell újra minden tabváltáskor
+    // ha már betöltöttük és nincs hiba, nem töltjük újra
     if (services.length > 0 && !servicesErr) return;
 
     const loadServices = async () => {
@@ -128,61 +123,50 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
       setServicesErr("");
 
       try {
-        // ezt igazítsd a backend endpointodra
-        // pl. GET /api/services/available ami a services táblából ad aktív tételeket
-        const res = await fetch(
-          "http://localhost:5000/api/services/available",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const res = await fetch("/api/services/available", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        const data = await res.json().catch(() => ({}));
+        const text = await res.text();
+        const data = text ? (JSON.parse(text) as unknown) : [];
 
         if (!res.ok) {
-          console.error("Szolgáltatások betöltése hiba:", data);
+          const errObj = (data as any) || {};
           setServicesErr(
-            data?.error ||
-              "Nem sikerült lekérni a szolgáltatásokat a szerverről."
+            errObj.error || "Nem sikerült lekérni a szolgáltatásokat."
           );
           setServicesLoading(false);
           return;
         }
 
         if (!Array.isArray(data)) {
-          console.error("Nem tömb érkezett services-re:", data);
           setServicesErr("Váratlan szerverválasz (nem lista).");
           setServicesLoading(false);
           return;
         }
 
-        // Feltételezve, hogy data elemei legalább: { id, name, price, duration_minutes || duration }
-        setServices(data);
+        const list = data as ServiceRow[];
+        setServices(list);
 
-        // ha akarod, itt lehetne employeeServices-t feltölteni default állapotokkal
-        // például ha a dolgozó minden szolgáltatást vállal  alapból:
+        // alap inicializálás
         const initMap: Record<
           string,
           { checked: boolean; custom_minutes: string }
         > = {};
-        data.forEach((srv: any) => {
+        list.forEach((srv) => {
+          const sid = String(srv.id);
           const mins =
-            srv.duration_minutes ??
-            srv.duration ??
-            "" /* fallback üres, admin majd kitölti */;
-          initMap[srv.id] = {
+            srv.duration_minutes ?? srv.duration ?? null;
+          initMap[sid] = {
             checked: false,
-            custom_minutes: mins ? String(mins) : "",
+            custom_minutes: mins != null ? String(mins) : "",
           };
         });
         setEmployeeServices(initMap);
-
-        setServicesLoading(false);
       } catch (err) {
         console.error("Hálózati hiba szolgáltatásoknál:", err);
         setServicesErr("Hálózati hiba történt a szolgáltatások betöltésekor.");
+      } finally {
         setServicesLoading(false);
       }
     };
@@ -191,12 +175,13 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   }, [isOpen, activeTab, token, services.length, servicesErr]);
 
   // pipálás / kikapcsolás egy szolgáltatásnál
-  const toggleServiceForEmployee = (serviceId: string) => {
+  const toggleServiceForEmployee = (serviceId: string | number) => {
+    const sid = String(serviceId);
     setEmployeeServices((prev) => {
-      const current = prev[serviceId] || { checked: false, custom_minutes: "" };
+      const current = prev[sid] || { checked: false, custom_minutes: "" };
       return {
         ...prev,
-        [serviceId]: {
+        [sid]: {
           ...current,
           checked: !current.checked,
         },
@@ -205,12 +190,13 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
   };
 
   // perc módosítása egy adott szolgáltatásnál
-  const updateServiceMinutes = (serviceId: string, val: string) => {
+  const updateServiceMinutes = (serviceId: string | number, val: string) => {
+    const sid = String(serviceId);
     setEmployeeServices((prev) => {
-      const current = prev[serviceId] || { checked: false, custom_minutes: "" };
+      const current = prev[sid] || { checked: false, custom_minutes: "" };
       return {
         ...prev,
-        [serviceId]: {
+        [sid]: {
           ...current,
           custom_minutes: val,
         },
@@ -233,7 +219,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 
   // ---- Aktiválás / inaktiválás ----
   async function toggleActive() {
-    if (!employee || !employee.id) return;
+    if (!employee?.id) return;
     if (!token) {
       setStatusError("Nincs jogosultság (nincs token).");
       return;
@@ -243,18 +229,16 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     setStatusError("");
 
     try {
-      const res = await fetch(
-        `http://localhost:5000/api/employees/${employee.id}/active`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ active: newActive }),
-        }
-      );
-      const data = await res.json().catch(() => ({}));
+      const res = await fetch(`/api/employees/${employee.id}/active`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ active: newActive }),
+      });
+      const txt = await res.text();
+      const data = txt ? (JSON.parse(txt) as any) : {};
       if (!res.ok) {
         console.error("Státusz frissítés hiba:", data);
         setStatusError(
@@ -277,9 +261,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     let out = "";
-    for (let i = 0; i < 10; i++) {
-      out += chars[Math.floor(Math.random() * chars.length)];
-    }
+    for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
     setPlainPassword(out);
     setShowPassword(true);
   }
@@ -302,21 +284,19 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     try {
       if (employee?.id) {
         // meglévő dolgozó
-        const res = await fetch(
-          `http://localhost:5000/api/employees/${employee.id}/credentials`,
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              login_name: loginName.trim(),
-              plain_password: plainPassword || undefined,
-            }),
-          }
-        );
-        const data = await res.json().catch(() => ({}));
+        const res = await fetch(`/api/employees/${employee.id}/credentials`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            login_name: loginName.trim(),
+            plain_password: plainPassword || undefined,
+          }),
+        });
+        const txt = await res.text();
+        const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {
           console.error("Belépési adatok mentése hiba:", data);
           setCredsError(
@@ -333,27 +313,24 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
           setShowPassword(false);
         }
       } else {
-        // még nincs employee -> minimál user létrehozása
-        const res = await fetch(
-          "http://localhost:5000/api/employees/credentials",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              login_name: loginName.trim(),
-              plain_password: plainPassword,
-            }),
-          }
-        );
-        const data = await res.json().catch(() => ({}));
+        // minimál user létrehozása (ha van ilyen endpoint)
+        const res = await fetch("/api/employees/credentials", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            login_name: loginName.trim(),
+            plain_password: plainPassword,
+          }),
+        });
+        const txt = await res.text();
+        const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {
-          console.error("Új minimál user létrehozás hiba:", data);
+          console.error("Új felhasználó létrehozás hiba:", data);
           setCredsError(
-            data?.error ||
-              "Nem sikerült létrehozni az új felhasználót a szerveren."
+            data?.error || "Nem sikerült létrehozni az új felhasználót."
           );
         } else {
           setCredsSuccess("Felhasználó létrehozva.");
@@ -523,11 +500,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                             localActive
                               ? "bg-red-600 hover:bg-red-700 text-white"
                               : "bg-green-600 hover:bg-green-700 text-white"
-                          } ${
-                            updatingActive
-                              ? "opacity-60 cursor-not-allowed"
-                              : ""
-                          }`}
+                          } ${updatingActive ? "opacity-60 cursor-not-allowed" : ""}`}
                         >
                           {updatingActive
                             ? "Mentés..."
@@ -569,9 +542,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                 )}
 
                 {servicesErr && (
-                  <div className="p-3 text-xs text-red-500">
-                    {servicesErr}
-                  </div>
+                  <div className="p-3 text-xs text-red-500">{servicesErr}</div>
                 )}
 
                 {!servicesLoading && !servicesErr && services.length === 0 && (
@@ -580,94 +551,83 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   </div>
                 )}
 
-                {!servicesLoading &&
-                  !servicesErr &&
-                  services.length > 0 && (
-                    <div className="divide-y divide-gray-200 dark:divide-neutral-700">
-                      {services.map((srv) => {
-                        const state = employeeServices[srv.id] || {
+                {!servicesLoading && !servicesErr && services.length > 0 && (
+                  <div className="divide-y divide-gray-200 dark:divide-neutral-700">
+                    {services.map((srv) => {
+                      const sid = String(srv.id);
+                      const state =
+                        employeeServices[sid] || {
                           checked: false,
                           custom_minutes:
-                            srv.duration_minutes
+                            srv.duration_minutes != null
                               ? String(srv.duration_minutes)
-                              : srv.duration
+                              : srv.duration != null
                               ? String(srv.duration)
                               : "",
                         };
 
-                        const priceDisplay =
-                          srv.price != null
-                            ? `${srv.price} Ft`
-                            : "—";
+                      const priceDisplay =
+                        srv.price != null ? `${srv.price} Ft` : "—";
 
-                        const minutesLabel =
-                          state.custom_minutes || "—";
+                      const minutesLabel = state.custom_minutes || "—";
 
-                        return (
-                          <div
-                            key={srv.id}
-                            className="p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
-                          >
-                            {/* Bal oldal: név + ár + leírás */}
-                            <label className="flex items-start gap-2 flex-1 text-sm cursor-pointer">
+                      return (
+                        <div
+                          key={sid}
+                          className="p-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                        >
+                          {/* Bal oldal: név + ár + leírás */}
+                          <label className="flex items-start gap-2 flex-1 text-sm cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="mt-[3px]"
+                              checked={state.checked}
+                              onChange={() => toggleServiceForEmployee(sid)}
+                            />
+                            <div>
+                              <div className="font-medium text-gray-800 dark:text-gray-100">
+                                {srv.name}
+                              </div>
+
+                              <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                Ár: {priceDisplay} · Idő: {minutesLabel} perc
+                              </div>
+
+                              {srv.description && (
+                                <div className="text-[11px] text-gray-500 dark:text-gray-400">
+                                  {srv.description}
+                                </div>
+                              )}
+                            </div>
+                          </label>
+
+                          {/* Jobb oldal: egyedi perc módosítás */}
+                          {state.checked && (
+                            <div className="text-xs flex items-center gap-2">
+                              <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                                Idő (perc):
+                              </span>
                               <input
-                                type="checkbox"
-                                className="mt-[3px]"
-                                checked={state.checked}
-                                onChange={() =>
-                                  toggleServiceForEmployee(srv.id)
+                                type="number"
+                                min={1}
+                                className="w-20 border border-gray-300 dark:border-neutral-600 rounded-lg p-1 bg-white dark:bg-neutral-700 text-gray-800 dark:text-gray-100"
+                                value={state.custom_minutes}
+                                onChange={(e) =>
+                                  updateServiceMinutes(sid, e.target.value)
                                 }
                               />
-                              <div>
-                                <div className="font-medium text-gray-800 dark:text-gray-100">
-                                  {srv.name}
-                                </div>
-
-                                <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                                  Ár: {priceDisplay} · Idő: {minutesLabel} perc
-                                </div>
-
-                                {srv.description && (
-                                  <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                                    {srv.description}
-                                  </div>
-                                )}
-                              </div>
-                            </label>
-
-                            {/* Jobb oldal: egyedi perc módosítás */}
-                            {state.checked && (
-                              <div className="text-xs flex items-center gap-2">
-                                <span className="text-gray-500 dark:text-gray-400 whitespace-nowrap">
-                                  Idő (perc):
-                                </span>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  className="w-20 border border-gray-300 dark:border-neutral-600 rounded-lg p-1 bg-white dark:bg-neutral-700 text-gray-800 dark:text-gray-100"
-                                  value={state.custom_minutes}
-                                  onChange={(e) =>
-                                    updateServiceMinutes(
-                                      srv.id,
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
-                Ez a lista a <code>services</code> táblából jön (név, ár,
-                perc). A pipálás és a perc most csak lokál state-ben él.
-                Következő lépésben ide tudunk rakni egy külön{" "}
-                <strong>Mentés</strong> gombot, ami majd PATCH-eli az
-                employee–service hozzárendelést a backend felé.
+                A pipálás és a beállított perc most lokális. Külön „Mentés”
+                gombbal később PATCH-elhető az employee–service hozzárendelés.
               </p>
             </section>
           )}
@@ -750,9 +710,7 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
                   </button>
 
                   {credsError && (
-                    <div className="text-xs text-red-500 mt-2">
-                      {credsError}
-                    </div>
+                    <div className="text-xs text-red-500 mt-2">{credsError}</div>
                   )}
 
                   {credsSuccess && (

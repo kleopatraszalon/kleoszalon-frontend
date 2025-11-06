@@ -1,400 +1,398 @@
-import React, { useState, useEffect, FormEvent } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/kleo_logo.png";
+import bg from "../assets/background_login.webp";
+import logo from "../assets/kleo_logo.png"; // LOGÓ
 
-type LocationRow = {
-  id: string;
-  name: string;
-  city: string;
-  address: string;
+// ===== API base (ha nincs megadva, ugyanarra a domainre lövünk) =====
+const API_BASE =
+  (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, "") || "";
+
+type LoginStepResp = { success: true; step: "code_required"; message?: string };
+type LoginTokenResp = {
+  success: true;
+  token: string;
+  role?: string;
+  location_id?: string | number | null;
 };
+type LoginErrorResp = { success: false; error: string };
+type LoginResp = LoginStepResp | LoginTokenResp | LoginErrorResp;
+type VerifyResp = LoginTokenResp | LoginErrorResp;
+type LocationOpt = { id: string | number; name: string };
 
-const Login: React.FC = () => {
+const isLoginStep = (x: any): x is LoginStepResp =>
+  x && x.success === true && x.step === "code_required";
+const isLoginToken = (x: any): x is LoginTokenResp =>
+  x && x.success === true && typeof x.token === "string";
+const isErrorResp = (x: any): x is LoginErrorResp => x && x.success === false;
+
+async function readBody(res: Response): Promise<{ json: any | null; raw: string }> {
+  const txt = await res.text();
+  try {
+    return { json: JSON.parse(txt), raw: txt };
+  } catch {
+    return { json: null, raw: txt };
+  }
+}
+
+export default function Login() {
   const navigate = useNavigate();
 
-  // ---- Tabs: client = Ügyfél, employee = Munkatársi ----
-  const [activeTab, setActiveTab] = useState<"client" | "employee">("client");
-
-  // ==== ÜGYFÉL FLOW (változatlan) ====
-  const [email, setEmail] = useState("");
+  const [tab, setTab] = useState<"customer" | "employee">("customer");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
+  const [step, setStep] = useState<"login" | "code">("login");
 
-  const [locations, setLocations] = useState<LocationRow[]>([]);
-  const [locationId, setLocationId] = useState("");
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const [step, setStep] = useState<1 | 2>(1); // 1 = jelszó, 2 = e-mail kód
-  const [error, setError] = useState("");
-  const [info, setInfo] = useState("");
+  // Telephelyek
+  const [locs, setLocs] = useState<LocationOpt[]>([]);
+  const [locLoading, setLocLoading] = useState(false);
+  const [locationId, setLocationId] = useState<string>("");
 
-  // ==== MUNKATÁRSI FLOW (új) ====
-  const [empLogin, setEmpLogin] = useState("");
-  const [empPass, setEmpPass] = useState("");
-  const [empError, setEmpError] = useState("");
-
-  // ------- biztonságos JSON feldolgozó -------
-  const parseJSON = async (res: Response) => {
-    try {
-      const text = await res.text();
-      return text ? JSON.parse(text) : {};
-    } catch {
-      return { error: "Váratlan szerverválasz" };
-    }
-  };
-
-  // 🔄 Telephelyek (Ügyfél fülhöz)
   useEffect(() => {
-    const loadLocations = async () => {
+    if (tab !== "customer") return;
+    (async () => {
+      setLocLoading(true);
       try {
-        const res = await fetch("http://localhost:5000/api/locations", {
-          method: "GET",
+        const res = await fetch(`${API_BASE}/api/locations?active=1`, {
+          headers: { Accept: "application/json" },
         });
-        const data = await parseJSON(res);
-
-        if (res.ok && Array.isArray(data)) {
-          setLocations(data);
-          if (data.length > 0 && !locationId) {
-            setLocationId(data[0].id);
-          }
-        } else {
-          console.warn("Telephely lista nem érvényes:", data);
-        }
-      } catch (err) {
-        console.error("Telephely lekérdezési hiba:", err);
+        const { json } = await readBody(res);
+        const arr = Array.isArray(json) ? json : [];
+        const options: LocationOpt[] = arr
+          .map((r: any) => ({
+            id: r.id ?? r.location_id ?? "",
+            name: r.name ?? r.location_name ?? "",
+          }))
+          .filter((x) => x.id && x.name);
+        setLocs(options);
+        if (options.length && !locationId) setLocationId(String(options[0].id));
+      } finally {
+        setLocLoading(false);
       }
-    };
-
-    loadLocations();
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locationId]);
+  }, [tab]);
 
-  // ✅ Sikeres ÜGYFÉL login befejezése
-  const finishClientLogin = (data: any) => {
-    if (data.token) {
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("kleo_token", data.token);
-    }
-    localStorage.setItem("kleo_role", data.role ?? "guest");
+  function persistAuth({
+    token,
+    role,
+    location_id,
+  }: {
+    token: string;
+    role?: string;
+    location_id?: string | number | null;
+  }) {
+    localStorage.setItem("token", token);
+    localStorage.setItem("kleo_token", token);
+    if (role) localStorage.setItem("kleo_role", role);
+    const loc =
+      tab === "customer"
+        ? locationId || (location_id != null ? String(location_id) : "")
+        : location_id != null
+        ? String(location_id)
+        : "";
+    if (loc) localStorage.setItem("kleo_location_id", loc);
+  }
 
-    const finalLocId = data.location_id ?? locationId ?? "";
-    localStorage.setItem("kleo_location_id", finalLocId);
-
-    let finalLocName = "";
-    if (finalLocId && locations.length > 0) {
-      const found = locations.find((l) => l.id === finalLocId);
-      if (found) finalLocName = found.name;
-    }
-    localStorage.setItem("kleo_location_name", finalLocName);
-
-    if (email) localStorage.setItem("email", email);
-
-    navigate("/home");
-  };
-
-  // ▶ ÜGYFÉL 1. lépés: email + jelszó + telephely
-  const handleLogin = async (e: FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
-    setInfo("");
-
-    if (!locationId) {
-      setError("Válassz telephelyet a belépéshez.");
-      return;
-    }
-
+    setErr("");
+    setMsg("");
+    setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, location_id: locationId }),
-      });
-
-      const data = await parseJSON(res);
-      if (res.ok && data.success && data.step === "code_required") {
-        setInfo(data.message || "Kérjük, írd be az e-mailben kapott belépési kódot.");
-        setStep(2);
-        return;
-      }
-      if (res.ok && data.success && data.token) {
-        finishClientLogin(data);
-        return;
-      }
-      setError(data.error || "Hibás bejelentkezési adatok");
-    } catch (err) {
-      console.error("Login request error:", err);
-      setError("Hálózati hiba történt");
-    }
-  };
-
-  // ▶ ÜGYFÉL 2. lépés: kód + telephely
-  const handleVerify = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setInfo("");
-
-    if (!locationId) {
-      setError("Válassz telephelyet a belépéshez.");
-      return;
-    }
-
-    try {
-      const res = await fetch("http://localhost:5000/api/verify-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code, location_id: locationId }),
-      });
-
-      const data = await parseJSON(res);
-      if (res.ok && data.success && data.token) {
-        finishClientLogin(data);
-        return;
-      }
-      setError(data.error || "Hibás kód");
-    } catch (err) {
-      console.error("Verify request error:", err);
-      setError("Hálózati hiba történt");
-    }
-  };
-
-  // ▶ ELFELEJTETT JELSZÓ: reset-link kérése
-  const handleForgotPassword = async () => {
-    setError("");
-    setInfo("");
-    if (!email) {
-      setError("Add meg az e-mail címedet, majd kattints az Elfelejtett jelszó linkre.");
-      return;
-    }
-    try {
-      const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-      const data = await parseJSON(res);
-      if (res.ok) {
-        setInfo(
-          data.message ||
-            "Ha létezik fiók ezzel az e-mail címmel, küldtünk egy jelszó-visszaállító levelet. Kérjük, ellenőrizd a beérkező leveleket és a levélszemetet is."
-        );
-      } else {
-        setError(data.error || "A jelszó-visszaállítás kérése nem sikerült.");
-      }
-    } catch (err) {
-      console.error("Forgot-password error:", err);
-      setError("Hálózati hiba történt");
-    }
-  };
-
-  // ▶ MUNKATÁRSI belépés (DEMO): admin/admin → admin token
-  const handleEmployeeLogin = (e: FormEvent) => {
-    e.preventDefault();
-    setEmpError("");
-
-    const u = empLogin.trim();
-    const p = empPass.trim();
-
-    if (u === "admin" && p === "admin") {
       const payload = {
-        user_id: "demo-admin-id",
-        role: "admin",
-        iat: Math.floor(Date.now() / 1000),
+        mode: tab,
+        email: username,
+        login_name: username,
+        password,
+        location_id: tab === "customer" ? (locationId || null) : null,
       };
-      const fakeToken = btoa(JSON.stringify(payload));
 
-      localStorage.setItem("token", fakeToken);
-      localStorage.setItem("kleo_token", fakeToken);
-      localStorage.setItem("kleo_role", "admin");
+      const res = await fetch(`${API_BASE}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-      localStorage.setItem("kleo_location_id", "");
-      localStorage.setItem("kleo_location_name", "");
+      const { json, raw } = await readBody(res);
 
-      navigate("/home");
-      return;
+      if (!res.ok) {
+        if (json && isErrorResp(json)) {
+          setErr(json.error || "Sikertelen belépés");
+        } else {
+          setErr(`HTTP ${res.status} – váratlan szerver válasz: ${raw?.slice(0, 120) || res.statusText}`);
+        }
+        return;
+      }
+
+      const data: LoginResp = json ?? { success: false, error: "Ismeretlen válasz" };
+
+      if (isLoginStep(data)) {
+        setMsg(data.message || "A belépési kódot elküldtük az e-mail címedre.");
+        setStep("code");
+      } else if (isLoginToken(data)) {
+        persistAuth({ token: data.token, role: data.role, location_id: data.location_id ?? null });
+        navigate("/");
+      } else if (isErrorResp(data)) {
+        setErr(data.error || "Sikertelen belépés");
+      } else {
+        setErr("Ismeretlen válasz a szervertől.");
+      }
+    } catch {
+      setErr("Hálózati hiba");
+    } finally {
+      setLoading(false);
     }
-
-    setEmpError("Hibás felhasználónév vagy jelszó.");
   };
 
-  // Telephely select (Ügyfél űrlaphoz)
-  const LocationSelect = () => (
-    <div className="text-left">
-      <label className="block text-xs text-gray-600 mb-1">Telephely</label>
-      <select
-        className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373] bg-white text-sm"
-        value={locationId}
-        onChange={(e) => setLocationId(e.target.value)}
-        required
-      >
-        {locations.length === 0 && <option value="">Telephelyek betöltése...</option>}
-        {locations.length > 0 && !locationId && <option value="">Válassz telephelyet…</option>}
-        {locations.map((loc) => (
-          <option key={loc.id} value={loc.id}>
-            {loc.name}
-            {loc.city ? ` – ${loc.city}` : ""} {loc.address ? ` (${loc.address})` : ""}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setErr("");
+    setMsg("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/verify-code`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email: username, code }),
+      });
+
+      const { json, raw } = await readBody(res);
+
+      if (!res.ok) {
+        if (json && isErrorResp(json)) {
+          setErr(json.error || "Érvénytelen kód");
+        } else {
+          setErr(`HTTP ${res.status} – váratlan szerver válasz: ${raw?.slice(0, 120) || res.statusText}`);
+        }
+        return;
+      }
+
+      const data: VerifyResp = json ?? { success: false, error: "Ismeretlen válasz" };
+
+      if (isLoginToken(data)) {
+        persistAuth({ token: data.token, role: data.role, location_id: data.location_id ?? null });
+        navigate("/");
+      } else if (isErrorResp(data)) {
+        setErr(data.error || "Érvénytelen kód");
+      } else {
+        setErr("Ismeretlen válasz a szervertől.");
+      }
+    } catch {
+      setErr("Hálózati hiba");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---- Stílusok (a kért elrendezéssel) ----
+  const pageWrap: React.CSSProperties = {
+    minHeight: "100vh",
+    width: "100%",
+    background: "#fbf4ed",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  };
+
+  // panel: háttérKÉP + fehér fátyol
+  const card: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 560,
+    borderRadius: 18,
+    padding: 28,
+    backgroundImage: `linear-gradient(rgba(255,255,255,0.95), rgba(255,255,255,0.95)), url(${bg})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+    boxShadow: "0 24px 60px rgba(0,0,0,0.18)",
+  };
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 14px",
+    borderRadius: 12,
+    border: "1px solid #e5e7eb",
+    background: "#edf4ff",
+    fontSize: 15,
+    outline: "none",
+  };
+
+  const primaryBtn: React.CSSProperties = {
+    width: "100%",
+    padding: "12px 16px",
+    marginTop: 10,
+    border: "none",
+    borderRadius: 12,
+    background: "#c89d73",
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: 700,
+    cursor: "pointer",
+  };
+
+  const linkBtn: React.CSSProperties = {
+    background: "transparent",
+    border: "none",
+    color: "#916941",
+    textDecoration: "underline",
+    cursor: "pointer",
+    padding: 8,
+    fontSize: 14,
+  };
+
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    flex: 1,
+    textAlign: "center",
+    padding: "12px 8px",
+    fontWeight: 700,
+    borderBottom: `3px solid ${active ? "#d9a77d" : "transparent"}`,
+    color: active ? "#2d2d2d" : "#777",
+    cursor: "pointer",
+  });
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white to-[#f9f5f0]">
-      <div className="bg-white shadow-2xl rounded-2xl p-10 w-full max-w-md text-center">
-        {/* logó */}
-        <img src={logo} alt="Kleoszalon logó" className="mx-auto mb-6 w-32 h-auto" />
-        <h2 className="text-2xl font-semibold text-gray-700 mb-6">Kleoszalon Belépés</h2>
+    <div style={pageWrap}>
+      <div style={card}>
+        {/* LOGÓ + CÍM */}
+        <div style={{ textAlign: "center", marginBottom: 12 }}>
+          <img
+            src={logo}
+            alt="KLEOPÁTRA SZÉPSÉGSZALONOK"
+            style={{ height: 80, width: "auto" }} // dupla méret
+          />
+          <h1 style={{ margin: "12px 0 0 0", fontSize: 28 }}>Kleoszalon Belépés</h1>
+        </div>
 
-        {/* Tabs */}
-        <div className="flex text-sm font-medium border-b border-gray-200 mb-6">
-          <button
-            className={`flex-1 py-2 ${
-              activeTab === "client" ? "text-[#d4a373] border-b-2 border-[#d4a373]" : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => {
-              setActiveTab("client");
-              setError("");
-              setInfo("");
-              setStep(1);
-            }}
-          >
+        {/* Fülek */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 16 }}>
+          <button type="button" style={tabBtn(tab === "customer")} onClick={() => { setTab("customer"); setStep("login"); }}>
             Ügyfél belépés
           </button>
-          <button
-            className={`flex-1 py-2 ${
-              activeTab === "employee" ? "text-[#d4a373] border-b-2 border-[#d4a373]" : "text-gray-500 hover:text-gray-700"
-            }`}
-            onClick={() => {
-              setActiveTab("employee");
-              setEmpError("");
-            }}
-          >
+          <button type="button" style={tabBtn(tab === "employee")} onClick={() => { setTab("employee"); setStep("login"); }}>
             Munkatársi belépés
           </button>
         </div>
 
-        {/* ÜGYFÉL FORM – eredeti flow + elfelejtett jelszó link */}
-        {activeTab === "client" && (
-          <form onSubmit={step === 1 ? handleLogin : handleVerify} className="space-y-5">
-            {step === 1 && (
-              <>
-                <input
-                  type="email"
-                  placeholder="E-mail cím"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-                />
-                <input
-                  type="password"
-                  placeholder="Jelszó"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-                />
+        {step === "login" ? (
+          <form onSubmit={handleLogin}>
+            <label style={{ display: "block", marginBottom: 12 }}>
+              <span style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                {tab === "employee" ? "Felhasználónév" : "E-mail vagy felhasználónév"}
+              </span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder={tab === "employee" ? "pl. admin" : "pl. you@example.com vagy admin"}
+                style={inputStyle}
+              />
+            </label>
 
-                {/* Elfelejtett jelszó link */}
-                <div className="text-right -mt-2">
-                  <button
-                    type="button"
-                    onClick={handleForgotPassword}
-                    className="text-xs text-gray-500 hover:text-gray-700 underline"
-                  >
-                    Elfelejtett jelszó?
-                  </button>
-                </div>
+            <label style={{ display: "block", marginBottom: 8 }}>
+              <span style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Jelszó</span>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                style={inputStyle}
+              />
+            </label>
 
-                <LocationSelect />
-                <button
-                  type="submit"
-                  className="w-full bg-[#d4a373] text-white py-3 rounded-xl font-medium hover:bg-[#c29260] transition"
+            {/* Elfelejtett jelszó -> a gomb FÖLÉ, jobbra igazítva */}
+            <div style={{ textAlign: "right", margin: "6px 0 10px 0" }}>
+              <button type="button" style={linkBtn} onClick={() => navigate("/forgot-password")}>
+                Elfelejtett jelszó?
+              </button>
+            </div>
+
+            {tab === "customer" && (
+              <label style={{ display: "block", marginBottom: 10 }}>
+                <span style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Telephely</span>
+                <select
+                  value={locationId}
+                  onChange={(e) => setLocationId(e.target.value)}
+                  required
+                  disabled={locLoading}
+                  style={{ ...inputStyle, background: "#fff" }}
                 >
-                  Belépés
-                </button>
-              </>
+                  {locLoading && <option>Telephelyek betöltése…</option>}
+                  {!locLoading && locs.length === 0 && <option>Nem érhető el telephely</option>}
+                  {!locLoading &&
+                    locs.map((l) => (
+                      <option key={String(l.id)} value={String(l.id)}>
+                        {l.name}
+                      </option>
+                    ))}
+                </select>
+              </label>
             )}
 
-            {step === 2 && (
-              <>
-                <p className="text-gray-600 text-sm">
-                  {info || "Írd be az e-mailben kapott hatjegyű kódot."}
-                </p>
-                <input
-                  type="text"
-                  placeholder="Belépési kód"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  required
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373] tracking-widest text-center font-mono"
-                />
-                <LocationSelect />
-                <button
-                  type="submit"
-                  className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium transition"
-                >
-                  Hitelesítés
-                </button>
-                <button
-                  type="button"
-                  className="w-full text-xs text-gray-500 underline"
-                  onClick={() => {
-                    setStep(1);
-                    setCode("");
-                    setPassword("");
-                    setInfo("");
-                    setError("");
-                  }}
-                >
-                  Vissza / Új kód kérése
-                </button>
-              </>
-            )}
-            {error && <p className="mt-2 text-red-500 text-sm">{error}</p>}
-            {info && !error && <p className="mt-2 text-green-600 text-sm">{info}</p>}
-            {step === 1 && (
-              <p className="mt-5 text-sm text-gray-500">
-                Nincs még fiókod?{" "}
-                <button onClick={() => navigate("/register")} className="text-[#d4a373] font-medium hover:underline">
-                  Regisztráció (jóváhagyásra vár)
-                </button>
-              </p>
-            )}
-          </form>
-        )}
-
-        {/* MUNKATÁRSI FORM – demo admin/admin */}
-        {activeTab === "employee" && (
-          <form onSubmit={handleEmployeeLogin} className="space-y-5">
-            <input
-              type="text"
-              placeholder="Felhasználónév (pl. admin)"
-              value={empLogin}
-              onChange={(e) => setEmpLogin(e.target.value)}
-              required
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-            />
-            <input
-              type="password"
-              placeholder="Jelszó"
-              value={empPass}
-              onChange={(e) => setEmpPass(e.target.value)}
-              required
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-            />
-            {empError && <p className="text-red-500 text-sm">{empError}</p>}
-            <button type="submit" className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium transition">
-              Belépés (Munkatárs)
+            <button type="submit" style={primaryBtn} disabled={loading}>
+              {loading ? "Belépés…" : "Belépés"}
             </button>
-            <p className="text-[11px] text-gray-500 leading-snug">
-              Teszt: <b>admin</b> / <b>admin</b> → admin jogosultság, demo token. Később az
-              <i> employees</i> tábla <code>login_name</code> + <code>password_hash</code> alapján fog menni.
-            </p>
+          </form>
+        ) : (
+          <form onSubmit={handleVerify}>
+            <label style={{ display: "block", marginBottom: 12 }}>
+              <span style={{ display: "block", fontSize: 13, marginBottom: 6 }}>
+                E-mail vagy felhasználónév (ellenőrzéshez)
+              </span>
+              <input
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                placeholder="pl. you@example.com vagy admin"
+                style={inputStyle}
+              />
+            </label>
+
+            <label style={{ display: "block", marginBottom: 10 }}>
+              <span style={{ display: "block", fontSize: 13, marginBottom: 6 }}>Belépési kód</span>
+              <input
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+                placeholder="123456"
+                inputMode="numeric"
+                pattern="^\\d{6}$"
+                title="6 számjegy"
+                style={inputStyle}
+              />
+            </label>
+
+            <div style={{ display: "flex", gap: 12 }}>
+              <button type="submit" style={{ ...primaryBtn, marginTop: 0 }} disabled={loading}>
+                {loading ? "Ellenőrzés…" : "Kód ellenőrzése"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setStep("login"); setCode(""); setMsg(""); setErr(""); }}
+                style={{ ...linkBtn, marginLeft: 0 }}
+              >
+                Vissza
+              </button>
+            </div>
           </form>
         )}
+
+        {msg && <p style={{ color: "green", marginTop: 12 }}>{msg}</p>}
+        {err && <p style={{ color: "crimson", marginTop: 12 }}>{err}</p>}
+
+        <div style={{ textAlign: "center", marginTop: 14, fontSize: 14 }}>
+          Nincs még fiókod?{" "}
+          <button type="button" style={linkBtn} onClick={() => navigate("/register")}>
+            Regisztráció (jóváhagyásra vár)
+          </button>
+        </div>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

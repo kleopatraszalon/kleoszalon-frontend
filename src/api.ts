@@ -1,9 +1,13 @@
 import axios from "axios";
 
-// Axios példány backend URL-lel és cookie-k engedélyezésével
+const base =
+  (import.meta as any).env?.VITE_API_URL?.replace(/\/$/, "") ||
+  window.location.origin;
+
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // backend port
-  withCredentials: true,                // ha cookie-kat is szeretnél kezelni
+  baseURL: `${base}/api`,
+  withCredentials: true,
+  headers: { "Content-Type": "application/json" },
 });
 
-export default api;
+export default api; // default export
