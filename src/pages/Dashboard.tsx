@@ -9,6 +9,10 @@ interface User {
   role: string;
 }
 
+interface DashboardResponse {
+  user: User;
+}
+
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
@@ -24,11 +28,14 @@ const Dashboard: React.FC = () => {
       }
 
       try {
-        const res = await api.get("/dashboard", {
+        // 🔹 Megadjuk a válasz típusát: <DashboardResponse>
+        const res = await api.get<DashboardResponse>("/dashboard", {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        // 🔹 res.data már típusos, nem unknown
         setUser(res.data.user || { full_name: "User", id: 0, email: "", role: "" });
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error(err);
         setError("A token érvénytelen vagy lejárt.");
         localStorage.removeItem("kleo_token");

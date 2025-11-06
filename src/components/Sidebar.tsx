@@ -7,16 +7,23 @@ import Logo from "../assets/kleo_logo.png";
 interface SubMenu {
   id: number;
   name: string;
-  route?: string; // <-- backend: route
+  route?: string;
 }
 
 interface Menu {
   id: number;
   name: string;
   icon?: string;
-  route?: string; // <-- backend: route
+  route?: string;
   submenus: SubMenu[];
 }
+
+// 🔧 Dinamikus backend URL (Render vagy localhost)
+const API_BASE_URL =
+  (window as any).VITE_API_BASE_URL ||
+  (window.location.hostname.includes("localhost")
+    ? "http://localhost:5000"
+    : "https://kleoszalon-api.onrender.com");
 
 const Sidebar: React.FC = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
@@ -25,22 +32,17 @@ const Sidebar: React.FC = () => {
 
   useEffect(() => {
     axios
-      .get("http://localhost:5000/api/menus")
-      .then((res) => {
-        // res.data -> [{ id, name, route, submenus: [...] }, ...]
-        setMenus(res.data);
-      })
+      .get<Menu[]>(`${API_BASE_URL}/api/menus`)
+      .then((res) => setMenus(res.data))
       .catch((err) => console.error("❌ Menü betöltési hiba:", err));
   }, []);
 
   const handleMenuClick = (menu: Menu) => {
-    // ha van almenü -> csak nyit/zár
     if (menu.submenus && menu.submenus.length > 0) {
-        setOpenMenu(openMenu === menu.id ? null : menu.id);
-        return;
+      setOpenMenu(openMenu === menu.id ? null : menu.id);
+      return;
     }
 
-    // ha nincs almenü, de van route -> menjünk oda
     if (menu.route) {
       navigate(menu.route);
     }
@@ -74,7 +76,6 @@ const Sidebar: React.FC = () => {
                 className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-800 transition text-left"
               >
                 <span className="flex items-center gap-2">
-                  {/* Ha később akarsz ikont DB-ből, itt lehet kirakni */}
                   <span>{menu.name}</span>
                 </span>
 
@@ -86,7 +87,6 @@ const Sidebar: React.FC = () => {
                   ))}
               </button>
 
-              {/* Almenük */}
               {openMenu === menu.id && menu.submenus.length > 0 && (
                 <ul className="bg-gray-800">
                   {menu.submenus.map((sub) => (

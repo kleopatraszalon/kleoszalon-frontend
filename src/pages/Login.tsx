@@ -156,6 +156,35 @@ const Login: React.FC = () => {
     }
   };
 
+  // ▶ ELFELEJTETT JELSZÓ: reset-link kérése
+  const handleForgotPassword = async () => {
+    setError("");
+    setInfo("");
+    if (!email) {
+      setError("Add meg az e-mail címedet, majd kattints az Elfelejtett jelszó linkre.");
+      return;
+    }
+    try {
+      const res = await fetch("http://localhost:5000/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await parseJSON(res);
+      if (res.ok) {
+        setInfo(
+          data.message ||
+            "Ha létezik fiók ezzel az e-mail címmel, küldtünk egy jelszó-visszaállító levelet. Kérjük, ellenőrizd a beérkező leveleket és a levélszemetet is."
+        );
+      } else {
+        setError(data.error || "A jelszó-visszaállítás kérése nem sikerült.");
+      }
+    } catch (err) {
+      console.error("Forgot-password error:", err);
+      setError("Hálózati hiba történt");
+    }
+  };
+
   // ▶ MUNKATÁRSI belépés (DEMO): admin/admin → admin token
   const handleEmployeeLogin = (e: FormEvent) => {
     e.preventDefault();
@@ -165,7 +194,6 @@ const Login: React.FC = () => {
     const p = empPass.trim();
 
     if (u === "admin" && p === "admin") {
-      // készítünk egy egyszerű „tokent” (demo)
       const payload = {
         user_id: "demo-admin-id",
         role: "admin",
@@ -177,7 +205,6 @@ const Login: React.FC = () => {
       localStorage.setItem("kleo_token", fakeToken);
       localStorage.setItem("kleo_role", "admin");
 
-      // munkatársnál most nincs kötelező telephely
       localStorage.setItem("kleo_location_id", "");
       localStorage.setItem("kleo_location_name", "");
 
@@ -245,7 +272,7 @@ const Login: React.FC = () => {
           </button>
         </div>
 
-        {/* ÜGYFÉL FORM – eredeti flow */}
+        {/* ÜGYFÉL FORM – eredeti flow + elfelejtett jelszó link */}
         {activeTab === "client" && (
           <form onSubmit={step === 1 ? handleLogin : handleVerify} className="space-y-5">
             {step === 1 && (
@@ -266,6 +293,18 @@ const Login: React.FC = () => {
                   required
                   className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
                 />
+
+                {/* Elfelejtett jelszó link */}
+                <div className="text-right -mt-2">
+                  <button
+                    type="button"
+                    onClick={handleForgotPassword}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline"
+                  >
+                    Elfelejtett jelszó?
+                  </button>
+                </div>
+
                 <LocationSelect />
                 <button
                   type="submit"
@@ -311,7 +350,8 @@ const Login: React.FC = () => {
                 </button>
               </>
             )}
-            {error && <p className="mt-4 text-red-500 text-sm">{error}</p>}
+            {error && <p className="mt-2 text-red-500 text-sm">{error}</p>}
+            {info && !error && <p className="mt-2 text-green-600 text-sm">{info}</p>}
             {step === 1 && (
               <p className="mt-5 text-sm text-gray-500">
                 Nincs még fiókod?{" "}
