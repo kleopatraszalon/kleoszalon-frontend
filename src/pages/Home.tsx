@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx
+// src/pages/Home.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import Sidebar from "../components/Sidebar";
 import { useNavigate } from "react-router-dom";
@@ -11,8 +11,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import { withBase } from "../utils/apiBase";
 
 type DashboardStats = {
   dailyRevenue: number;
@@ -23,23 +23,16 @@ type DashboardStats = {
 };
 
 type ChartPoint = { date: string; revenue: number };
+type DashboardPayload = { stats?: DashboardStats; chartData?: ChartPoint[] };
 
-type DashboardPayload = {
-  stats?: DashboardStats;
-  chartData?: ChartPoint[];
-};
-
-const Dashboard: React.FC = () => {
+const HomePage: React.FC = () => {
   const navigate = useNavigate();
-
-  // 🔐 user adatok betöltése
   const { user, loading: userLoading, authError } = useCurrentUser();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
 
-  // ⛔ Kilépés memoizált
   const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("kleo_token");
@@ -49,32 +42,44 @@ const Dashboard: React.FC = () => {
     localStorage.removeItem("kleo_full_name");
     localStorage.removeItem("email");
     localStorage.removeItem("userId");
-    navigate("/login");
+    navigate("/login", { replace: true });
   }, [navigate]);
 
-  // ha nincs token vagy auth hiba → login
+  // Auth guard
   useEffect(() => {
-    if (!userLoading) {
-      if (authError || !user) handleLogout();
-    }
+    if (!userLoading && (authError || !user)) handleLogout();
   }, [userLoading, authError, user, handleLogout]);
 
-  // statisztikák lekérése
+  // Dashboard adatok betöltése
   useEffect(() => {
     if (!user || authError) return;
 
-    const run = async () => {
+    (async () => {
       setLoadingStats(true);
-      const token = localStorage.getItem("token") || "";
+
+      const token =
+        localStorage.getItem("kleo_token") ||
+        localStorage.getItem("token") ||
+        "";
+
+      if (!token) {
+        handleLogout();
+        return;
+      }
+
       const params =
         (user as any)?.location_id != null
           ? `?location_id=${encodeURIComponent(String((user as any).location_id))}`
           : "";
-      const url = `/api/dashboard${params}`;
+
+      const url = withBase(`/api/dashboard${params}`);
 
       try {
         const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
         });
 
         const text = await res.text();
@@ -85,30 +90,37 @@ const Dashboard: React.FC = () => {
           data = {};
         }
 
-        if (!res.ok) {
-          console.warn("Dashboard auth error / token lejárt?");
+        if (res.status === 401 || res.status === 403) {
+          console.warn("Dashboard: jogosultság/tokenszint hiba → logout");
           handleLogout();
           return;
         }
+        if (!res.ok) {
+          console.warn("Dashboard: váratlan státuszkód", res.status, text?.slice(0, 200));
+        }
 
-        setStats(data.stats ?? null);
+        setStats(
+          data.stats ?? {
+            dailyRevenue: 0,
+            monthlyRevenue: 0,
+            totalClients: 0,
+            activeAppointments: 0,
+            lowStockCount: 0,
+          }
+        );
         setChartData(Array.isArray(data.chartData) ? data.chartData : []);
       } catch (e) {
         console.error("Dashboard fetch error:", e);
       } finally {
         setLoadingStats(false);
       }
-    };
-
-    run();
+    })();
   }, [user, authError, handleLogout]);
 
-  // betöltés közbeni állapot
   if (userLoading || loadingStats) {
     return <div className="p-8 text-gray-500">Betöltés...</div>;
   }
 
-  // ha valami nagyon félrement
   if (!user || !stats) {
     return (
       <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-800 dark:text-gray-100">
@@ -123,25 +135,25 @@ const Dashboard: React.FC = () => {
               Kilépés
             </button>
           </div>
-
           <div className="text-red-500">Nem sikerült betölteni az adatokat.</div>
         </main>
       </div>
     );
   }
 
-  // kényelmi megjelenítés – backendtől függő mezők
   const fullName =
-    (user as any)?.full_name ?? (user as any)?.name ?? (user as any)?.email ?? "Felhasználó";
+    (user as any)?.full_name ??
+    (user as any)?.name ??
+    (user as any)?.email ??
+    "Felhasználó";
   const role = (user as any)?.role ?? "";
   const locationName = (user as any)?.location_name ?? "";
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-800 dark:text-gray-100">
       <Sidebar />
-
       <main className="flex-1 p-6">
-        {/* Fejléc + Kilépés gomb */}
+        {/* Fejléc */}
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-6">
           <div>
             <h2 className="text-3xl font-semibold">Irányítópult</h2>
@@ -150,7 +162,6 @@ const Dashboard: React.FC = () => {
               {locationName ? ` @ ${locationName}` : ""}
             </div>
           </div>
-
           <button
             onClick={handleLogout}
             className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow self-start"
@@ -167,19 +178,16 @@ const Dashboard: React.FC = () => {
               {(stats.dailyRevenue ?? 0).toLocaleString()} Ft
             </p>
           </div>
-
           <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
             <h3 className="text-gray-500 text-sm">Havi bevétel</h3>
             <p className="text-2xl font-semibold mt-2">
               {(stats.monthlyRevenue ?? 0).toLocaleString()} Ft
             </p>
           </div>
-
           <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
             <h3 className="text-gray-500 text-sm">Vendégek</h3>
             <p className="text-2xl font-semibold mt-2">{stats.totalClients ?? 0}</p>
           </div>
-
           <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
             <h3 className="text-gray-500 text-sm">Aktív bejelentkezések</h3>
             <p className="text-2xl font-semibold mt-2">{stats.activeAppointments ?? 0}</p>
@@ -205,9 +213,7 @@ const Dashboard: React.FC = () => {
           <h3 className="text-lg font-semibold mb-4">Figyelmeztetések és teendők</h3>
           <ul className="space-y-2 text-sm">
             {stats.lowStockCount > 0 ? (
-              <li className="text-yellow-600">
-                ⚠ {stats.lowStockCount} termék készlete alacsony
-              </li>
+              <li className="text-yellow-600">⚠ {stats.lowStockCount} termék készlete alacsony</li>
             ) : (
               <li className="text-green-500">✔ Minden termék készlete rendben</li>
             )}
@@ -220,4 +226,4 @@ const Dashboard: React.FC = () => {
   );
 };
 
-export default Dashboard;
+export default HomePage;

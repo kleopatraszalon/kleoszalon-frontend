@@ -1,5 +1,5 @@
 // src/App.tsx
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, type ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 
 // ⚠️ A lapoknak DEFAULT exporttal kell rendelkezniük (export default ...)
@@ -15,44 +15,71 @@ const WorkOrderNew = lazy(() => import("./pages/WorkOrderNew"));
 const EmployeesList = lazy(() => import("./pages/EmployeesList"));
 const EmployeeDetails = lazy(() => import("./pages/EmployeeDetails"));
 
-function App() {
+const HOME_PATH = "/";
+
+// Token olvasás biztonságosan (SSR-safe)
+function getToken(): string | null {
+  try {
+    if (typeof window === "undefined") return null;
+    return localStorage.getItem("kleo_token") || localStorage.getItem("token");
+  } catch {
+    return null;
+  }
+}
+
+type GuardProps = { children: ReactElement };
+
+function RequireAuth({ children }: GuardProps) {
+  const t = getToken();
+  return t ? children : <Navigate to="/login" replace />;
+}
+
+function PublicOnly({ children }: GuardProps) {
+  const t = getToken();
+  return t ? <Navigate to={HOME_PATH} replace /> : children;
+}
+
+function FallbackRedirect() {
+  const t = getToken();
+  return <Navigate to={t ? HOME_PATH : "/login"} replace />;
+}
+
+export default function App() {
   return (
     <Router>
       <Suspense fallback={<div>Betöltés…</div>}>
         <Routes>
-          {/* Public / auth */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          {/* Public / Auth pages (csak kijelentkezve) */}
+          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
+          <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
 
-          {/* Főoldal */}
-          <Route path="/" element={<Home />} />
+          {/* Home (védett) */}
+          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
 
-          {/* Modulok */}
-          <Route path="/bejelentkezesek" element={<Bejelentkezesek />} />
-          <Route path="/munkalapok" element={<Munkalapok />} />
-          <Route path="/penzugy" element={<Penzugy />} />
-          <Route path="/logisztika" element={<Logisztika />} />
+          {/* Modulok (védettek) */}
+          <Route path="/bejelentkezesek" element={<RequireAuth><Bejelentkezesek /></RequireAuth>} />
+          <Route path="/munkalapok" element={<RequireAuth><Munkalapok /></RequireAuth>} />
+          <Route path="/penzugy" element={<RequireAuth><Penzugy /></RequireAuth>} />
+          <Route path="/logisztika" element={<RequireAuth><Logisztika /></RequireAuth>} />
 
-          {/* Munkalap / work order menü */}
-          <Route path="/workorders" element={<WorkOrdersList />} />
-          <Route path="/workorders/new" element={<WorkOrderNew />} />
+          {/* Munkalap / Work orders (védettek) */}
+          <Route path="/workorders" element={<RequireAuth><WorkOrdersList /></RequireAuth>} />
+          <Route path="/workorders/new" element={<RequireAuth><WorkOrderNew /></RequireAuth>} />
 
-          {/* Munkatársak */}
-          <Route path="/employees" element={<EmployeesList />} />
-          <Route path="/employees/:id" element={<EmployeeDetails />} />
+          {/* Munkatársak (védettek) */}
+          <Route path="/employees" element={<RequireAuth><EmployeesList /></RequireAuth>} />
+          <Route path="/employees/:id" element={<RequireAuth><EmployeeDetails /></RequireAuth>} />
 
-          {/* Új munkatárs (placeholder) */}
+          {/* Placeholder (védett) */}
           <Route
             path="/employees/new"
-            element={<div>Új munkatárs felvétele (később készítjük el)</div>}
+            element={<RequireAuth><div>Új munkatárs felvétele (később készítjük el)</div></RequireAuth>}
           />
 
           {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<FallbackRedirect />} />
         </Routes>
       </Suspense>
     </Router>
   );
 }
-
-export default App;

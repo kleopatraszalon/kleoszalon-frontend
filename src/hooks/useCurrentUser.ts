@@ -1,133 +1,89 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { withBase } from "../utils/apiBase";
 
-export type CurrentUser = {
-  id: string;
-  full_name: string;
-  role: string;
-  active: boolean;
-  location_id: string | null;
-  location_name: string | null;
+type CurrentUser = {
+  id?: string | number;
+  email?: string;
+  role?: string;
+  location_id?: string | number | null;
+  location_name?: string;
+  full_name?: string;
+  name?: string;
+  [k: string]: any;
 };
 
-type MeResponse = {
-  id: string;
-  full_name: string;
-  role: string;
-  active: boolean;
-  location_id?: string | null;
-  location_name?: string | null;
-  // egyéb mezők jöhetnek, de nem kötelezők
+type HookResult = {
+  user: CurrentUser | null;
+  loading: boolean;
+  authError: boolean;
+  refresh: () => Promise<void>;
 };
 
-function getToken(): string {
-  return (
-    localStorage.getItem("token") ||
-    localStorage.getItem("kleo_token") ||
-    ""
-  );
+async function readBody(res: Response): Promise<{ json: any | null; raw: string }> {
+  const txt = await res.text();
+  try { return { json: JSON.parse(txt), raw: txt }; } catch { return { json: null, raw: txt }; }
 }
 
-export function useCurrentUser() {
+async function apiFetch(path: string, init?: RequestInit): Promise<Response> {
+  const headers: HeadersInit = { Accept: "application/json", ...(init?.headers || {}) };
+  let res = await fetch(withBase(path), { ...init, headers });
+  if (res.status === 404 && path.startsWith("/api/") && !path.startsWith("/api/auth/")) {
+    const alt = path.replace(/^\/api\//, "/api/auth/");
+    const retry = await fetch(withBase(alt), { ...init, headers });
+    if (retry.ok || retry.status !== 404) res = retry;
+  }
+  return res;
+}
+
+export function useCurrentUser(): HookResult {
   const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [authError, setAuthError] = useState<boolean>(false);
 
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchUser = useCallback(async () => {
-    // ha korábbi kérés fut, szakítsuk meg
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
+  const load = useCallback(async () => {
     setLoading(true);
-    setAuthError(null);
+    setAuthError(false);
 
-    const token = getToken();
+    let token = "";
+    try {
+      token = localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
+    } catch { token = ""; }
+
     if (!token) {
       setUser(null);
-      setAuthError("Nincs token");
+      setAuthError(true);
       setLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`/api/me`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        // ha sütit is használsz, maradhat; ha csak JWT header megy, nem szükséges
-        credentials: "include",
-        signal: controller.signal,
+      const res = await apiFetch("/api/me", {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      const text = await res.text();
-      const data: Partial<MeResponse> =
-        text ? (JSON.parse(text) as MeResponse) : {};
-
+      const { json } = await readBody(res);
       if (!res.ok) {
-        // tipikusan 401/403
         setUser(null);
-        setAuthError(
-          (data as any)?.error || `Auth hiba (${res.status})`
-        );
-        setLoading(false);
-        return;
+        setAuthError(res.status === 401 || res.status === 403);
+      } else {
+        const u = json?.user ?? json ?? null;
+        setUser(u);
+        setAuthError(!u);
       }
-
-      // localStorage szinkron
-      localStorage.setItem("kleo_role", data.role ?? "");
-      localStorage.setItem("kleo_location_id", (data.location_id ?? "") as string);
-      localStorage.setItem("kleo_location_name", (data.location_name ?? "") as string);
-      localStorage.setItem("kleo_full_name", data.full_name ?? "");
-
-      setUser({
-        id: String(data.id),
-        full_name: String(data.full_name || ""),
-        role: String(data.role || ""),
-        active: Boolean(data.active),
-        location_id:
-          data.location_id === null || data.location_id === undefined
-            ? null
-            : String(data.location_id),
-        location_name:
-          data.location_name === null || data.location_name === undefined
-            ? null
-            : String(data.location_name),
-      });
-    } catch (err: any) {
-      if (err?.name !== "AbortError") {
-        console.error("useCurrentUser /api/me hiba:", err);
-        setUser(null);
-        setAuthError("Hálózati hiba");
-      }
+    } catch {
+      setUser(null);
+      setAuthError(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchUser();
+    let cancelled = false;
+    (async () => { if (!cancelled) await load(); })();
+    return () => { cancelled = true; };
+  }, [load]);
 
-    // ha másik fülben változik a token, itt újra lekérjük
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === "token" || e.key === "kleo_token") {
-        fetchUser();
-      }
-    };
-    window.addEventListener("storage", onStorage);
-    return () => {
-      window.removeEventListener("storage", onStorage);
-      abortRef.current?.abort();
-    };
-  }, [fetchUser]);
-
-  // manuális újratöltés lehetősége
-  const reload = useCallback(() => {
-    fetchUser();
-  }, [fetchUser]);
-
-  return { user, loading, authError, reload };
+  return { user, loading, authError, refresh: load };
 }
+
+export type { CurrentUser };
