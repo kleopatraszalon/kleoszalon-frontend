@@ -1,7 +1,9 @@
 // src/pages/Home.tsx
-import React, { useEffect, useState, useCallback } from "react";
-import Sidebar from "../components/Sidebar";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import "./Home.css"; // <-- MOSTANTÓL HASZNÁLJUK A CSS-T
+
 import {
   BarChart,
   Bar,
@@ -11,29 +13,32 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { useCurrentUser } from "../hooks/useCurrentUser";
-import { withBase } from "../utils/apiBase";
 
-type DashboardStats = {
+import { useCurrentUser } from "../hooks/useCurrentUser";
+
+import Modal from "react-modal";
+Modal.setAppElement("#root");
+
+interface DashboardStats {
   dailyRevenue: number;
   monthlyRevenue: number;
   totalClients: number;
   activeAppointments: number;
   lowStockCount: number;
-};
+}
 
-type ChartPoint = { date: string; revenue: number };
-type DashboardPayload = { stats?: DashboardStats; chartData?: ChartPoint[] };
-
-const HomePage: React.FC = () => {
+const Dashboard: React.FC = () => {
   const navigate = useNavigate();
+
+  // 🔐 user adatok /api/me-ből
   const { user, loading: userLoading, authError } = useCurrentUser();
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
-  const [chartData, setChartData] = useState<ChartPoint[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
-  const handleLogout = useCallback(() => {
+  // ⛔ KILÉPÉS
+  const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("kleo_token");
     localStorage.removeItem("kleo_role");
@@ -42,183 +47,222 @@ const HomePage: React.FC = () => {
     localStorage.removeItem("kleo_full_name");
     localStorage.removeItem("email");
     localStorage.removeItem("userId");
-    navigate("/login", { replace: true });
-  }, [navigate]);
 
-  // Auth guard
+    navigate("/login");
+  };
+
+  // ha nincs jogosult user → logout
   useEffect(() => {
-    if (!userLoading && (authError || !user)) handleLogout();
-  }, [userLoading, authError, user, handleLogout]);
+    if (!userLoading) {
+      if (authError || !user) {
+        handleLogout();
+      }
+    }
+  }, [userLoading, authError, user]);
 
-  // Dashboard adatok betöltése
+  // statisztikák lekérése, ha már van user
   useEffect(() => {
     if (!user || authError) return;
 
-    (async () => {
-      setLoadingStats(true);
+    const token = localStorage.getItem("token");
+    const url = user.location_id
+      ? `http://localhost:5000/api/dashboard?location_id=${user.location_id}`
+      : `http://localhost:5000/api/dashboard`;
 
-      const token =
-        localStorage.getItem("kleo_token") ||
-        localStorage.getItem("token") ||
-        "";
-
-      if (!token) {
-        handleLogout();
-        return;
-      }
-
-      const params =
-        (user as any)?.location_id != null
-          ? `?location_id=${encodeURIComponent(String((user as any).location_id))}`
-          : "";
-
-      const url = withBase(`/api/dashboard${params}`);
-
-      try {
-        const res = await fetch(url, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        });
-
+    fetch(url, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(async (res) => {
         const text = await res.text();
-        let data: DashboardPayload = {};
+        let data: any = {};
         try {
           data = text ? JSON.parse(text) : {};
         } catch {
           data = {};
         }
 
-        if (res.status === 401 || res.status === 403) {
-          console.warn("Dashboard: jogosultság/tokenszint hiba → logout");
+        if (!res.ok) {
+          console.warn("Dashboard auth error / token lejárt?");
           handleLogout();
           return;
         }
-        if (!res.ok) {
-          console.warn("Dashboard: váratlan státuszkód", res.status, text?.slice(0, 200));
-        }
 
-        setStats(
-          data.stats ?? {
-            dailyRevenue: 0,
-            monthlyRevenue: 0,
-            totalClients: 0,
-            activeAppointments: 0,
-            lowStockCount: 0,
-          }
-        );
-        setChartData(Array.isArray(data.chartData) ? data.chartData : []);
-      } catch (e) {
-        console.error("Dashboard fetch error:", e);
-      } finally {
+        setStats(data.stats || null);
+        setChartData(data.chartData || []);
+      })
+      .catch((err) => {
+        console.error("Dashboard fetch error:", err);
+      })
+      .finally(() => {
         setLoadingStats(false);
-      }
-    })();
-  }, [user, authError, handleLogout]);
+      });
+  }, [user, authError]);
 
+  // Betöltés közben – itt még nincs user, ezért nem hívjuk a Sidebart
   if (userLoading || loadingStats) {
-    return <div className="p-8 text-gray-500">Betöltés...</div>;
+    return (
+      <div className="home-container">
+        <div className="calendar-container">
+          <p>Betöltés...</p>
+        </div>
+      </div>
+    );
   }
 
+  // ha valami félrement
   if (!user || !stats) {
     return (
-      <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-800 dark:text-gray-100">
-        <Sidebar />
-        <main className="flex-1 p-6">
-          <div className="flex items-start justify-between mb-6">
-            <h2 className="text-3xl font-semibold">Irányítópult</h2>
+      <div className="home-container">
+        {/* Sidebar jogosultság szerint – megkapja a user-t */}
+        <Sidebar user={user} />
+        <main className="calendar-container">
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+              marginBottom: "1.5rem",
+            }}
+          >
+            <div>
+              <h2 style={{ fontSize: "1.75rem", fontWeight: 600 }}>
+                Irányítópult
+              </h2>
+            </div>
             <button
               onClick={handleLogout}
-              className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow"
+              style={{
+                backgroundColor: "#dc2626",
+                color: "#fff",
+                border: "none",
+                borderRadius: 8,
+                padding: "0.4rem 1rem",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
             >
               Kilépés
             </button>
           </div>
-          <div className="text-red-500">Nem sikerült betölteni az adatokat.</div>
+
+          <div style={{ color: "#dc2626" }}>
+            Nem sikerült betölteni az adatokat.
+          </div>
         </main>
       </div>
     );
   }
 
-  const fullName =
-    (user as any)?.full_name ??
-    (user as any)?.name ??
-    (user as any)?.email ??
-    "Felhasználó";
-  const role = (user as any)?.role ?? "";
-  const locationName = (user as any)?.location_name ?? "";
-
+  // NORMÁL RENDER – Sidebar jogosultsággal + Home.css layout
   return (
-    <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-800 dark:text-gray-100">
-      <Sidebar />
-      <main className="flex-1 p-6">
-        {/* Fejléc */}
-        <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-2 mb-6">
+    <div className="home-container">
+      {/* ⬅️ BAL OLDALT: Sidebar, role/location a user-ből */}
+      <Sidebar user={user} />
+
+      {/* ➡️ JOBB OLDALT: dashboard tartalom – a Home.css .calendar-container adja a keretet */}
+      <main className="calendar-container">
+        {/* Fejléc + kilépés */}
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            justifyContent: "space-between",
+            gap: "0.5rem",
+            marginBottom: "1.5rem",
+          }}
+        >
           <div>
-            <h2 className="text-3xl font-semibold">Irányítópult</h2>
-            <div className="text-sm text-gray-500 dark:text-gray-400">
-              {fullName} – {role}
-              {locationName ? ` @ ${locationName}` : ""}
+            <h2 style={{ fontSize: "1.75rem", fontWeight: 600 }}>
+              Irányítópult
+            </h2>
+            <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>
+              {user.full_name} – {user.role}
+              {user.location_name ? ` @ ${user.location_name}` : ""}
             </div>
           </div>
+
           <button
             onClick={handleLogout}
-            className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg shadow self-start"
+            style={{
+              backgroundColor: "#dc2626",
+              color: "#fff",
+              border: "none",
+              borderRadius: 8,
+              padding: "0.4rem 1rem",
+              fontSize: "0.85rem",
+              fontWeight: 600,
+              cursor: "pointer",
+              alignSelf: "flex-start",
+            }}
           >
             Kilépés
           </button>
         </div>
 
-        {/* Statisztikai kártyák */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
-            <h3 className="text-gray-500 text-sm">Napi bevétel</h3>
-            <p className="text-2xl font-semibold mt-2">
-              {(stats.dailyRevenue ?? 0).toLocaleString()} Ft
+        {/* Statisztika kártyák */}
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+            gap: "1.5rem",
+            marginBottom: "2rem",
+          }}
+        >
+          <div className="stat-card">
+            <h3 className="stat-title">Napi bevétel</h3>
+            <p className="stat-value">
+              {stats.dailyRevenue.toLocaleString()} Ft
             </p>
           </div>
-          <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
-            <h3 className="text-gray-500 text-sm">Havi bevétel</h3>
-            <p className="text-2xl font-semibold mt-2">
-              {(stats.monthlyRevenue ?? 0).toLocaleString()} Ft
+
+          <div className="stat-card">
+            <h3 className="stat-title">Havi bevétel</h3>
+            <p className="stat-value">
+              {stats.monthlyRevenue.toLocaleString()} Ft
             </p>
           </div>
-          <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
-            <h3 className="text-gray-500 text-sm">Vendégek</h3>
-            <p className="text-2xl font-semibold mt-2">{stats.totalClients ?? 0}</p>
+
+          <div className="stat-card">
+            <h3 className="stat-title">Vendégek</h3>
+            <p className="stat-value">{stats.totalClients}</p>
           </div>
-          <div className="bg-white dark:bg-neutral-800 p-5 rounded-xl shadow-md">
-            <h3 className="text-gray-500 text-sm">Aktív bejelentkezések</h3>
-            <p className="text-2xl font-semibold mt-2">{stats.activeAppointments ?? 0}</p>
+
+          <div className="stat-card">
+            <h3 className="stat-title">Aktív bejelentkezések</h3>
+            <p className="stat-value">{stats.activeAppointments}</p>
           </div>
         </div>
 
         {/* Grafikon */}
-        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md p-6 mb-8">
-          <h3 className="text-lg font-semibold mb-4">Bevétel alakulása (7 nap)</h3>
+        <div className="chart-card">
+          <h3 className="chart-title">Bevétel alakulása (7 nap)</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="date" />
               <YAxis />
               <Tooltip />
-              <Bar dataKey="revenue" />
+              <Bar dataKey="revenue" fill="#4f46e5" />
             </BarChart>
           </ResponsiveContainer>
         </div>
 
         {/* Figyelmeztetések */}
-        <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold mb-4">Figyelmeztetések és teendők</h3>
-          <ul className="space-y-2 text-sm">
+        <div className="warnings-card">
+          <h3 className="chart-title">Figyelmeztetések és teendők</h3>
+          <ul style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
             {stats.lowStockCount > 0 ? (
-              <li className="text-yellow-600">⚠ {stats.lowStockCount} termék készlete alacsony</li>
+              <li style={{ color: "#ca8a04", marginBottom: "0.2rem" }}>
+                ⚠ {stats.lowStockCount} termék készlete alacsony
+              </li>
             ) : (
-              <li className="text-green-500">✔ Minden termék készlete rendben</li>
+              <li style={{ color: "#16a34a", marginBottom: "0.2rem" }}>
+                ✔ Minden termék készlete rendben
+              </li>
             )}
-            <li>📅 Közelgő időpontok: {stats.activeAppointments ?? 0}</li>
-            <li>👥 Összes vendég: {stats.totalClients ?? 0}</li>
+            <li>📅 Közelgő időpontok: {stats.activeAppointments}</li>
+            <li>👥 Összes vendég: {stats.totalClients}</li>
           </ul>
         </div>
       </main>
@@ -226,4 +270,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default Dashboard;

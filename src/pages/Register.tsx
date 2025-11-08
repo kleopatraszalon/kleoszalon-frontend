@@ -2,8 +2,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
+import "./Login.css"; // ugyanazt a kinézetet használjuk
 import logo from "../assets/kleo_logo.png";
-import bg from "../assets/background_register.webp"; // ← háttérkép
+import bg from "../assets/background_register.webp"; // háttér a kártyára
 
 interface FormData {
   full_name: string;
@@ -48,12 +50,15 @@ const Register: React.FC = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const target = e.target;
     const value =
       target instanceof HTMLInputElement && target.type === "checkbox"
         ? target.checked
         : target.value;
+
     setFormData((prev) => ({ ...prev, [target.name]: value } as FormData));
   };
 
@@ -69,12 +74,15 @@ const Register: React.FC = () => {
     }
 
     try {
+      // /api/register – a backend itt küldje az e-mailt a megerősítő linkkel
       const response = await axios.post<RegisterResponse>("/api/register", formData, {
         withCredentials: true,
       });
 
       if (response.data.success) {
-        alert("Sikeres regisztráció! Ellenőrizd az emailedet.");
+        alert(
+          "Sikeres regisztráció! Kérlek, ellenőrizd az e-mail fiókodat és erősítsd meg a regisztrációd."
+        );
         navigate("/login");
       } else {
         setError(response.data.error || "Hiba a regisztráció során.");
@@ -88,114 +96,202 @@ const Register: React.FC = () => {
   };
 
   return (
-    <div
-      className="min-h-screen w-full bg-cover bg-center bg-no-repeat"
-      style={{ backgroundImage: `url(${bg})` }}
-    >
-      {/* sötét overlay a jobb olvashatóságért */}
-      <div className="min-h-screen w-full bg-black/50 flex items-center justify-center p-6">
-        <div className="bg-white/90 backdrop-blur-md shadow-2xl rounded-2xl p-10 w-full max-w-lg text-center">
-          <img src={logo} alt="Kleoszalon logó" className="mx-auto mb-6 w-32 h-auto" />
-          <h2 className="text-2xl font-semibold text-gray-700 mb-6">
-            Kleoszalon Regisztráció
-          </h2>
+    <div className="login-page">
+      <div className="login-card">
+        <div
+          className="login-card-bg"
+          style={{ backgroundImage: `url(${bg})` }}
+        />
+        <div className="login-card-overlay" />
+        <div className="login-card-inner">
+          {/* LOGÓ KÖZÉPEN */}
+          <div className="login-header">
+            <div className="login-logo">
+              <img src={logo} alt="Kleoszalon logó" />
+            </div>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4 text-left">
-            {[
-              { name: "full_name", placeholder: "Teljes név", type: "text" },
-              { name: "email", placeholder: "E-mail", type: "email" },
-              { name: "password", placeholder: "Jelszó", type: "password" },
-              { name: "zip_code", placeholder: "Irányítószám", type: "text" },
-              { name: "city", placeholder: "Város", type: "text" },
-              { name: "address", placeholder: "Cím", type: "text" },
-              { name: "birth_date", placeholder: "Születési dátum", type: "date" },
-            ].map((input) => (
+          <h1 className="login-title">Kleoszalon Regisztráció</h1>
+          <p className="login-subtitle">
+            Kérjük, add meg az adataidat a fiók létrehozásához.
+          </p>
+
+          {error && <div className="login-error">{error}</div>}
+
+          <form onSubmit={handleSubmit}>
+            {/* Szöveges mezők */}
+            <div className="login-field">
+              <label className="login-label">Teljes név</label>
               <input
-                key={input.name}
-                type={input.type}
-                name={input.name}
-                placeholder={input.placeholder}
-                value={(formData as any)[input.name]}
+                type="text"
+                name="full_name"
+                className="login-input"
+                value={formData.full_name}
                 onChange={handleChange}
                 required
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
               />
-            ))}
+            </div>
 
-            <select
-              name="gender"
-              value={formData.gender}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-            >
-              <option value="">Nem</option>
-              <option value="male">Férfi</option>
-              <option value="female">Nő</option>
-            </select>
+            <div className="login-field">
+              <label className="login-label">E-mail</label>
+              <input
+                type="email"
+                name="email"
+                className="login-input"
+                value={formData.email}
+                onChange={handleChange}
+                required
+              />
+            </div>
 
-            <input
-              type="text"
-              name="heard_about_us"
-              placeholder="Hogyan hallott rólunk?"
-              value={formData.heard_about_us}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-            />
-            <input
-              type="text"
-              name="nearest_salon"
-              placeholder="Legközelebbi szalon"
-              value={formData.nearest_salon}
-              onChange={handleChange}
-              className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#d4a373]"
-            />
+            <div className="login-field">
+              <label className="login-label">Jelszó</label>
+              <input
+                type="password"
+                name="password"
+                className="login-input"
+                value={formData.password}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Irányítószám</label>
+              <input
+                type="text"
+                name="zip_code"
+                className="login-input"
+                value={formData.zip_code}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Város</label>
+              <input
+                type="text"
+                name="city"
+                className="login-input"
+                value={formData.city}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Cím</label>
+              <input
+                type="text"
+                name="address"
+                className="login-input"
+                value={formData.address}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Születési dátum</label>
+              <input
+                type="date"
+                name="birth_date"
+                className="login-input"
+                value={formData.birth_date}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Nem</label>
+              <select
+                name="gender"
+                className="login-input"
+                value={formData.gender}
+                onChange={handleChange}
+              >
+                <option value="">Válassz...</option>
+                <option value="male">Férfi</option>
+                <option value="female">Nő</option>
+              </select>
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Hogyan hallott rólunk?</label>
+              <input
+                type="text"
+                name="heard_about_us"
+                className="login-input"
+                value={formData.heard_about_us}
+                onChange={handleChange}
+              />
+            </div>
+
+            <div className="login-field">
+              <label className="login-label">Legközelebbi szalon</label>
+              <input
+                type="text"
+                name="nearest_salon"
+                className="login-input"
+                value={formData.nearest_salon}
+                onChange={handleChange}
+              />
+            </div>
 
             {/* Checkboxok */}
-            <div className="flex flex-col space-y-2 mt-2">
-              <label className="inline-flex items-center">
+            <div className="login-checkbox-group">
+              <label className="login-checkbox">
                 <input
                   type="checkbox"
                   name="newsletter"
                   checked={formData.newsletter}
                   onChange={handleChange}
-                  className="mr-2"
                 />
                 Kérek értesítést az akciókról
               </label>
-              <label className="inline-flex items-center">
+
+              <label className="login-checkbox">
                 <input
                   type="checkbox"
                   name="loyalty_program"
                   checked={formData.loyalty_program}
                   onChange={handleChange}
-                  className="mr-2"
                 />
                 Részt kívánok venni a pontgyűjtő rendszerben
               </label>
-              <label className="inline-flex items-center">
+
+              <label className="login-checkbox">
                 <input
                   type="checkbox"
                   name="consent"
                   checked={formData.consent}
                   onChange={handleChange}
-                  className="mr-2"
                   required
                 />
                 Elfogadom az adatkezelési feltételeket
               </label>
             </div>
 
-            {error && <p className="text-red-500 text-sm">{error}</p>}
-
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-xl font-medium text-white mt-4 ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-[#d4a373] hover:bg-[#c29260]"
-              }`}
+              className="login-button"
             >
               {loading ? "Regisztráció..." : "Regisztráció"}
             </button>
+
+            <div className="login-footer">
+              Már van fiókod?{" "}
+              <button
+                type="button"
+                className="login-footer-link"
+                onClick={() => navigate("/login")}
+              >
+                Belépés
+              </button>
+            </div>
           </form>
         </div>
       </div>

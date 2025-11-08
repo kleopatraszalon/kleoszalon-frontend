@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import withBase from "../utils/apiBase";
 import Modal from "react-modal";
 
 interface LocationItem {
@@ -92,7 +93,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    fetch("http://localhost:5000/api/locations", {
+    fetch(withBase("locations"), {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -123,7 +124,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
     setServicesLoading(true);
     setServicesErr("");
 
-    fetch("http://localhost:5000/api/services/available", {
+    fetch(withBase("services/available"), {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -265,7 +266,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
       // a location_id kötelező volt – te mondtad, hogy most NE kelljen.
       // Ehhez a backend oldalt is úgy kell módosítani, hogy ne dobjon hibát,
       // ha location_id null. (pl. ne legyen NOT NULL a DB-ben, és ne rejectálja.)
-      const res = await fetch("http://localhost:5000/api/employees", {
+      const res = await fetch(withBase("employees"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

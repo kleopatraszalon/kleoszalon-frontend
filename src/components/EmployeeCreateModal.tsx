@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import withBase from "../utils/apiBase";
 
 // ---- Tipusok (ne ütközzön a böngésző "Location" típusával) ----
 export type KleoLocation = {
@@ -112,7 +113,7 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
 
     // Telephelyek
     fetchJSON<KleoLocation[]>(
-      "/api/locations",
+      withBase("locations"),
       { headers: { Authorization: `Bearer ${token}` } },
       []
     )
@@ -253,7 +254,7 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
     };
 
     try {
-      const res = await fetch("/api/employees", {
+      const res = await fetch(withBase("employees"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,

@@ -1,17 +1,29 @@
 // src/utils/apiBase.ts
-// CRA-val: hagyd üresen az env BASE-t és használj proxy-t (2. lépés)
-// Vite-tal: VITE_API_BASE-t adj meg, pl. http://localhost:5000
-const viteBase =
-  (typeof import.meta !== "undefined" && (import.meta as any)?.env?.VITE_API_BASE) || "";
-const craBase =
-  (typeof process !== "undefined" && (process as any)?.env?.REACT_APP_API_BASE) || "";
+// FEJLESZTÉSBEN: minden API hívás a 5000-es backendre megy.
+//
+//   Backend:  http://localhost:5000
+//   API:      http://localhost:5000/api/...
 
-// Ha nincs BASE megadva, hagyjuk relatívnak a /api utat (proxy kezeli)
-const BASE = String(viteBase || craBase || "").replace(/\/$/, "");
+const API_BASE = "http://localhost:5000/api";
 
-export default function withBase(path: string) {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  if (!BASE) return p;                // proxy mód (CRA)
-  if (/^https?:\/\//i.test(p)) return p;
-  return `${BASE}${p}`;               // direkt backend elérés (Vite/CRA env-vel)
-}
+/**
+ * Alap API URL (ha valahol csak ez kell)
+ */
+export const apiBase = (): string => API_BASE;
+
+/**
+ * withBase("login")       -> http://localhost:5000/api/login
+ * withBase("verify-code") -> http://localhost:5000/api/verify-code
+ * withBase("me")          -> http://localhost:5000/api/me
+ *
+ * FONTOS:
+ * - I DE   N E   ADJ   OLYAT, HOGY "api/..."  (pl. "api/login")!
+ *   Mindig csak a végpontot add: "login", "verify-code", "me", "dashboard", "locations" stb.
+ */
+export const withBase = (path: string = ""): string => {
+  const clean = String(path).replace(/^\/+/, ""); // levágjuk az elején a /-t
+  return clean ? `${API_BASE}/${clean}` : API_BASE;
+};
+
+// A legtöbb helyen default importtal használjuk:
+export default withBase;
