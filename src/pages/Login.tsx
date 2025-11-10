@@ -143,6 +143,7 @@ const LoginPage: React.FC = () => {
   };
 
   // ÜGYFÉL: első lépcső – email + jelszó
+    // ÜGYFÉL: első lépcső – email + jelszó
   const handleCustomerLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
@@ -165,7 +166,8 @@ const LoginPage: React.FC = () => {
       });
 
       const text = await res.text();
-      let body: LoginResponse = {};
+      // egyesítjük a két típus infót
+      let body: LoginResponse & VerifyResponse = {};
       try {
         body = text ? JSON.parse(text) : {};
       } catch {
@@ -177,18 +179,18 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-    // 🔹 ÚJ: ha már itt megkapjuk a tokent, léptessünk be azonnal
-      if ((body as any).token) {
-        persistAuthAndGoHome(body as any);
+      // 🔹 ÚJ: ha a backend már tokennel válaszol, azonnali belépés
+      if (body.token) {
+        persistAuthAndGoHome(body);
         return;
       }
- if (body.step === "code_required") {
+
+      // 🔹 RÉGI 2FA mód – csak akkor, ha a szerver tényleg ezt küldi
+      if (body.step === "code_required") {
         setStep("code");
       } else {
         setError("Érvénytelen válasz a szervertől (nincs token).");
       }
-
-
     } catch (e: any) {
       console.error("Login error:", e);
       setError("Váratlan hiba történt a bejelentkezés során.");
