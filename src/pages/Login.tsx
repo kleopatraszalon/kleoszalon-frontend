@@ -177,11 +177,18 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      if (body.step === "code_required") {
+    // 🔹 ÚJ: ha már itt megkapjuk a tokent, léptessünk be azonnal
+      if ((body as any).token) {
+        persistAuthAndGoHome(body as any);
+        return;
+      }
+ if (body.step === "code_required") {
         setStep("code");
       } else {
-        setStep("code");
+        setError("Érvénytelen válasz a szervertől (nincs token).");
       }
+
+
     } catch (e: any) {
       console.error("Login error:", e);
       setError("Váratlan hiba történt a bejelentkezés során.");
