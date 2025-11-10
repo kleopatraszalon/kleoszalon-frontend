@@ -106,36 +106,45 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: VerifyResponse) => {
     const token = body.token;
-    if (!token) {
-      setError("Hiányzik a token a válaszból.");
-      return;
-    }
 
-    // telephelyid – backendből ha jön, különben a választott
-    const effectiveLocationId =
-      body.location_id ??
-      (locationId ? Number(locationId) || locationId : null);
-
-    const effectiveLocationName =
-      body.location_name ??
-      (effectiveLocationId != null
-        ? locations.find((l) => String(l.id) === String(effectiveLocationId))
-            ?.name ?? null
-        : null);
-
+    // 🔹 Ha van token, eltároljuk, ha nincs, akkor is továbbengedjük (cookie-alapú auth esetén is működik)
     try {
-      localStorage.setItem("kleo_token", token);
-      localStorage.setItem("token", token);
-      if (body.role) localStorage.setItem("kleo_role", String(body.role));
-      if (effectiveLocationId != null)
-        localStorage.setItem("kleo_location_id", String(effectiveLocationId));
-      if (effectiveLocationName != null)
-        localStorage.setItem("kleo_location_name", effectiveLocationName);
-      if (body.full_name != null)
-        localStorage.setItem("kleo_full_name", String(body.full_name));
-      if (email) localStorage.setItem("email", email);
+      if (token) {
+        localStorage.setItem("kleo_token", token);
+        localStorage.setItem("token", token);
+      }
 
+      const effectiveLocationId =
+        body.location_id ??
+        (locationId ? Number(locationId) || locationId : null);
+
+      const effectiveLocationName =
+        body.location_name ??
+        (effectiveLocationId != null
+          ? locations.find((l) => String(l.id) === String(effectiveLocationId))
+              ?.name ?? null
+          : null);
+
+      if (body.role) {
+        localStorage.setItem("kleo_role", String(body.role));
+      }
+      if (effectiveLocationId != null) {
+        localStorage.setItem("kleo_location_id", String(effectiveLocationId));
+      }
+      if (effectiveLocationName != null) {
+        localStorage.setItem("kleo_location_name", effectiveLocationName);
+      }
+      if (body.full_name != null) {
+        localStorage.setItem("kleo_full_name", String(body.full_name));
+      }
+      if (email) {
+        localStorage.setItem("email", email);
+      }
+
+      // IDE NAVIGÁLUNK SIKERES BELÉPÉS UTÁN
       navigate("/", { replace: true });
+      // ha nálad a főoldal nem "/", hanem pl. "/home", akkor ezt írd át arra
+      // navigate("/home", { replace: true });
     } catch (err) {
       console.error("Auth persist error:", err);
       setError("Nem sikerült elmenteni a belépési adatokat.");
@@ -143,7 +152,6 @@ const LoginPage: React.FC = () => {
   };
 
   // ÜGYFÉL: első lépcső – email + jelszó
-    // ÜGYFÉL: első lépcső – email + jelszó
   const handleCustomerLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
@@ -166,7 +174,6 @@ const LoginPage: React.FC = () => {
       });
 
       const text = await res.text();
-      // egyesítjük a két típus infót
       let body: LoginResponse & VerifyResponse = {};
       try {
         body = text ? JSON.parse(text) : {};
@@ -179,18 +186,20 @@ const LoginPage: React.FC = () => {
         return;
       }
 
-      // 🔹 ÚJ: ha a backend már tokennel válaszol, azonnali belépés
+      // 🔹 Ha a backend már tokennel válaszol: azonnali belépés
       if (body.token) {
         persistAuthAndGoHome(body);
         return;
       }
 
-      // 🔹 RÉGI 2FA mód – csak akkor, ha a szerver tényleg ezt küldi
+      // 🔹 Ha a backend 2FA-t kér, marad a kódos lépés
       if (body.step === "code_required") {
         setStep("code");
-      } else {
-        setError("Érvénytelen válasz a szervertől (nincs token).");
+        return;
       }
+
+      // 🔹 Ha sikeres, de nincs token / step, akkor is megyünk tovább (pl. cookie-alapú auth)
+      persistAuthAndGoHome(body);
     } catch (e: any) {
       console.error("Login error:", e);
       setError("Váratlan hiba történt a bejelentkezés során.");
@@ -272,6 +281,7 @@ const LoginPage: React.FC = () => {
         return;
       }
 
+      // itt is: ha van token, elmentjük, ha nincs, csak megyünk tovább
       persistAuthAndGoHome(body);
     } catch (e: any) {
       console.error("Employee login error:", e);
@@ -327,7 +337,8 @@ const LoginPage: React.FC = () => {
             <button
               type="button"
               className={
-                "login-tab " + (activeTab === "staff" ? "login-tab--active" : "")
+                "login-tab " +
+                (activeTab === "staff" ? "login-tab--active" : "")
               }
               onClick={() => switchTab("staff")}
             >
