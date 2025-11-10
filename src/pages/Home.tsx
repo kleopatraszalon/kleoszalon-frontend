@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import "./Home.css"; // <-- MOSTANTÓL HASZNÁLJUK A CSS-T
+import "./Home.css";
 
 import {
   BarChart,
@@ -18,6 +18,12 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 
 import Modal from "react-modal";
 Modal.setAppElement("#root");
+
+// 🔹 Ugyanaz mint Login.tsx-ben
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : "https://kleoszalon-api-jon.onrender.com/api";
 
 interface DashboardStats {
   dailyRevenue: number;
@@ -64,13 +70,22 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     if (!user || authError) return;
 
-    const token = localStorage.getItem("token");
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("kleo_token");
+
+    if (!token) {
+      // ha valamiért nincs token, ne hívjunk védett endpointot
+      handleLogout();
+      return;
+    }
+
     const url = user.location_id
-      ? `http://localhost:5000/api/dashboard?location_id=${user.location_id}`
-      : `http://localhost:5000/api/dashboard`;
+      ? `${API_BASE}/dashboard?location_id=${user.location_id}`
+      : `${API_BASE}/dashboard`;
 
     fetch(url, {
       headers: { Authorization: `Bearer ${token}` },
+      credentials: "include",
     })
       .then(async (res) => {
         const text = await res.text();
@@ -113,7 +128,6 @@ const Dashboard: React.FC = () => {
   if (!user || !stats) {
     return (
       <div className="home-container">
-        {/* Sidebar jogosultság szerint – megkapja a user-t */}
         <Sidebar user={user} />
         <main className="calendar-container">
           <div
@@ -157,12 +171,9 @@ const Dashboard: React.FC = () => {
   // NORMÁL RENDER – Sidebar jogosultsággal + Home.css layout
   return (
     <div className="home-container">
-      {/* ⬅️ BAL OLDALT: Sidebar, role/location a user-ből */}
       <Sidebar user={user} />
 
-      {/* ➡️ JOBB OLDALT: dashboard tartalom – a Home.css .calendar-container adja a keretet */}
       <main className="calendar-container">
-        {/* Fejléc + kilépés */}
         <div
           style={{
             display: "flex",
@@ -200,7 +211,6 @@ const Dashboard: React.FC = () => {
           </button>
         </div>
 
-        {/* Statisztika kártyák */}
         <div
           style={{
             display: "grid",
@@ -234,7 +244,6 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Grafikon */}
         <div className="chart-card">
           <h3 className="chart-title">Bevétel alakulása (7 nap)</h3>
           <ResponsiveContainer width="100%" height={300}>
@@ -248,7 +257,6 @@ const Dashboard: React.FC = () => {
           </ResponsiveContainer>
         </div>
 
-        {/* Figyelmeztetések */}
         <div className="warnings-card">
           <h3 className="chart-title">Figyelmeztetések és teendők</h3>
           <ul style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>

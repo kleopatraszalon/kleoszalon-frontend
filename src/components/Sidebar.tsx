@@ -6,6 +6,12 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import "./Sidebar.css";
 
+// 🔹 Ugyanaz az API_BASE logika
+const API_BASE =
+  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : "https://kleoszalon-api-jon.onrender.com/api";
+
 // Olyan, mint a DB-ben: id, name, icon, route, parent_id, required_role, order_index
 interface RawMenuItem {
   id: number;
@@ -36,8 +42,18 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("kleo_token");
+
     axios
-      .get("http://localhost:5000/api/menus", { withCredentials: true })
+      .get(`${API_BASE}/menus`, {
+        withCredentials: true,
+        headers: token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : undefined,
+      })
       .then((res) => {
         const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
 
@@ -61,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     const hasChildren = menu.children.length > 0;
 
     if (hasChildren) {
-      // főmenü csak nyit/zár, NEM navigál
       toggleOpen(menu.id);
       return;
     }
@@ -79,7 +94,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   return (
     <aside className="kleo-sidebar">
-      {/* LOGÓ + FELIRAT KÖZÉPEN */}
       <div className="kleo-sidebar-header">
         <div className="kleo-sidebar-logo-wrap">
           <img src={Logo} alt="Kleoszalon logó" className="kleo-sidebar-logo" />
@@ -90,7 +104,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         </div>
       </div>
 
-      {/* MENÜLISTA */}
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
@@ -161,7 +174,6 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return String(role).toLowerCase() === req.toLowerCase();
   });
 
-  // ha a backend submenus-szal küldi
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
     const sortFn = (a: RawMenuItem, b: RawMenuItem) =>
       (a.order_index ?? 9999) - (b.order_index ?? 9999);
@@ -177,7 +189,6 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return filtered.sort(sortFn).map(normalize);
   }
 
-  // LAPOS LISTA -> fa parent_id alapján
   const orderIndex: Record<number, number> = {};
   filtered.forEach((item) => {
     orderIndex[item.id] = item.order_index ?? 9999;
