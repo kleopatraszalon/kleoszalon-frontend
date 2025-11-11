@@ -24,7 +24,7 @@
     sans-serif;
 }
 
-/* FEJLÉC – LOGÓ KÖZÉPEN, FELIRAT ALATTA */
+/* FEJLÉC – LOGÓ + FELIRAT */
 
 .kleo-sidebar-header {
   padding: 1.1rem 1.25rem 1rem;
@@ -178,10 +178,11 @@
   background: rgba(148, 119, 72, 0.4);
   border-radius: 999px;
 }
-/* ===== Mobil és tablet nézet a Kleo sidebar-hoz ===== */
+
+/* ===== Mobil és tablet nézet ===== */
+
 @media (max-width: 1024px) {
   .kleo-sidebar {
-    /* hagyjuk, hogy a fő tartalom alá/görgetésre menjen */
     min-height: auto;
   }
 }
@@ -192,14 +193,22 @@
     min-height: auto;
     border-right: none;
     border-bottom: 1px solid #e0cba5;
-    position: sticky;    /* fent marad görgetéskor */
+    position: sticky;
     top: 0;
     z-index: 50;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
   }
 
   .kleo-sidebar-header {
-    padding: 0.75rem 0.9rem;
+    padding: 0.6rem 0.75rem;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+  }
+
+  .kleo-sidebar-brand {
+    text-align: left;
   }
 
   .kleo-sidebar-logo {
@@ -208,10 +217,9 @@
 
   .kleo-sidebar-nav {
     padding: 0.5rem 0.6rem 0.8rem;
-    overflow: visible; /* ne vágjuk le a vízszintes wrap-et */
+    overflow: visible;
   }
 
-  /* Fő menü vízszintesen wrap-elhető “chip” gombokként */
   .kleo-sidebar-menu {
     display: flex;
     flex-wrap: wrap;
@@ -235,10 +243,9 @@
   }
 
   .kleo-sidebar-menu-chevron {
-    display: none; /* helytakarékosság */
+    display: none;
   }
 
-  /* Almenük alapból rejtve mobilon, csak “nyitott” elemnél látszanak */
   .kleo-sidebar-submenu {
     display: none;
     width: 100%;
@@ -257,31 +264,6 @@
   }
 }
 
-/* Opcionális: hamburgeres nyitás-csukás támogatás (ha később bevezeted) */
-@media (max-width: 768px) {
-  .kleo-mobile-toggle {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: .4rem;
-    padding: .45rem .75rem;
-    border-radius: .6rem;
-    border: 1px solid #e3c49a;
-    background: #fff;
-    color: #8b7350;
-    box-shadow: 0 2px 6px rgba(148, 119, 72, 0.14);
-    font-size: .9rem;
-    cursor: pointer;
-  }
-
-  /* ha TSX-ben adsz .is-open osztályt a wrapperre */
-  .kleo-sidebar:not(.is-open) .kleo-sidebar-nav {
-    display: none;
-  }
-  .kleo-sidebar.is-open .kleo-sidebar-nav {
-    display: block;
-  }
-}
 /* ===== Mini naptár a sidebar tetején ===== */
 
 .sidebar-calendar {
@@ -382,7 +364,8 @@
   transform: translateY(-1px);
 }
 
-/* Mobilon kicsit kompaktabb legyen */
+/* Mobilon kompaktabb naptár */
+
 @media (max-width: 768px) {
   .sidebar-calendar {
     margin: 0.6rem 0.7rem 0.5rem;

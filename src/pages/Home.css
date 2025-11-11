@@ -782,3 +782,36 @@
   font-size: 0.85rem;
   color: #666;
 }}
+
+/* === MOBIL LAYOUT – sidebar felül, görgethető tartalom === */
+@media (max-width: 768px) {
+  .home-container {
+    display: flex;
+    flex-direction: column;   /* sidebar felül, tartalom alatta */
+    height: auto;             /* ne legyen fix 100vh */
+    min-height: 100vh;        /* de legalább kitöltse a képernyőt */
+    overflow: visible;        /* engedjük a görgetést */
+  }
+
+  /* A bal oldali (asztali) sidebar mobilon teljes szélességben felül legyen */
+  .kleo-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e3c49a;
+  }
+
+  /* A fő tartalom (naptár / dashboard) töltse ki a maradék helyet és legyen görgethető */
+  .calendar-container {
+    flex: 1;
+    width: 100%;
+    padding: 0.75rem;
+    overflow: auto;           /* EZ A LÉNYEG: lehessen görgetni */
+  }
+
+  /* A nagy naptár ne legyen kényszerítve fix magasságra */
+  .rbc-calendar {
+    height: auto;
+    min-height: 60vh;
+  }
+}

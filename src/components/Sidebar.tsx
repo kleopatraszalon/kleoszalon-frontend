@@ -7,13 +7,13 @@ import Logo from "../assets/kleo_logo.png";
 import "./Sidebar.css";
 import SidebarCalendar from "./SidebarCalendar";
 
-// 🔹 Ugyanaz az API_BASE logika, mint máshol
+// API alap URL (ugyanaz a logika, mint máshol)
 const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  window.location.hostname === "localhost" ||
+  window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000/api"
     : "https://kleoszalon-api-jon.onrender.com/api";
 
-// Olyan, mint a DB-ben: id, name, icon, route, parent_id, required_role, order_index
 interface RawMenuItem {
   id: number;
   name: string;
@@ -22,7 +22,7 @@ interface RawMenuItem {
   parent_id?: number | null;
   required_role?: string | null;
   order_index?: number | null;
-  submenus?: RawMenuItem[]; // ha a backend már így küldi
+  submenus?: RawMenuItem[];
 }
 
 interface MenuItem {
@@ -38,50 +38,12 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
-  const Sidebar: React.FC = () => {
   const navigate = useNavigate();
 
-  // ... a többi state, useEffect stb. marad
-
-  const handleDateSelect = (date: Date) => {
-    const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
-
-    // 1) elmentjük, hogy a naptár oldal / scheduler fel tudja használni
-    localStorage.setItem("kleo.selectedDate", iso);
-
-    // 2) kiküldünk egy custom eventet – pl. a Home.tsx figyelhet rá
-    window.dispatchEvent(
-      new CustomEvent("kleo:selectedDate", {
-        detail: { date: iso },
-      })
-    );
-
-    // 3) ha van külön útvonal a napi beosztásnak, itt lehet navigálni
-    // pl. ha a naptár oldalad /home vagy /naptar:
-    // navigate(`/naptar?date=${iso}`);
-  };
-
-  return (
-    <aside className="kleo-sidebar">
-      <div className="kleo-sidebar-header">
-        {/* itt van nálad a logó és esetleg a hamburger gomb */}
-      </div>
-
-      {/* ⬇⬇⬇ IDE JÖN A MINI NAPTÁR ⬇⬇⬇ */}
-      <SidebarCalendar onSelectDate={handleDateSelect} />
-
-      {/* ⬇⬇⬇ Ezután jön a már meglévő menü/nav ⬇⬇⬇ */}
-      <nav className="kleo-sidebar-nav">
-        {/* a meglévő menü elemeid */}
-      </nav>
-    </aside>
-  );
-};
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [openIds, setOpenIds] = useState<number[]>([]);
-  const [mobileOpen, setMobileOpen] = useState(false); // mobilon nyit/zár
-  const navigate = useNavigate();
 
+  // Menü betöltése az API-ból
   useEffect(() => {
     const token =
       localStorage.getItem("token") || localStorage.getItem("kleo_token");
@@ -97,7 +59,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       })
       .then((res) => {
         const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-
         const role = (user && (user as any).role) || null;
         const built = buildMenuTree(data, role);
         setMenus(built);
@@ -113,7 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     );
   };
 
-  // FŐMENÜ – ha van gyerek, csak lenyit, ha nincs gyerek, route-ra lép
+  // Főmenü kattintás: ha van gyerek, lenyit; ha nincs, navigál
   const handleTopClick = (menu: MenuItem) => {
     const hasChildren = menu.children.length > 0;
 
@@ -124,38 +85,51 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
     if (menu.route) {
       navigate(menu.route);
-      setMobileOpen(false); // mobilon katt után csukjuk
     }
   };
 
-  const handleChildClick = (item: MenuItem) => {
-    if (item.route) {
-      navigate(item.route);
-      setMobileOpen(false); // mobilon csukjuk
+  const handleChildClick = (child: MenuItem) => {
+    if (child.route) {
+      navigate(child.route);
     }
+  };
+
+  // Mini naptár: később a napi beosztást erre a dátumra fogjuk betölteni
+  const handleDateSelect = (date: Date) => {
+    const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
+
+    // elmentjük, hogy a Home / naptár oldal el tudja olvasni
+    localStorage.setItem("kleo.selectedDate", iso);
+
+    // custom event – tetszőleges komponens fel tud iratkozni rá
+    window.dispatchEvent(
+      new CustomEvent("kleo:selectedDate", {
+        detail: { date: iso },
+      })
+    );
   };
 
   return (
-    <aside className={`kleo-sidebar ${mobileOpen ? "is-open" : ""}`}>
+    <aside className="kleo-sidebar">
+      {/* LOGÓ + FELIRAT */}
       <div className="kleo-sidebar-header">
         <div className="kleo-sidebar-logo-wrap">
-          <img src={Logo} alt="Kleoszalon logó" className="kleo-sidebar-logo" />
+          <img
+            src={Logo}
+            alt="Kleoszalon logó"
+            className="kleo-sidebar-logo"
+          />
         </div>
         <div className="kleo-sidebar-brand">
           <div className="kleo-sidebar-title">Kleoszalon</div>
           <div className="kleo-sidebar-subtitle">Admin felület</div>
         </div>
-
-        {/* Mobil hamburger gomb – csak mobilon látszik a CSS miatt */}
-        <button
-          type="button"
-          className="kleo-mobile-toggle"
-          onClick={() => setMobileOpen((v) => !v)}
-        >
-          ☰ Menü
-        </button>
       </div>
 
+      {/* MINI NAPTÁR A LOGÓ ALATT */}
+      <SidebarCalendar onSelectDate={handleDateSelect} />
+
+      {/* MENÜLISTA */}
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
@@ -213,13 +187,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 /**
  * Menüfa építése:
  * - ha már hierarchikus (submenus), azt használjuk
- * - ha lapos (parent_id alapján), abból építünk fát
- * - required_role alapján opcionálisan szűrünk
+ * - ha lapos (parent_id), abból építünk fát
+ * - required_role alapján szűrünk, hogy role-hoz kötött menük legyenek
  */
 function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   if (!raw.length) return [];
 
-  // szerep szerinti szűrés (required_role)
+  // role alapú szűrés
   const filtered = raw.filter((item) => {
     const req = (item.required_role || "").trim();
     if (!req) return true;
@@ -227,7 +201,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return String(role).toLowerCase() === req.toLowerCase();
   });
 
-  // Ha már fa-struktúrában jön (submenus)
+  // Ha már hierarchikus (submenus)
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
     const sortFn = (a: RawMenuItem, b: RawMenuItem) =>
       (a.order_index ?? 9999) - (b.order_index ?? 9999);
@@ -243,7 +217,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return filtered.sort(sortFn).map(normalize);
   }
 
-  // Ha lapos lista parent_id-vel
+  // Lapos lista parent_id-vel
   const orderIndex: Record<number, number> = {};
   filtered.forEach((item) => {
     orderIndex[item.id] = item.order_index ?? 9999;
