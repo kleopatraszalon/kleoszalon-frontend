@@ -72,8 +72,8 @@ const EmployeesList: React.FC = () => {
 
   // Dolgozók betöltése backendről
   const loadEmployees = async () => {
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("kleo_token");
+   const token =
+  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
 
     if (!token) {
       setAuthError("Nincs token – jelentkezz be először.");
@@ -375,19 +375,19 @@ const EmployeesList: React.FC = () => {
         )}
 
         {/* Új dolgozó modal (EmployeeNewModal.tsx) */}
-        <EmployeeNewModal
-          isOpen={showNewModal}
-          onRequestClose={() => setShowNewModal(false)}
-          onEmployeeCreated={(newEmp) => {
-            setShowNewModal(false);
-            if (newEmp) {
-              setAllEmployees((prev) => [newEmp, ...prev]);
-            } else {
-              // ha a backend nem küldi vissza az új rekordot, újratöltjük a listát
-              loadEmployees();
-            }
-          }}
-        />
+   <EmployeeNewModal
+  isOpen={showNewModal}
+  onRequestClose={() => setShowNewModal(false)}
+  onEmployeeCreated={(newEmp) => {
+    setShowNewModal(false);
+    if (newEmp) {
+      setAllEmployees((prev) => [newEmp, ...prev]);
+    } else {
+      // ha a backend nem küldi vissza az új rekordot, újratöltjük a listát
+      loadEmployees();
+    }
+  }}
+/>
       </main>
 
       {/* 🔍 MUNKATÁRS RÉSZLETEK MODAL – EGY ÚJ RÉTEGEN */}

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
+import withBase from "../utils/apiBase";
 
 interface EmployeeData {
   id: string;
@@ -55,10 +56,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 }) => {
   // !!! egyszer globálisan: Modal.setAppElement("#root")
 
-  const token =
-    localStorage.getItem("token") ||
-    localStorage.getItem("kleo_token") ||
-    "";
+const token =
+  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
 
   // ---------- Tabs ----------
   const [activeTab, setActiveTab] = useState<TabKey>("alap");
@@ -123,9 +122,9 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
       setServicesErr("");
 
       try {
-        const res = await fetch("/api/services/available", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await fetch(withBase("services/available"), {
+           headers: { Authorization: `Bearer ${token}` },
+         });
 
         const text = await res.text();
         const data = text ? (JSON.parse(text) as unknown) : [];
@@ -229,14 +228,14 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     setStatusError("");
 
     try {
-      const res = await fetch(`/api/employees/${employee.id}/active`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ active: newActive }),
-      });
+      const res = await fetch(withBase(`employees/${employee.id}/active`), {
+         method: "PATCH",
+         headers: {
+           "Content-Type": "application/json",
+           Authorization: `Bearer ${token}`,
+         },
+         body: JSON.stringify({ active: newActive }),
+       });
       const txt = await res.text();
       const data = txt ? (JSON.parse(txt) as any) : {};
       if (!res.ok) {
@@ -284,17 +283,17 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
     try {
       if (employee?.id) {
         // meglévő dolgozó
-        const res = await fetch(`/api/employees/${employee.id}/credentials`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            login_name: loginName.trim(),
-            plain_password: plainPassword || undefined,
-          }),
-        });
+       const res = await fetch(withBase(`employees/${employee.id}/credentials`), {
+           method: "PATCH",
+           headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`,
+           },
+           body: JSON.stringify({
+             login_name: loginName.trim(),
+             plain_password: plainPassword || undefined,
+           }),
+         });
         const txt = await res.text();
         const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {
@@ -314,17 +313,17 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
         }
       } else {
         // minimál user létrehozása (ha van ilyen endpoint)
-        const res = await fetch("/api/employees/credentials", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            login_name: loginName.trim(),
-            plain_password: plainPassword,
-          }),
-        });
+      const res = await fetch(withBase("employees/credentials"), {
+           method: "POST",
+           headers: {
+             "Content-Type": "application/json",
+             Authorization: `Bearer ${token}`,
+           },
+           body: JSON.stringify({
+             login_name: loginName.trim(),
+             plain_password: plainPassword,
+           }),
+         });
         const txt = await res.text();
         const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {

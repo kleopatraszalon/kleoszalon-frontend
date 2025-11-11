@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import "./Home.css";
 
+
 import {
   BarChart,
   Bar,
@@ -42,6 +43,23 @@ const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loadingStats, setLoadingStats] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
+
+const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+useEffect(() => {
+  const handler = (e: Event) => {
+    const custom = e as CustomEvent<{ date?: string }>;
+    const iso = custom.detail?.date;
+    if (!iso) return;
+    setSelectedDate(new Date(iso));
+    // itt hívhatod a fetch-et, ami az adott nap beosztását tölti:
+    // loadDailySchedule(iso);
+  };
+
+  window.addEventListener("kleo:selectedDate", handler as EventListener);
+  return () =>
+    window.removeEventListener("kleo:selectedDate", handler as EventListener);
+}, []);
 
   // ⛔ KILÉPÉS
   const handleLogout = () => {

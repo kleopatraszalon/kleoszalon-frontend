@@ -29,8 +29,11 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
   onRequestClose,
   onEmployeeCreated,
 }) => {
-  const token =
-    localStorage.getItem("token") || localStorage.getItem("kleo_token");
+ const token =
+  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
+ const authHeaders: Record<string, string> = token
+  ? { Authorization: `Bearer ${token}` }
+  : {};
 
   // alap mezők
   const [fullName, setFullName] = useState("");
@@ -93,12 +96,11 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
   useEffect(() => {
     if (!isOpen) return;
 
-    fetch(withBase("locations"), {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((r) => r.json())
+   fetch(withBase("locations"), { headers: authHeaders });
+   fetch(withBase("locations"), { headers: authHeaders });
+
+     fetch(withBase("services/available"), { headers: authHeaders })
+  .then((r) => r.json())
       .then((data) => {
         if (Array.isArray(data)) {
           setLocations(data);
@@ -266,14 +268,14 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
       // a location_id kötelező volt – te mondtad, hogy most NE kelljen.
       // Ehhez a backend oldalt is úgy kell módosítani, hogy ne dobjon hibát,
       // ha location_id null. (pl. ne legyen NOT NULL a DB-ben, és ne rejectálja.)
-      const res = await fetch(withBase("employees"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(bodyToSend),
-      });
+    const res = await fetch(withBase("employees"), {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...authHeaders,
+  },
+  body: JSON.stringify(bodyToSend),
+});
 
       const txt = await res.text();
       let data: any = {};

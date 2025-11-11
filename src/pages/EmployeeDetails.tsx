@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import "./Home.css";
+import withBase from "../utils/apiBase";
 
 type EmployeeFull = {
   id: string;
@@ -68,7 +69,8 @@ const EmployeeDetails: React.FC<EmployeeDetailsProps> = ({
 }) => {
   const { id: routeId } = useParams();
   const navigate = useNavigate();
-  const token = localStorage.getItem("kleo_token");
+ const token =
+  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
 
   const [emp, setEmp] = useState<EmployeeFull | null>(null);
   const [error, setError] = useState("");
@@ -79,11 +81,10 @@ const EmployeeDetails: React.FC<EmployeeDetailsProps> = ({
   useEffect(() => {
     if (!id) return;
 
-    fetch(`http://localhost:5000/api/employees/${id}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
+    fetch(withBase(`employees/${id}`), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: "include",
+   })
       .then((r) => r.json())
       .then((data) => {
         if (data && data.id) {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import withBase from "../utils/apiBase";
 
-// ---- Tipusok (ne ütközzön a böngésző "Location" típusával) ----
+// ---- Típusok (ne ütközzön a böngésző "Location" típusával) ----
 export type KleoLocation = {
   id: string | number;
   name: string;
@@ -18,14 +18,19 @@ export type ServiceAssignment = {
   custom_duration_min: string; // üres string => nincs egyedi idő
 };
 
+type RoleOption = {
+  key: string;
+  label: string;
+};
+
 export type EmployeeCreateModalProps = {
   isOpen: boolean;
   onRequestClose: () => void;
   onSaved?: () => void;
 };
 
-// Megjelenített címke vs. backend kulcs
-const AVAILABLE_ROLES: { key: string; label: string }[] = [
+// ---- Alapértelmezett (fallback) jogosultság lista ----
+const FALLBACK_ROLES: RoleOption[] = [
   { key: "admin", label: "Admin" },
   { key: "receptionist", label: "Recepciós" },
   { key: "employee", label: "Dolgozó" },
@@ -52,14 +57,21 @@ function safeParse<T>(txt: string, fallback: T): T {
 
 // Fontos: TSX-ben a generikus nyílfüggvény könnyen ütközik a JSX-szel.
 // Ezért használjunk function deklarációt (vagy <T,> szintaxist).
-async function fetchJSON<T>(url: string, init?: RequestInit, fallback?: T): Promise<T> {
+async function fetchJSON<T>(
+  url: string,
+  init?: RequestInit,
+  fallback?: T
+): Promise<T> {
   const res = await fetch(url, init);
   const txt = await res.text();
-  return (txt ? (JSON.parse(txt) as T) : (fallback as T));
+  if (!txt) {
+    return (fallback as T) ?? ({} as T);
+  }
+  return safeParse<T>(txt, (fallback as T) ?? ({} as T));
 }
 
 const TAB_VALUES = ["alap", "szolg", "login"] as const;
-type Tab = typeof TAB_VALUES[number];
+type Tab = (typeof TAB_VALUES)[number];
 
 const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
   isOpen,
@@ -72,9 +84,10 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
   // aktív fül
   const [activeTab, setActiveTab] = useState<Tab>("alap");
 
-  // dropdown adatok
+  // dropdown / törzs adatok
   const [locations, setLocations] = useState<KleoLocation[]>([]);
   const [services, setServices] = useState<ServiceDTO[]>([]);
+  const [availableRoles, setAvailableRoles] = useState<RoleOption[]>(FALLBACK_ROLES);
 
   // --- ALAP ADATOK ---
   const [lastName, setLastName] = useState("");
@@ -91,36 +104,43 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
   const [monthlyWage, setMonthlyWage] = useState("");
   const [hourlyWage, setHourlyWage] = useState("");
 
-  // --- SZOLGÁLTATÁSOK ---
-  const [serviceAssignments, setServiceAssignments] = useState<ServiceAssignment[]>([]);
+  // --- SZOLGÁLTATÁS HOZZÁRENDELÉS ---
+  const [serviceAssignments, setServiceAssignments] = useState<
+    ServiceAssignment[]
+  >([]);
 
-  // --- LOGIN / JOGOSULTSÁG ---
+  // --- LOGIN / ROLE TAB ---
   const [loginName, setLoginName] = useState("");
   const [plainPassword, setPlainPassword] = useState("");
-  const [rolesSelected, setRolesSelected] = useState<string[]>([]);
+  const [rolesPicked, setRolesPicked] = useState<string[]>(["employee"]);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSuccess, setLoginSuccess] = useState<string | null>(null);
+
+  // teljes mentés állapota
   const [savingWhole, setSavingWhole] = useState(false);
 
-  // státuszüzenetek a login fülhöz
-  const [loginError, setLoginError] = useState("");
-  const [loginSuccess, setLoginSuccess] = useState("");
-
-  // telephelyek + szolgáltatások betöltése modal nyitásakor
+  // ---- Megnyitáskor alapadatok (telephely, szolgáltatások, jogosultságok) betöltése ----
   useEffect(() => {
     if (!isOpen) return;
 
-    // reset form minden megnyitáskor
+    // reset form bizonyos részei
     setActiveTab("alap");
+    setLoginError(null);
+    setLoginSuccess(null);
+    setSavingWhole(false);
+
+    const authHeaders: Record<string, string> = {};
+    if (token) {
+      authHeaders["Authorization"] = `Bearer ${token}`;
+    }
 
     // Telephelyek
-    fetchJSON<KleoLocation[]>(
-      withBase("locations"),
-      { headers: { Authorization: `Bearer ${token}` } },
-      []
-    )
+    fetchJSON<KleoLocation[]>(withBase("locations"), { headers: authHeaders }, [])
       .then((data) => {
-        setLocations(Array.isArray(data) ? data : []);
-        if (Array.isArray(data) && data.length > 0) {
-          setLocationId((prev) => prev || String(data[0].id));
+        const arr = Array.isArray(data) ? data : [];
+        setLocations(arr);
+        if (arr.length > 0) {
+          setLocationId((prev) => prev || String(arr[0].id));
         }
       })
       .catch((err) => {
@@ -130,16 +150,75 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
 
     // Szolgáltatások (elérhető)
     fetchJSON<ServiceDTO[]>(
-      "/api/services/available",
-      { headers: { Authorization: `Bearer ${token}` } },
+      withBase("services/available"),
+      { headers: authHeaders },
       []
     )
       .then((data) => {
-        setServices(Array.isArray(data) ? data : []);
+        const arr = Array.isArray(data) ? data : [];
+        setServices(arr);
       })
       .catch((err) => {
         console.error("Szolgáltatások betöltése hiba:", err);
         setServices([]);
+      });
+
+    // Jogosultságok DB-ből
+    // Várt endpoint: GET /api/roles (withBase("roles"))
+    // Ha hibázik vagy üres, visszaesünk a FALLBACK_ROLES listára.
+    fetchJSON<any[]>(withBase("roles"), { headers: authHeaders }, [])
+      .then((data) => {
+        let mapped: RoleOption[] = [];
+
+        if (Array.isArray(data)) {
+          mapped = data
+            .map((r) => {
+              // több lehetséges szerkezetet is támogatunk
+              if (typeof r === "string") {
+                return { key: r, label: r };
+              }
+              if (r && typeof r === "object") {
+                if (r.key && r.label) {
+                  return {
+                    key: String(r.key),
+                    label: String(r.label),
+                  };
+                }
+                if (r.code && r.name) {
+                  return {
+                    key: String(r.code),
+                    label: String(r.name),
+                  };
+                }
+                if (r.id && r.name) {
+                  return {
+                    key: String(r.id),
+                    label: String(r.name),
+                  };
+                }
+              }
+              return null;
+            })
+            .filter(Boolean) as RoleOption[];
+        }
+
+        if (!mapped.length) {
+          setAvailableRoles(FALLBACK_ROLES);
+        } else {
+          setAvailableRoles(mapped);
+          // ha eddig csak default volt, aktualizáljuk
+          setRolesPicked((prev) =>
+            prev && prev.length
+              ? prev
+              : mapped
+                  .filter((r) => r.key === "employee" || r.key === "worker")
+                  .map((r) => r.key)
+          );
+        }
+      })
+      .catch((err) => {
+        console.error("Jogosultságok betöltése hiba, fallback lista használata:", err);
+        setAvailableRoles(FALLBACK_ROLES);
       });
   }, [isOpen, token]);
 
@@ -149,107 +228,110 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
 
   // kötelező mezők ellenőrzése a teljes mentéshez
   const formValid = () => {
-    if (!lastName.trim()) return false;
-    if (!firstName.trim()) return false;
-    if (!phone.trim()) return false;
-    if (!birthDate.trim()) return false;
-    if (!gender) return false;
+    if (!lastName.trim() || !firstName.trim()) return false;
+    if (!taj.trim() || !isValidTaj(taj)) return false;
+    if (!taxId.trim() || !isValidTaxId(taxId)) return false;
     if (!locationId) return false;
-    if (!loginName.trim()) return false;
-    if (!plainPassword.trim() || plainPassword.trim().length < 8) return false;
     return true;
   };
 
-  // szolgáltatás pipálás
-  const toggleServiceForEmployee = (
-    serviceId: string | number,
-    defaultDuration: number | null
-  ) => {
-    const sid = String(serviceId);
-    const exists = serviceAssignments.find((a) => a.service_id === sid);
-    if (exists) {
-      setServiceAssignments((prev) => prev.filter((a) => a.service_id !== sid));
-    } else {
-      setServiceAssignments((prev) => [
-        ...prev,
-        {
-          service_id: sid,
-          custom_duration_min: defaultDuration ? String(defaultDuration) : "",
-        },
-      ]);
+  // Jelszó generálása (pl. 10 karakter)
+  const generatePassword = () => {
+    const chars =
+      "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%";
+    let pwd = "";
+    for (let i = 0; i < 10; i++) {
+      pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    setPlainPassword(pwd);
+    setLoginSuccess("Új jelszó generálva. Mentéskor lesz érvényesítve.");
+    setLoginError(null);
   };
 
-  const updateServiceDuration = (serviceId: string | number, minutes: string) => {
-    const sid = String(serviceId);
-    setServiceAssignments((prev) =>
-      prev.map((a) => (a.service_id === sid ? { ...a, custom_duration_min: minutes } : a))
-    );
-  };
-
-  // szerepkör pipálás
+  // szerepkör kiválasztása / toggle
   const toggleRole = (key: string) => {
-    setRolesSelected((prev) =>
+    setRolesPicked((prev) =>
       prev.includes(key) ? prev.filter((r) => r !== key) : [...prev, key]
     );
   };
 
-  // jelszó generálás
-  function generatePassword() {
-    const chars =
-      "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
-    let out = "";
-    for (let i = 0; i < 12; i++) {
-      out += chars[Math.floor(Math.random() * chars.length)];
-    }
-    setPlainPassword(out);
-    setActiveTab("login");
-    setLoginSuccess("Generált jelszó kitöltve, mentsd el!");
-  }
+  // szolgáltatás hozzáadása a listához
+  const addServiceAssignment = (serviceId: string | number) => {
+    const svc = services.find((s) => String(s.id) === String(serviceId));
+    if (!svc) return;
 
-  // TELJES FELVÉTEL MENTÉSE
+    setServiceAssignments((prev) => {
+      if (prev.some((p) => String(p.service_id) === String(serviceId))) {
+        return prev;
+      }
+      return [
+        ...prev,
+        {
+          service_id: String(svc.id),
+          custom_duration_min: svc.default_duration_min
+            ? String(svc.default_duration_min)
+            : "",
+        },
+      ];
+    });
+  };
+
+  // szolgáltatás törlése a listából
+  const removeServiceAssignment = (serviceId: string) => {
+    setServiceAssignments((prev) =>
+      prev.filter((p) => String(p.service_id) !== String(serviceId))
+    );
+  };
+
+  // szolgáltatás egyedi perc módosítás
+  const updateServiceDuration = (serviceId: string, minutes: string) => {
+    setServiceAssignments((prev) =>
+      prev.map((p) =>
+        String(p.service_id) === String(serviceId)
+          ? { ...p, custom_duration_min: minutes }
+          : p
+      )
+    );
+  };
+
+  // Teljes mentés gomb
   const handleSaveAll = async () => {
-    if (!token) {
-      alert("Nincs token, jelentkezz be újra.");
+    if (!formValid()) {
+      alert("Kérlek töltsd ki a kötelező mezőket (TAJ, adószám, név, telephely).");
       return;
     }
-    if (!formValid()) {
-      alert("Hiányzik kötelező adat vagy hibás mező (jelszó min. 8 karakter).");
+
+    if (!token) {
+      alert("Nincs token – jelentkezz be újra.");
       return;
     }
 
     setSavingWhole(true);
-    setLoginError("");
-    setLoginSuccess("");
+    setLoginError(null);
+    setLoginSuccess(null);
 
     const payload = {
-      first_name: firstName.trim(),
-      last_name: lastName.trim(),
-      full_name: `${lastName} ${firstName}`.trim(),
-      phone: phone.trim(),
-      email: null as string | null,
-      birth_date: birthDate,
-      taj: taj.trim() || null,
-      tax_id: taxId.trim() || null,
+      last_name: lastName.trim() || null,
+      first_name: firstName.trim() || null,
+      phone: phone.trim() || null,
+      birth_date: birthDate || null,
+      taj: taj.trim(),
+      tax_id: taxId.trim(),
       qualification: qualification.trim() || null,
       gender: gender || null,
-      location_id: locationId ? Number(locationId) : null,
-      work_schedule: workScheduleType || null,
+      location_id: locationId || null,
+      work_schedule_type: workScheduleType || null,
       employment_type: employmentType || null,
       monthly_wage: monthlyWage ? Number(monthlyWage) : null,
       hourly_wage: hourlyWage ? Number(hourlyWage) : null,
-
-      // login
-      login: {
-        username: loginName.trim(),
-        plain_password: plainPassword.trim(),
-        roles: rolesSelected,
-      },
-
-      // szolgáltatások hozzárendelése
+      login_name: loginName.trim() || null,
+      plain_password: plainPassword.trim() || null,
+      roles: rolesPicked,
       services: serviceAssignments.map((a) => ({
         service_id: a.service_id,
-        duration_min: a.custom_duration_min ? Number(a.custom_duration_min) : null,
+        custom_duration_min: a.custom_duration_min
+          ? Number(a.custom_duration_min)
+          : null,
       })),
     };
 
@@ -265,9 +347,12 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
 
       const txt = await res.text();
       const data = safeParse<any>(txt, {});
+
       if (!res.ok) {
         console.error("Mentés sikertelen:", data);
-        alert(data?.error || "Hiba történt mentés közben (POST /api/employees).");
+        alert(
+          data?.error || "Hiba történt mentés közben (POST /api/employees)."
+        );
         setSavingWhole(false);
         return;
       }
@@ -330,121 +415,130 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
             }`}
             onClick={() => setActiveTab("login")}
           >
-            Belépés / Jogosultság
+            Belépés & jogosultság
           </button>
         </div>
 
-        {/* BODY */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6 text-sm text-gray-800 dark:text-gray-100">
+        {/* CONTENT */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {/* --- ALAP TAB --- */}
           {activeTab === "alap" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* vezetéknév */}
+              {/* Név */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Vezetéknév</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Vezetéknév *
+                </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                 />
               </div>
-
-              {/* keresztnév */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Keresztnév</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Keresztnév *
+                </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                 />
               </div>
 
-              {/* telefon */}
+              {/* Telefon & Születési dátum */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Telefon</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Telefon
+                </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder="+36…"
                 />
               </div>
-
-              {/* születési dátum */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Születési dátum</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Születési dátum
+                </label>
                 <input
                   type="date"
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={birthDate}
                   onChange={(e) => setBirthDate(e.target.value)}
                 />
               </div>
 
-              {/* TAJ */}
+              {/* TAJ, adószám */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  TAJ szám{" "}
-                  {taj && !isValidTaj(taj) && (
-                    <span className="text-red-500 ml-2 text-[10px]">Hibás TAJ</span>
-                  )}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  TAJ szám *
                 </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={taj}
                   onChange={(e) => setTaj(e.target.value)}
-                  placeholder="9 számjegy"
                 />
+                {!isValidTaj(taj) && taj.trim() && (
+                  <p className="mt-1 text-xs text-red-500">
+                    A TAJ szám 9 számjegyű kell legyen.
+                  </p>
+                )}
               </div>
-
-              {/* Adóazonosító */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-                  Adóazonosító jel{" "}
-                  {taxId && !isValidTaxId(taxId) && (
-                    <span className="text-red-500 ml-2 text-[10px]">Hibás adószám</span>
-                  )}
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Adószám *
                 </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={taxId}
                   onChange={(e) => setTaxId(e.target.value)}
-                  placeholder="adóazonosító"
                 />
+                {!isValidTaxId(taxId) && taxId.trim() && (
+                  <p className="mt-1 text-xs text-red-500">
+                    Az adószám 8–11 számjegyű legyen.
+                  </p>
+                )}
               </div>
 
-              {/* Végzettség */}
+              {/* Végzettség, nem */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Végzettség</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Végzettség
+                </label>
                 <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={qualification}
                   onChange={(e) => setQualification(e.target.value)}
-                  placeholder="pl. Kozmetikus OKJ"
                 />
               </div>
-
-              {/* Nem */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Nem</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Nem
+                </label>
                 <select
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={gender}
                   onChange={(e) => setGender(e.target.value)}
                 >
-                  <option value="">–</option>
+                  <option value="">– nincs megadva –</option>
                   <option value="female">Nő</option>
                   <option value="male">Férfi</option>
+                  <option value="other">Egyéb / nem szeretné megadni</option>
                 </select>
               </div>
 
-              {/* Telephely */}
+              {/* Telephely, munkaidő típus */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Telephely</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Telephely *
+                </label>
                 <select
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value)}
                 >
+                  <option value="">– válassz telephelyet –</option>
                   {locations.map((loc) => (
                     <option key={String(loc.id)} value={String(loc.id)}>
                       {loc.name}
@@ -452,200 +546,260 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
                   ))}
                 </select>
               </div>
-
-              {/* Munkarend */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Munkarend</label>
-                <select
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Munkaidő típusa
+                </label>
+                <input
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                  placeholder="pl. teljes / részmunkaidő"
                   value={workScheduleType}
                   onChange={(e) => setWorkScheduleType(e.target.value)}
-                >
-                  <option value="">–</option>
-                  <option value="altalanos">Általános munkarend</option>
-                  <option value="beosztas">Beosztás szerint</option>
-                </select>
+                />
               </div>
 
-              {/* Foglalkoztatás típusa */}
+              {/* Foglalkoztatási forma, bérezés */}
               <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Foglalkoztatás</label>
-                <select
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                  Foglalkoztatási forma
+                </label>
+                <input
+                  className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                  placeholder="pl. alkalmazott, vállalkozó"
                   value={employmentType}
                   onChange={(e) => setEmploymentType(e.target.value)}
-                >
-                  <option value="">–</option>
-                  <option value="teljes">Teljes munkaidő</option>
-                  <option value="reszmunka">Részmunkaidő</option>
-                  <option value="vallalkozoi">Vállalkozói szerződés</option>
-                </select>
-              </div>
-
-              {/* Fix bér */}
-              <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Fix havi bér (HUF)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
-                  value={monthlyWage}
-                  onChange={(e) => setMonthlyWage(e.target.value)}
                 />
               </div>
-
-              {/* Órabér */}
-              <div>
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Órabér (HUF)</label>
-                <input
-                  type="number"
-                  min={0}
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
-                  value={hourlyWage}
-                  onChange={(e) => setHourlyWage(e.target.value)}
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Havi bér (Ft)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                    value={monthlyWage}
+                    onChange={(e) => setMonthlyWage(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Órabér (Ft)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                    value={hourlyWage}
+                    onChange={(e) => setHourlyWage(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
           )}
 
+          {/* --- SZOLGÁLTATÁS TAB --- */}
           {activeTab === "szolg" && (
             <div className="space-y-4">
-              <p className="text-xs text-gray-600 dark:text-gray-400">
-                Pipáld ki, mit vállalhat ez a munkatárs. Adj meg egyedi időt (percben), ha nem az alapértelmezett.
-              </p>
-
-              <div className="max-h-[50vh] overflow-y-auto border border-gray-200 dark:border-neutral-700 rounded-lg p-3 bg-white dark:bg-neutral-900">
-                {services.map((srv) => {
-                  const sid = String(srv.id);
-                  const checked = serviceAssignments.some((a) => a.service_id === sid);
-                  const current = serviceAssignments.find((a) => a.service_id === sid);
-
-                  return (
-                    <div
-                      key={sid}
-                      className="flex items-center justify-between gap-3 border-b border-gray-100 dark:border-neutral-800 py-2"
-                    >
-                      <label className="flex items-start gap-2">
-                        <input
-                          type="checkbox"
-                          className="mt-[3px]"
-                          checked={checked}
-                          onChange={() => toggleServiceForEmployee(sid, srv.default_duration_min)}
-                        />
-                        <div>
-                          <div className="font-medium text-gray-800 dark:text-gray-100">{srv.name}</div>
-                          <div className="text-[11px] text-gray-500 dark:text-gray-400">
-                            Alap: {srv.default_duration_min ?? "—"} perc
-                          </div>
-                        </div>
-                      </label>
-
-                      {checked && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 dark:text-gray-400">Egyedi (perc)</span>
-                          <input
-                            className="w-20 border border-gray-300 dark:border-neutral-600 rounded-lg p-1 bg-white dark:bg-neutral-700 text-gray-800 dark:text-gray-100"
-                            value={current?.custom_duration_min ?? ""}
-                            onChange={(e) => updateServiceDuration(sid, e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {services.length === 0 && (
-                  <div className="text-xs text-gray-500 dark:text-gray-400 py-4 text-center">
-                    Még nincs szolgáltatás felvéve.
-                  </div>
-                )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
+                  Szolgáltatás hozzáadása
+                </label>
+                <div className="flex gap-2">
+                  <select
+                    className="flex-1 rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) {
+                        addServiceAssignment(e.target.value);
+                        e.target.value = "";
+                      }
+                    }}
+                  >
+                    <option value="">– válassz szolgáltatást –</option>
+                    {services.map((s) => (
+                      <option key={String(s.id)} value={String(s.id)}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
+
+              {serviceAssignments.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Egyelőre nincs hozzárendelt szolgáltatás. Válassz ki fent egyet
+                  a listából.
+                </p>
+              ) : (
+                <table className="min-w-full text-sm border border-gray-200 dark:border-neutral-700 rounded-md overflow-hidden">
+                  <thead className="bg-gray-50 dark:bg-neutral-900">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">
+                        Szolgáltatás
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">
+                        Alap idő (perc)
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-gray-700 dark:text-gray-200">
+                        Egyedi idő (perc)
+                      </th>
+                      <th className="px-3 py-2" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serviceAssignments.map((a) => {
+                      const svc = services.find(
+                        (s) => String(s.id) === String(a.service_id)
+                      );
+                      const baseMin = svc?.default_duration_min ?? null;
+                      return (
+                        <tr
+                          key={String(a.service_id)}
+                          className="border-t border-gray-200 dark:border-neutral-700"
+                        >
+                          <td className="px-3 py-2 text-gray-800 dark:text-gray-100">
+                            {svc?.name || `ID: ${a.service_id}`}
+                          </td>
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-300">
+                            {baseMin ? `${baseMin} perc` : "n/a"}
+                          </td>
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              min={0}
+                              className="w-28 rounded-md border border-gray-300 dark:border-neutral-600 px-2 py-1 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                              value={a.custom_duration_min}
+                              onChange={(e) =>
+                                updateServiceDuration(
+                                  a.service_id,
+                                  e.target.value
+                                )
+                              }
+                              placeholder={baseMin ? String(baseMin) : ""}
+                            />
+                          </td>
+                          <td className="px-3 py-2 text-right">
+                            <button
+                              className="text-xs text-red-500 hover:text-red-700"
+                              onClick={() =>
+                                removeServiceAssignment(a.service_id)
+                              }
+                            >
+                              Törlés
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
+          {/* --- LOGIN / JOGOSULTSÁG TAB --- */}
           {activeTab === "login" && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* felhasználónév */}
-              <div className="md:col-span-2">
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Felhasználónév (email)</label>
-                <input
-                  className="w-full border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
-                  value={loginName}
-                  onChange={(e) => setLoginName(e.target.value)}
-                  placeholder="pl. anna.kovacs@szalon.hu"
-                />
-              </div>
-
-              {/* jelszó + generálás */}
-              <div className="md:col-span-2">
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">Jelszó</label>
-                <div className="flex items-center gap-2">
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Bejelentkezési név (login)
+                  </label>
                   <input
-                    className="flex-1 border border-gray-300 dark:border-neutral-600 rounded-lg p-2 bg-white dark:bg-neutral-700"
-                    value={plainPassword}
-                    onChange={(e) => setPlainPassword(e.target.value)}
-                    placeholder="**********"
-                    type="text"
+                    className="mt-1 w-full rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                    value={loginName}
+                    onChange={(e) => setLoginName(e.target.value)}
+                    placeholder="pl. kovacs.anna"
                   />
-                  <button
-                    type="button"
-                    onClick={generatePassword}
-                    className="whitespace-nowrap bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-gray-100 text-xs font-medium px-3 py-2 rounded-lg shadow"
-                  >
-                    Jelszó generálás
-                  </button>
                 </div>
-                {loginError && <div className="text-xs text-red-500 mt-1">{loginError}</div>}
-                {loginSuccess && <div className="text-xs text-green-600 mt-1">{loginSuccess}</div>}
-                <div className="text-[10px] text-gray-500 dark:text-gray-400 mt-1">
-                  A generált jelszó mentéskor titkosítva kerül az adatbázisba. (Min. 8 karakter.)
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
+                    Kezdő jelszó
+                  </label>
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      className="flex-1 rounded-md border border-gray-300 dark:border-neutral-600 px-3 py-2 text-sm bg-white dark:bg-neutral-700 text-gray-900 dark:text-gray-100"
+                      type="text"
+                      value={plainPassword}
+                      onChange={(e) => setPlainPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={generatePassword}
+                      className="px-3 py-2 text-xs rounded-md border border-[#d4a373] text-[#d4a373] hover:bg-[#d4a373]/10"
+                    >
+                      Jelszó generálása
+                    </button>
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    A jelszó mentése csak a{" "}
+                    <strong>„Teljes mentés”</strong> gombbal történik meg.
+                  </p>
                 </div>
               </div>
 
-              {/* szerepkörök */}
-              <div className="md:col-span-2">
-                <label className="block text-xs text-gray-600 dark:text-gray-400 mb-2">Szerepkörök</label>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
-                  {AVAILABLE_ROLES.map((r) => (
+              {loginError && (
+                <div className="text-sm text-red-500">{loginError}</div>
+              )}
+              {loginSuccess && (
+                <div className="text-sm text-green-600">{loginSuccess}</div>
+              )}
+
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-100 mb-2">
+                  Jogosultságok
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                  {availableRoles.map((role) => (
                     <label
-                      key={r.key}
-                      className="flex items-start gap-2 bg-white dark:bg-neutral-700 border border-gray-300 dark:border-neutral-600 rounded-lg p-2 cursor-pointer"
+                      key={role.key}
+                      className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200"
                     >
                       <input
                         type="checkbox"
-                        className="mt-[2px]"
-                        checked={rolesSelected.includes(r.key)}
-                        onChange={() => toggleRole(r.key)}
+                        checked={rolesPicked.includes(role.key)}
+                        onChange={() => toggleRole(role.key)}
                       />
-                      <span className="text-gray-800 dark:text-gray-100">{r.label}</span>
+                      <span>{role.label}</span>
                     </label>
                   ))}
                 </div>
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  A kiválasztott szerepkörök alapján dől el, mit érhet el a
+                  rendszerben (admin, recepciós, stb.). A lista alapvetően az
+                  adatbázisból jön (<code>/api/roles</code>), hiba esetén a
+                  beépített alapértelmezett listára esik vissza.
+                </p>
               </div>
             </div>
           )}
         </div>
 
         {/* FOOTER */}
-        <div className="p-4 border-t border-gray-200 dark:border-neutral-700 flex items-center justify-end gap-3">
-          <button
-            onClick={onRequestClose}
-            className="px-4 py-2 rounded-lg text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 dark:bg-neutral-700 dark:hover:bg-neutral-600 dark:text-gray-100"
-          >
-            Mégse
-          </button>
+        <div className="p-4 border-t border-gray-200 dark:border-neutral-700 flex justify-between items-center">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            *-gal jelölt mezők kitöltése kötelező.
+          </div>
 
-          <button
-            onClick={handleSaveAll}
-            disabled={savingWhole || !formValid()}
-            className={`px-4 py-2 rounded-lg text-sm font-medium ${
-              savingWhole || !formValid()
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-neutral-700 dark:text-neutral-500"
-                : "bg-green-600 hover:bg-green-700 text-white"
-            }`}
-          >
-            {savingWhole ? "Mentés..." : "Mentés"}
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={onRequestClose}
+              className="px-4 py-2 rounded-md border border-gray-300 text-sm text-gray-700 bg-white hover:bg-gray-50 dark:bg-neutral-800 dark:text-gray-200 dark:border-neutral-600 dark:hover:bg-neutral-700"
+              disabled={savingWhole}
+            >
+              Mégse
+            </button>
+            <button
+              onClick={handleSaveAll}
+              className="px-4 py-2 rounded-md text-sm font-medium text-white bg-[#d4a373] hover:bg-[#c58a4f] disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={savingWhole}
+            >
+              {savingWhole ? "Mentés..." : "Teljes mentés"}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import "./Sidebar.css";
+import SidebarCalendar from "./SidebarCalendar";
 
-// 🔹 Ugyanaz az API_BASE logika
+// 🔹 Ugyanaz az API_BASE logika, mint máshol
 const API_BASE =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000/api"
@@ -37,8 +38,48 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
+  const Sidebar: React.FC = () => {
+  const navigate = useNavigate();
+
+  // ... a többi state, useEffect stb. marad
+
+  const handleDateSelect = (date: Date) => {
+    const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
+
+    // 1) elmentjük, hogy a naptár oldal / scheduler fel tudja használni
+    localStorage.setItem("kleo.selectedDate", iso);
+
+    // 2) kiküldünk egy custom eventet – pl. a Home.tsx figyelhet rá
+    window.dispatchEvent(
+      new CustomEvent("kleo:selectedDate", {
+        detail: { date: iso },
+      })
+    );
+
+    // 3) ha van külön útvonal a napi beosztásnak, itt lehet navigálni
+    // pl. ha a naptár oldalad /home vagy /naptar:
+    // navigate(`/naptar?date=${iso}`);
+  };
+
+  return (
+    <aside className="kleo-sidebar">
+      <div className="kleo-sidebar-header">
+        {/* itt van nálad a logó és esetleg a hamburger gomb */}
+      </div>
+
+      {/* ⬇⬇⬇ IDE JÖN A MINI NAPTÁR ⬇⬇⬇ */}
+      <SidebarCalendar onSelectDate={handleDateSelect} />
+
+      {/* ⬇⬇⬇ Ezután jön a már meglévő menü/nav ⬇⬇⬇ */}
+      <nav className="kleo-sidebar-nav">
+        {/* a meglévő menü elemeid */}
+      </nav>
+    </aside>
+  );
+};
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [openIds, setOpenIds] = useState<number[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false); // mobilon nyit/zár
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -64,9 +105,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       .catch((err) => console.error("❌ Menü betöltési hiba:", err));
   }, [user]);
 
-  const isOpen = (id: number) => openIds.includes(id);
+  const isExpanded = (id: number) => openIds.includes(id);
 
-  const toggleOpen = (id: number) => {
+  const toggleExpanded = (id: number) => {
     setOpenIds((prev) =>
       prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
     );
@@ -77,23 +118,25 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     const hasChildren = menu.children.length > 0;
 
     if (hasChildren) {
-      toggleOpen(menu.id);
+      toggleExpanded(menu.id);
       return;
     }
 
     if (menu.route) {
       navigate(menu.route);
+      setMobileOpen(false); // mobilon katt után csukjuk
     }
   };
 
   const handleChildClick = (item: MenuItem) => {
     if (item.route) {
       navigate(item.route);
+      setMobileOpen(false); // mobilon csukjuk
     }
   };
 
   return (
-    <aside className="kleo-sidebar">
+    <aside className={`kleo-sidebar ${mobileOpen ? "is-open" : ""}`}>
       <div className="kleo-sidebar-header">
         <div className="kleo-sidebar-logo-wrap">
           <img src={Logo} alt="Kleoszalon logó" className="kleo-sidebar-logo" />
@@ -102,20 +145,29 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
           <div className="kleo-sidebar-title">Kleoszalon</div>
           <div className="kleo-sidebar-subtitle">Admin felület</div>
         </div>
+
+        {/* Mobil hamburger gomb – csak mobilon látszik a CSS miatt */}
+        <button
+          type="button"
+          className="kleo-mobile-toggle"
+          onClick={() => setMobileOpen((v) => !v)}
+        >
+          ☰ Menü
+        </button>
       </div>
 
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
             const hasChildren = menu.children.length > 0;
-            const open = isOpen(menu.id);
+            const expanded = isExpanded(menu.id);
 
             return (
               <li
                 key={menu.id}
                 className={
                   "kleo-sidebar-menu-item" +
-                  (open ? " kleo-sidebar-menu-item--open" : "")
+                  (expanded ? " kleo-sidebar-menu-item--open" : "")
                 }
               >
                 <button
@@ -127,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
                   {hasChildren && (
                     <span className="kleo-sidebar-menu-chevron">
-                      {open ? (
+                      {expanded ? (
                         <ChevronDown size={16} />
                       ) : (
                         <ChevronRight size={16} />
@@ -136,7 +188,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                   )}
                 </button>
 
-                {hasChildren && open && (
+                {hasChildren && expanded && (
                   <ul className="kleo-sidebar-submenu">
                     {menu.children.map((child) => (
                       <li
@@ -167,6 +219,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   if (!raw.length) return [];
 
+  // szerep szerinti szűrés (required_role)
   const filtered = raw.filter((item) => {
     const req = (item.required_role || "").trim();
     if (!req) return true;
@@ -174,6 +227,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return String(role).toLowerCase() === req.toLowerCase();
   });
 
+  // Ha már fa-struktúrában jön (submenus)
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
     const sortFn = (a: RawMenuItem, b: RawMenuItem) =>
       (a.order_index ?? 9999) - (b.order_index ?? 9999);
@@ -189,6 +243,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return filtered.sort(sortFn).map(normalize);
   }
 
+  // Ha lapos lista parent_id-vel
   const orderIndex: Record<number, number> = {};
   filtered.forEach((item) => {
     orderIndex[item.id] = item.order_index ?? 9999;
@@ -228,9 +283,9 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     name: node.name,
     icon: node.icon,
     route: node.route,
-    children: node.children.sort(sortFnNode).map((child) =>
-      normalizeNode(child as InternalNode)
-    ),
+    children: node.children
+      .sort(sortFnNode)
+      .map((child) => normalizeNode(child as InternalNode)),
   });
 
   return roots.sort(sortFnNode).map(normalizeNode);

@@ -1,3 +1,141 @@
+/* === Reszponzív (tablet + mobil) === */
+
+/* Tablet: kicsit szellősebb, rugalmasabb magasság */
+@media (max-width: 1024px) {
+  .home-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .calendar-container {
+    padding: 0.75rem;
+  }
+
+  .rbc-calendar {
+    height: auto;
+    min-height: 480px;
+  }
+}
+
+/* Mobil: sidebar felül, tartalom alatta */
+@media (max-width: 768px) {
+  .home-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #c4a65a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  .sidebar .logo {
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebar .logo img {
+    width: 120px;
+  }
+
+  .sidebar nav {
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+
+  .sidebar nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .sidebar nav li {
+    margin-bottom: 0;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .calendar-container {
+    padding: 0.75rem 0.75rem 1rem;
+    overflow: visible;
+  }
+
+  /* Dashboard stat kártyák: 1 oszlop mobilon */
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* A fő két oszlop (bal: employees, jobb: chart) egymás alá kerül */
+  .dashboard-main {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Dolgozó lista kártya */
+  .employees-card {
+    padding: 0.75rem;
+  }
+
+  .employees-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .employees-filters {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .employees-filters input,
+  .employees-filters select {
+    flex: 1 1 120px;
+  }
+
+  /* Tábla ne essen szét, lehessen oldalra húzni */
+  .employees-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .employees-table {
+    min-width: 640px;
+  }
+
+  /* Dolgozó részletei kártya (EmployeeDetails) */
+  .employee-details-card {
+    margin: 0.75rem 0.5rem 1rem;
+    padding: 1rem;
+    max-height: none;
+  }
+
+  .employee-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .employee-details-header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .employee-details-section-grid,
+  .employee-details-notes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-details-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+}
+
 /* === Layout alapok === */
 .home-container {
   display: flex;
@@ -508,11 +646,27 @@
 }
 
 @media (max-width: 768px) {
-  .employee-details-section-grid {
-    grid-template-columns: minmax(0, 1fr);
+  /* EDDIG: .sidebar { ... } */
+  .sidebar,
+  .kleo-sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #c4a65a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
   }
-}
 
+  /* ha vannak további .sidebar-hoz kötött szabályok,
+     duplikáld őket is így: */
+  .sidebar .logo,
+  .kleo-sidebar .logo {
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebar .logo img,
+  .kleo-sidebar .logo img {
+    width: 120px;
+  }
 .employee-details-field {
   display: flex;
   flex-direction: column;
@@ -627,4 +781,4 @@
   text-align: center;
   font-size: 0.85rem;
   color: #666;
-}
+}}
