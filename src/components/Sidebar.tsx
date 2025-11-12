@@ -6,6 +6,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import "./Sidebar.css";
 import SidebarCalendar from "./SidebarCalendar";
+import { NavLink } from "react-router-dom";
 
 // API alap URL (ugyanaz a logika, mint máshol)
 const API_BASE =
@@ -35,6 +36,40 @@ interface MenuItem {
 
 interface SidebarProps {
   user?: { role?: string | null } | null;
+}
+
+/** Mindig abszolút útvonalat csinál: "employees" -> "/employees" */
+function normalizeRoute(r?: string): string {
+  if (!r) return "#";
+  let s = r.trim();
+  if (!s.startsWith("/")) s = "/" + s;
+  s = s.replace(/\/{2,}/g, "/");     // dupla perjelek kiszedése
+  return s;
+}
+
+export function Menu({ items }: { items: Array<{ id:number; name:string; route?:string; icon?:string; }> }) {
+  return (
+    <nav className="flex flex-col gap-1">
+      {items.map(it => {
+        const to = normalizeRoute(it.route);
+        const isDisabled = to === "#";
+        return (
+          <NavLink
+            key={it.id}
+            to={to}
+            className={({ isActive }) =>
+              "px-3 py-2 rounded " +
+              (isActive ? "bg-black text-white" : "hover:bg-gray-100") +
+              (isDisabled ? " pointer-events-none opacity-50" : "")
+            }
+            aria-disabled={isDisabled}
+          >
+            {it.name}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
@@ -83,15 +118,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
       return;
     }
 
-    if (menu.route) {
-      navigate(menu.route);
-    }
+    const to = normalizeRoute(menu.route);
+    if (to) navigate(to);
   };
 
   const handleChildClick = (child: MenuItem) => {
-    if (child.route) {
-      navigate(child.route);
-    }
+    const to = normalizeRoute(child.route);
+    if (to) navigate(to);
   };
 
   // Mini naptár: később a napi beosztást erre a dátumra fogjuk betölteni
@@ -146,7 +179,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
               >
                 <button
                   type="button"
-                  onClick={() => handleTopClick(menu)}
+                  onClick={() => (menu.children && menu.children.length ? toggleExpanded(menu.id) : navigate(normalizeRoute(menu.route)))}
                   className="kleo-sidebar-menu-button"
                 >
                   <span className="kleo-sidebar-menu-label">{menu.name}</span>
@@ -164,16 +197,26 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
                 {hasChildren && expanded && (
                   <ul className="kleo-sidebar-submenu">
-                    {menu.children.map((child) => (
-                      <li
-                        key={child.id}
-                        className="kleo-sidebar-submenu-item"
-                        onClick={() => handleChildClick(child)}
-                      >
-                        {child.name}
-                      </li>
-                    ))}
-                  </ul>
+  {menu.children.map((child) => {
+    const to = normalizeRoute(child.route);
+    const isDisabled = to === "#";
+    return (
+      <li key={child.id}>
+        <NavLink
+          to={to}
+          className={({ isActive }) =>
+            "kleo-sidebar-submenu-item" +
+            (isActive ? " active" : "") +
+            (isDisabled ? " pointer-events-none opacity-50" : "")
+          }
+          aria-disabled={isDisabled}
+        >
+          {child.name}
+        </NavLink>
+      </li>
+    );
+  })}
+</ul>
                 )}
               </li>
             );
@@ -193,13 +236,17 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   if (!raw.length) return [];
 
-  // role alapú szűrés
-  const filtered = raw.filter((item) => {
-    const req = (item.required_role || "").trim();
-    if (!req) return true;
-    if (!role) return false;
-    return String(role).toLowerCase() === req.toLowerCase();
-  });
+  function canSee(required: string | null | undefined, role: string | null): boolean {
+  const req = (required || "").trim().toLowerCase();
+  if (!req || req === "all" || req === "*") return true;
+  if (!role) return false;
+  const r = String(role).toLowerCase();
+  if (r === "admin") return true;
+  return req === r;
+}
+
+// role alapú szűrés – 'all' és '*' bárki, admin mindent lát
+  const filtered = raw.filter((item) => canSee(item.required_role, role));
 
   // Ha már hierarchikus (submenus)
   if (filtered.length && Array.isArray(filtered[0].submenus)) {

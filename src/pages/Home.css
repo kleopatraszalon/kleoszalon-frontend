@@ -139,8 +139,9 @@
 /* === Layout alapok === */
 .home-container {
   display: flex;
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;   /* legyen minimum teljes képernyő */
+  height: auto;        /* de engedje nőni */
+  overflow: visible;   /* NE tiltsuk le a görgetést itt */
   font-family: "Inter", sans-serif;
 }
 
@@ -802,16 +803,248 @@
   }
 
   /* A fő tartalom (naptár / dashboard) töltse ki a maradék helyet és legyen görgethető */
-  .calendar-container {
-    flex: 1;
-    width: 100%;
-    padding: 0.75rem;
-    overflow: auto;           /* EZ A LÉNYEG: lehessen görgetni */
-  }
+.calendar-container {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 1rem;
+  overflow: auto;     /* itt engedjük a görgetést */
+  max-height: none;   /* ne vágja le a magasságot */
+}
 
   /* A nagy naptár ne legyen kényszerítve fix magasságra */
   .rbc-calendar {
     height: auto;
     min-height: 60vh;
+  }
+}
+/* === Napi munkaidő-beosztás (DailyScheduleBoard) === */
+
+.kleo-daily-wrapper {
+  margin-top: 1.5rem;
+  background: #fefdfb;
+  border-radius: 1rem;
+  padding: 1.2rem 1.4rem;
+  border: 1px solid #f3e4c6;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.kleo-daily-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.kleo-daily-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.kleo-daily-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1f2937;
+}
+
+.kleo-daily-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.kleo-daily-status {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.kleo-daily-status--loading {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.kleo-daily-status--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.kleo-daily-status--empty {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.kleo-daily-location-card {
+  margin-top: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #ede9fe;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.kleo-daily-location-header {
+  padding: 0.6rem 0.9rem;
+  background: linear-gradient(90deg, #fefce8, #fef9c3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.kleo-daily-location-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.kleo-daily-location-count {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.kleo-daily-grid-wrapper {
+  overflow-x: auto;
+  padding: 0.5rem 0.2rem 0.7rem;
+}
+
+.kleo-daily-grid-row {
+  display: grid;
+  grid-template-columns: 180px repeat(13, minmax(60px, 1fr));
+  /* 13 oszlop: 8–20 óra => ha mást választasz, igazítsd */
+}
+
+.kleo-daily-grid-row--header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.kleo-daily-grid-row--body:nth-child(odd) .kleo-daily-cell--slot {
+  background: #f9fafb;
+}
+
+.kleo-daily-grid-row--body:nth-child(even) .kleo-daily-cell--slot {
+  background: #f3f4f6;
+}
+
+.kleo-daily-cell {
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  padding: 0.3rem 0.4rem;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.kleo-daily-cell--employee-header {
+  background: #f3f4f6;
+  border-top-left-radius: 0.6rem;
+}
+
+.kleo-daily-cell--hour-header {
+  text-align: center;
+  background: #f3f4f6;
+}
+
+.kleo-daily-cell--employee {
+  background: #f9fafb;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.kleo-daily-employee-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.kleo-daily-employee-count {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.kleo-daily-cell--slot {
+  position: relative;
+  font-size: 0.75rem;
+}
+
+.kleo-daily-event {
+  position: relative;
+  border-radius: 0.45rem;
+  padding: 0.2rem 0.25rem;
+  margin-bottom: 0.15rem;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  color: #111827;
+  background: #bfdbfe;
+  border: 1px solid #93c5fd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Színezés státusz alapján – később lehet finomítani */
+.kleo-daily-event--status-default {
+  background: #bfdbfe;
+  border-color: #93c5fd;
+}
+
+.kleo-daily-event--status-booked,
+.kleo-daily-event--status-foglalt {
+  background: #fecaca;
+  border-color: #fca5a5;
+}
+
+.kleo-daily-event--status-done,
+.kleo-daily-event--status-completed {
+  background: #bbf7d0;
+  border-color: #86efac;
+}
+
+.kleo-daily-event--status-cancelled,
+.kleo-daily-event--status-canceled {
+  background: #fee2e2;
+  border-color: #fecaca;
+  text-decoration: line-through;
+}
+
+.kleo-daily-event-title {
+  font-weight: 500;
+}
+
+.kleo-daily-event-client {
+  font-size: 0.7rem;
+  color: #4b5563;
+}
+
+/* Mobilbarát: a tábla horizontálisan scrollozható marad */
+
+@media (max-width: 768px) {
+  .kleo-daily-wrapper {
+    margin-top: 1rem;
+    padding: 0.8rem 0.8rem 1rem;
+    border-radius: 0.9rem;
+  }
+
+  .kleo-daily-grid-row {
+    grid-template-columns: 140px repeat(13, minmax(56px, 1fr));
+  }
+
+  .kleo-daily-employee-name {
+    font-size: 0.8rem;
+  }
+
+  .kleo-daily-employee-count {
+    font-size: 0.68rem;
+  }
+
+  .kleo-daily-event {
+    font-size: 0.68rem;
   }
 }

@@ -1,7 +1,6 @@
 // src/App.tsx
 import React, { Suspense, lazy, type ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-
 // ⚠️ A lapoknak DEFAULT exporttal kell rendelkezniük (export default ...)
 const Login = lazy(() => import("./pages/Login"));
 const Home = lazy(() => import("./pages/Home"));
@@ -14,6 +13,7 @@ const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
 const WorkOrderNew = lazy(() => import("./pages/WorkOrderNew"));
 const EmployeesList = lazy(() => import("./pages/EmployeesList"));
 const EmployeeDetails = lazy(() => import("./pages/EmployeeDetails"));
+
 
 const HOME_PATH = "/";
 
@@ -67,9 +67,15 @@ export default function App() {
           <Route path="/workorders/new" element={<RequireAuth><WorkOrderNew /></RequireAuth>} />
 
           {/* Munkatársak (védettek) */}
-          <Route path="/employees" element={<RequireAuth><EmployeesList /></RequireAuth>} />
           <Route path="/employees/:id" element={<RequireAuth><EmployeeDetails /></RequireAuth>} />
-
+          <Route
+  path="/employees"
+  element={
+    <RequireAuth>
+      <EmployeesList />
+    </RequireAuth>
+  }
+/>
           {/* Placeholder (védett) */}
           <Route
             path="/employees/new"

@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import "./Home.css";
-
+import DailyScheduleBoard from "../components/DailyScheduleBoard";
 
 import {
   BarChart,

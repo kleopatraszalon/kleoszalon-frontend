@@ -3,8 +3,10 @@ import Sidebar from "../components/Sidebar";
 import EmployeeNewModal from "../components/EmployeeNewModal";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
-import EmployeeDetails from "./EmployeeDetails";
 import "./Home.css";
+
+// A kártya komponens NÉV SZERINTI exportja ugyanebből a mappából
+import { EmployeeDetailsCard } from "./EmployeeDetails";
 
 Modal.setAppElement("#root");
 
@@ -39,11 +41,6 @@ function calcAge(birth_date?: string): number | null {
   return age;
 }
 
-interface EmployeeDetailsProps {
-  employeeId?: string;
-  onClose?: () => void;
-}
-
 const EmployeesList: React.FC = () => {
   // összes munkatárs a szervertől
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
@@ -62,9 +59,7 @@ const EmployeesList: React.FC = () => {
 
   // Részletek modal (új réteg!)
   const [detailsOpen, setDetailsOpen] = useState(false);
-  const [selectedEmployeeId, setSelectedEmployeeId] = useState<
-    string | number | null
-  >(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | number | null>(null);
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -72,8 +67,10 @@ const EmployeesList: React.FC = () => {
 
   // Dolgozók betöltése backendről
   const loadEmployees = async () => {
-   const token =
-  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
+    const token =
+      localStorage.getItem("token") ||
+      localStorage.getItem("kleo_token") ||
+      "";
 
     if (!token) {
       setAuthError("Nincs token – jelentkezz be először.");
@@ -81,9 +78,7 @@ const EmployeesList: React.FC = () => {
       return;
     }
 
-    const path = includeInactive
-      ? "employees?include_inactive=1"
-      : "employees";
+    const path = includeInactive ? "employees?include_inactive=1" : "employees";
 
     try {
       setLoading(true);
@@ -137,9 +132,7 @@ const EmployeesList: React.FC = () => {
   const filtered = useMemo(() => {
     return allEmployees.filter((emp) => {
       const displayName =
-        emp.full_name ||
-        `${emp.last_name || ""} ${emp.first_name || ""}`.trim() ||
-        "";
+        emp.full_name || `${emp.last_name || ""} ${emp.first_name || ""}`.trim() || "";
       const nameLower = displayName.toLowerCase();
       const qualificationText = (emp.qualification || "").toLowerCase();
 
@@ -215,9 +208,7 @@ const EmployeesList: React.FC = () => {
               }
               onClick={() => setIncludeInactive((prev) => !prev)}
             >
-              {includeInactive
-                ? "Csak aktívak mutatása"
-                : "Inaktív dolgozók is"}
+              {includeInactive ? "Csak aktívak mutatása" : "Inaktív dolgozók is"}
             </button>
           </div>
         </div>
@@ -246,9 +237,7 @@ const EmployeesList: React.FC = () => {
             </div>
 
             <div className="employees-filter-field">
-              <label className="employees-filter-label">
-                Min. havibér (Ft)
-              </label>
+              <label className="employees-filter-label">Min. havibér (Ft)</label>
               <input
                 type="number"
                 min={0}
@@ -285,9 +274,7 @@ const EmployeesList: React.FC = () => {
               />
             </div>
 
-            <div className="employees-filter-summary">
-              {filtered.length} találat
-            </div>
+            <div className="employees-filter-summary">{filtered.length} találat</div>
           </div>
         </div>
 
@@ -312,11 +299,7 @@ const EmployeesList: React.FC = () => {
                 {filtered.map((emp) => {
                   const ageVal = calcAge(emp.birth_date);
                   const displayName =
-                    emp.full_name ||
-                    `${emp.last_name || ""} ${
-                      emp.first_name || ""
-                    }`.trim() ||
-                    "Névtelen";
+                    emp.full_name || `${emp.last_name || ""} ${emp.first_name || ""}`.trim() || "Névtelen";
 
                   return (
                     <tr
@@ -333,9 +316,7 @@ const EmployeesList: React.FC = () => {
                               className="employees-avatar"
                             />
                           )}
-                          <span className="employees-name-link">
-                            {displayName}
-                          </span>
+                          <span className="employees-name-link">{displayName}</span>
                         </div>
                       </td>
                       <td>{emp.location_name ?? emp.location_id ?? "—"}</td>
@@ -343,19 +324,13 @@ const EmployeesList: React.FC = () => {
                       <td>{ageVal !== null ? `${ageVal} év` : "—"}</td>
                       <td>{emp.qualification ?? "—"}</td>
                       <td>
-                        {emp.monthly_wage
-                          ? `${emp.monthly_wage.toLocaleString()} Ft`
-                          : "—"}
+                        {emp.monthly_wage ? `${emp.monthly_wage.toLocaleString()} Ft` : "—"}
                       </td>
                       <td>
                         {emp.active ? (
-                          <span className="employees-badge employees-badge--active">
-                            aktív
-                          </span>
+                          <span className="employees-badge employees-badge--active">aktív</span>
                         ) : (
-                          <span className="employees-badge employees-badge--inactive">
-                            inaktív
-                          </span>
+                          <span className="employees-badge employees-badge--inactive">inaktív</span>
                         )}
                       </td>
                     </tr>
@@ -375,22 +350,22 @@ const EmployeesList: React.FC = () => {
         )}
 
         {/* Új dolgozó modal (EmployeeNewModal.tsx) */}
-   <EmployeeNewModal
-  isOpen={showNewModal}
-  onRequestClose={() => setShowNewModal(false)}
-  onEmployeeCreated={(newEmp) => {
-    setShowNewModal(false);
-    if (newEmp) {
-      setAllEmployees((prev) => [newEmp, ...prev]);
-    } else {
-      // ha a backend nem küldi vissza az új rekordot, újratöltjük a listát
-      loadEmployees();
-    }
-  }}
-/>
+        <EmployeeNewModal
+          isOpen={showNewModal}
+          onRequestClose={() => setShowNewModal(false)}
+          onEmployeeCreated={(newEmp) => {
+            setShowNewModal(false);
+            if (newEmp) {
+              setAllEmployees((prev) => [newEmp, ...prev]);
+            } else {
+              // ha a backend nem küldi vissza az új rekordot, újratöltjük a listát
+              loadEmployees();
+            }
+          }}
+        />
       </main>
 
-      {/* 🔍 MUNKATÁRS RÉSZLETEK MODAL – EGY ÚJ RÉTEGEN */}
+      {/* 🔍 Munkatárs részletei – Modal */}
       <Modal
         isOpen={detailsOpen}
         onRequestClose={closeDetails}
@@ -414,7 +389,7 @@ const EmployeesList: React.FC = () => {
       >
         {selectedEmployeeId && (
           <div className="p-4">
-            <EmployeeDetails
+            <EmployeeDetailsCard
               employeeId={String(selectedEmployeeId)}
               onClose={closeDetails}
             />
