@@ -1,7 +1,7 @@
 // File: frontend/src/pages/WorkOrdersList.tsx
 // Generated: 2025-11-12 22:16
 import React, { useEffect, useState } from "react";
-import { apiFetch } from "../utils/api";
+import { apiFetch } from "../../utils/api";
 import { Link } from "react-router-dom";
 
 type WO = {

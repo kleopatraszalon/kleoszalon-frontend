@@ -2,7 +2,7 @@
 // Generated: 2025-11-12 22:16
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { apiFetch } from "../utils/api";
+import { apiFetch } from "../../utils/api";
 
 export default function WorkOrderView(){
   const { id } = useParams();

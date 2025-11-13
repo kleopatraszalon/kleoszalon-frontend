@@ -1,7 +1,7 @@
 // File: frontend/src/pages/WorkOrderNew.tsx
 // Generated: 2025-11-12 22:16
 import React, { useState } from "react";
-import { apiFetch } from "../utils/api";
+import { apiFetch } from "../../utils/api";
 
 export default function WorkOrderNew(){
   const [appointmentId, setAppointmentId] = useState("");

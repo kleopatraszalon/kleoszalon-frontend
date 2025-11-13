@@ -89,6 +89,12 @@ const LoginPage: React.FC = () => {
           throw new Error("HTTP " + res.status);
         }
         const data = await res.json();
+        
+// pl. data.token vagy data.accessToken – amit a backend küld
+if (data.token) {
+  localStorage.setItem("token", data.token);
+  // vagy sessionStorage, ha csak session-re akarod
+}
         const opts: LocationOpt[] = (data || []).map((row: any) => {
           const label =
             row.city && row.name

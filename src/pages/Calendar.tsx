@@ -1,10 +1,10 @@
+// src/pages/Calendar.tsx
 import React, { useState, useEffect } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import Modal from "react-modal";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar"; // 🔹 új sidebar
+import Sidebar from "../components/Sidebar";
 import AdminEventModal, {
   Employee,
   Client,
@@ -15,61 +15,68 @@ import "./Home.css";
 
 // --- Localizer ---
 const locales = {};
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
-});
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
-Modal.setAppElement("#root");
-
-const Home: React.FC = () => {
+const CalendarPage: React.FC = () => {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<{ start: Date; end: Date } | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
-  const navigate = useNavigate();
 
-  // 🔹 Token ellenőrzés
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
 
-  // --- Adatok betöltése ---
+  // Egységesítjük a service rekordokat (id / név eltérő oszlopnevekhez is jó)
+  const normService = (s: any) => ({
+    id: s.id ?? s.uuid ?? s.service_id,
+    name: s.name ?? s.service_name ?? s.title ?? "Szolgáltatás",
+    duration_minutes: s.duration_minutes ?? s.duration ?? s.length ?? 30,
+    price: s.price ?? s.list_price ?? s.unit_price ?? 0,
+    color: s.color ?? null,
+  });
+
   useEffect(() => {
     if (!token) {
       navigate("/login");
       return;
     }
 
-    // Események, dolgozók, vendégek, szolgáltatások
-    const endpoints = [
-      { key: "events", setter: setEvents },
-      { key: "employees", setter: setEmployees },
-      { key: "clients", setter: setClients },
-      { key: "services", setter: setServices },
-    ];
-
-    endpoints.forEach(({ key, setter }) => {
-      fetch(`http://localhost:5000/api/${key}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => {
-          if (res.status === 401) {
+    const fetchWithAuth = (url: string) =>
+      fetch(url, { headers: { Authorization: `Bearer ${token}` } })
+        .then((r) => {
+          if (r.status === 401) {
             navigate("/login");
-            throw new Error("Nincs jogosultság");
+            throw new Error("401 Unauthorized");
           }
-          return res.json();
+          return r.json().catch(() => []);
         })
-        .then((data) => setter(Array.isArray(data) ? data : []))
-        .catch((err) => console.error(`${key} betöltési hiba:`, err));
-    });
+        .catch(() => []);
+
+    (async () => {
+      const [evs, emps, cls] = await Promise.all([
+        fetchWithAuth("http://localhost:5000/api/events"),
+        fetchWithAuth("http://localhost:5000/api/employees"),
+        fetchWithAuth("http://localhost:5000/api/clients"),
+      ]);
+
+      setEvents(Array.isArray(evs) ? evs : []);
+      setEmployees(Array.isArray(emps) ? emps : []);
+      setClients(Array.isArray(cls) ? cls : []);
+
+      // Szolgáltatások: /api/services, ha üres, próba /api/masters/services
+      let sv = await fetchWithAuth("http://localhost:5000/api/services");
+      if (!Array.isArray(sv) || sv.length === 0) {
+        sv = await fetchWithAuth("http://localhost:5000/api/masters/services");
+      }
+      setServices((Array.isArray(sv) ? sv : []).map(normService));
+    })();
   }, [token, navigate]);
 
-  // --- Megjelenítéshez formázott események ---
+  // Naptár események mappelése
   const mappedEvents = events.map((ev) => {
     const employee = employees.find((e) => e.id === ev.employee_id);
     return {
@@ -82,7 +89,6 @@ const Home: React.FC = () => {
     };
   });
 
-  // --- Esemény kijelölése ---
   const handleSelectEvent = (event: any) => {
     const found = events.find((e) => e.id === event.id);
     if (found) {
@@ -91,27 +97,25 @@ const Home: React.FC = () => {
     }
   };
 
-  // --- Új időpont kijelölése ---
   const handleSelectSlot = (slotInfo: any) => {
     setSelectedSlot({ start: slotInfo.start, end: slotInfo.end });
     setSelectedEvent(null);
     setIsModalOpen(true);
   };
 
-  // --- Mentés / frissítés ---
   const handleSaveEvent = (data: any) => {
     const newEvent: CalendarEvent = {
-      id: selectedEvent ? selectedEvent.id : Date.now(),
+      id: selectedEvent ? selectedEvent.id : String(Date.now()),
       title: data.title || "Új bejegyzés",
       start_time: data.start_time,
       end_time: data.end_time,
-      employee_id: Number(data.employee_id),
-      client_id: Number(data.client_id),
-      service_id: Number(data.service_id),
+      employee_id: String(data.employee_id || ""),
+      client_id: String(data.client_id || ""),
+      service_id: String(data.service_id || ""),
       status: data.status,
-      price: Number(data.price),
-      payment_method: data.payment_method,
-      notes: data.notes,
+      price: data.price !== undefined && data.price !== "" ? Number(data.price) : null,
+      payment_method: data.payment_method ?? "",
+      notes: data.notes ?? "",
     };
 
     if (selectedEvent) {
@@ -119,7 +123,6 @@ const Home: React.FC = () => {
     } else {
       setEvents((prev) => [...prev, newEvent]);
     }
-
     setIsModalOpen(false);
 
     fetch(`http://localhost:5000/api/events${selectedEvent ? `/${selectedEvent.id}` : ""}`, {
@@ -131,10 +134,7 @@ const Home: React.FC = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50 dark:bg-neutral-900 text-gray-800 dark:text-gray-100">
-      {/* 🔹 OLDALSÁV */}
       <Sidebar />
-
-      {/* 🔹 FŐTARTALOM */}
       <main className="flex-1 p-6">
         <div className="mb-6">
           <h2 className="text-3xl font-semibold mb-1">Naptár</h2>
@@ -151,11 +151,11 @@ const Home: React.FC = () => {
             onSelectEvent={handleSelectEvent}
             onSelectSlot={handleSelectSlot}
             style={{ height: "85vh" }}
-            views={["day", "week", "month"]}
+            defaultView="week"
+            views={{ month: true, week: true, day: true }}
           />
         </div>
 
-        {/* 🔹 MODAL */}
         <AdminEventModal
           isOpen={isModalOpen}
           onRequestClose={() => setIsModalOpen(false)}
@@ -171,4 +171,4 @@ const Home: React.FC = () => {
   );
 };
 
-export default Home;
+export default CalendarPage;

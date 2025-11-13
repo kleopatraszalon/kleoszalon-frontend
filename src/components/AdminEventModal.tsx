@@ -1,340 +1,301 @@
-import React, { useState, useEffect } from "react";
-import Modal from "react-modal";
-import axios from "axios";
+// src/components/AdminEventModal.tsx
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
-export interface Employee {
-  id: number;
-  name: string;
-  position?: string;
-  color?: string;
-}
+// --- típusok ---
+export type Employee = {
+  id: string;
+  full_name?: string | null;
+  name?: string | null;
+  color?: string | null;
+};
 
-export interface Client {
-  id: number;
-  name: string;
-}
+export type Client = {
+  id: string;
+  full_name?: string | null;
+  name?: string | null;
+};
 
-export interface Service {
-  id: number;
-  name: string;
-  price?: number;
-}
+export type Service = {
+  id: string;
+  name?: string | null;
+  duration_minutes?: number | null;
+  color?: string | null;
+};
 
-export interface CalendarEvent {
-  id: number;
-  title: string;
-  employee_id: number;
-  client_id: number;
-  service_id: number;
+export type CalendarEvent = {
+  id: string;
+  title?: string | null;
   start_time: string;
   end_time: string;
-  status: string;
-  price?: number;
-  payment_method: string;
-  notes?: string;
-}
+  employee_id?: string | null;
+  client_id?: string | null;
+  service_id?: string | null;
+  status?: string | null;
+  price?: number | null;
+  payment_method?: string | null;
+  notes?: string | null;
+};
 
-export interface AdminEventModalProps {
+type Props = {
   isOpen: boolean;
   onRequestClose: () => void;
-  employees: Employee[] | any; // fallback
-  clients: Client[] | any;
-  services: Service[] | any;
-  event?: CalendarEvent | null;
-  slot?: { start: Date; end: Date } | null;
-  onSave: (data?: CalendarEvent) => void;
+  employees: Employee[];
+  clients: Client[];
+  services: Service[];
+  event: CalendarEvent | null;
+  slot: { start: Date; end: Date } | null;
+  onSave: (data: any) => void;
+};
+
+function pad2(n: number) {
+  return String(n).padStart(2, "0");
+}
+function toISODate(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function toHM(d: Date) {
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 }
 
-const AdminEventModal: React.FC<AdminEventModalProps> = ({
-  isOpen,
-  onRequestClose,
-  employees,
-  clients,
-  services,
-  event,
-  slot,
-  onSave,
-}) => {
-  const [form, setForm] = useState({
-    title: "",
-    employee_id: "",
-    client_id: "",
-    service_id: "",
-    start_time: "",
-    end_time: "",
-    status: "booked",
-    price: "",
-    payment_method: "cash",
-    notes: "",
-  });
+function AdminEventModal(props: Props) {
+  const { isOpen, onRequestClose, employees, clients, services, event, slot, onSave } = props;
 
-  // --- biztosítjuk, hogy ezek mindig tömbök legyenek ---
-  const safeEmployees = Array.isArray(employees) ? employees : [];
-  const safeClients = Array.isArray(clients) ? clients : [];
-  const safeServices = Array.isArray(services) ? services : [];
+  const [title, setTitle] = useState<string>(event?.title ?? "");
+  const [employeeId, setEmployeeId] = useState<string>(event?.employee_id ?? "");
+  const [clientId, setClientId] = useState<string>(event?.client_id ?? "");
+  const [serviceId, setServiceId] = useState<string>(event?.service_id ?? "");
+  const [status, setStatus] = useState<string>(event?.status ?? "booked");
+  const [price, setPrice] = useState<string>(event?.price?.toString() ?? "");
+  const [payment, setPayment] = useState<string>(event?.payment_method ?? "");
+  const [notes, setNotes] = useState<string>(event?.notes ?? "");
+
+  // dátum/idő (slot vagy event)
+  const initialDate = event ? new Date(event.start_time) : slot?.start ?? new Date();
+  const initialEnd = event ? new Date(event.end_time) : slot?.end ?? new Date();
+
+  const [date, setDate] = useState<string>(toISODate(initialDate));
+  const [startHM, setStartHM] = useState<string>(toHM(initialDate));
+  const [endHM, setEndHM] = useState<string>(toHM(initialEnd));
 
   useEffect(() => {
-    if (event) {
-      setForm({
-        title: event.title || "",
-        employee_id: event.employee_id?.toString() || "",
-        client_id: event.client_id?.toString() || "",
-        service_id: event.service_id?.toString() || "",
-        start_time: event.start_time?.slice(0, 16) || "",
-        end_time: event.end_time?.slice(0, 16) || "",
-        status: event.status || "booked",
-        price: event.price?.toString() || "",
-        payment_method: event.payment_method || "cash",
-        notes: event.notes || "",
-      });
-    } else if (slot) {
-      setForm((prev) => ({
-        ...prev,
-        start_time: slot.start.toISOString().slice(0, 16),
-        end_time: slot.end.toISOString().slice(0, 16),
-      }));
-    }
-  }, [event, slot]);
+    if (!event && employees.length && !employeeId) setEmployeeId(employees[0].id);
+    if (!event && clients.length && !clientId) setClientId(clients[0].id);
+    if (!event && services.length && !serviceId) setServiceId(services[0].id);
+  }, [employees, clients, services, event, employeeId, clientId, serviceId]);
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+  if (!isOpen) return null;
+
+  const backdrop: React.CSSProperties = {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(0,0,0,.4)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 9999,
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const payload: CalendarEvent = {
-      id: event?.id ?? Date.now(),
-      title: form.title,
-      employee_id: Number(form.employee_id),
-      client_id: Number(form.client_id),
-      service_id: Number(form.service_id),
-      start_time: form.start_time,
-      end_time: form.end_time,
-      status: form.status,
-      price: Number(form.price),
-      payment_method: form.payment_method,
-      notes: form.notes,
-    };
-
-    try {
-      if (event?.id) {
-        await axios.put(`/api/events/${event.id}`, payload);
-      } else {
-        await axios.post("/api/events", payload);
-      }
-      onSave(payload);
-      onRequestClose();
-    } catch (err) {
-      console.error(err);
-    }
+  const panel: React.CSSProperties = {
+    width: "100%",
+    maxWidth: 720,
+    background: "#fff",
+    borderRadius: 16,
+    boxShadow: "0 20px 60px rgba(0,0,0,.2)",
+    padding: 16,
   };
 
-  const handleDelete = async () => {
-    if (event?.id && window.confirm("Biztosan törlöd ezt a bejegyzést?")) {
-      try {
-        await axios.delete(`/api/events/${event.id}`);
-        onSave();
-        onRequestClose();
-      } catch (err) {
-        console.error(err);
-      }
-    }
+  const inputStyle: React.CSSProperties = {
+    width: "100%",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: "6px 8px",
   };
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onRequestClose={onRequestClose}
-      className="w-full max-w-5xl mx-auto mt-16 bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl overflow-hidden"
-      overlayClassName="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+  const save = () => {
+    onSave({
+      title,
+      start_time: `${date} ${startHM}`,
+      end_time: `${date} ${endHM}`,
+      employee_id: employeeId,
+      client_id: clientId,
+      service_id: serviceId,
+      status,
+      price,
+      payment_method: payment,
+      notes,
+    });
+  };
+
+  const content = (
+    <div
+      style={backdrop}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onRequestClose();
+      }}
     >
-      {/* Header */}
-      <div className="flex justify-between items-center px-8 py-5 border-b border-gray-200 dark:border-neutral-700 bg-gradient-to-r from-gray-50 to-gray-100 dark:from-neutral-800 dark:to-neutral-900">
-        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
-          {event ? "Bejegyzés szerkesztése" : "Új bejegyzés"}
-        </h2>
-        <button
-          onClick={onRequestClose}
-          className="text-2xl text-gray-500 hover:text-red-500 transition"
+      <div style={panel}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
         >
-          ×
-        </button>
-      </div>
-
-      {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 p-8"
-      >
-        {/* Bal oszlop */}
-        <div className="flex flex-col">
-          <label className="font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Cím
-          </label>
-          <input
-            name="title"
-            value={form.title}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          />
-
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Dolgozó
-          </label>
-          <select
-            name="employee_id"
-            value={form.employee_id}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          >
-            <option value="">Válassz dolgozót</option>
-            {safeEmployees.map((e) => (
-              <option key={e.id} value={e.id}>
-                {e.name}
-              </option>
-            ))}
-          </select>
-
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Ügyfél
-          </label>
-          <select
-            name="client_id"
-            value={form.client_id}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          >
-            <option value="">Válassz ügyfelet</option>
-            {safeClients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+          <h2 style={{ margin: 0, fontWeight: 600 }}>Foglalás</h2>
+          <button onClick={onRequestClose}>Bezár</button>
         </div>
 
-        {/* Középső oszlop */}
-        <div className="flex flex-col">
-          <label className="font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Szolgáltatás
-          </label>
-          <select
-            name="service_id"
-            value={form.service_id}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          >
-            <option value="">Válassz szolgáltatást</option>
-            {safeServices.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div>
+            <label>Cím</label>
+            <input
+              style={inputStyle}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Státusz</label>
+            <select
+              style={inputStyle}
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="booked">booked</option>
+              <option value="confirmed">confirmed</option>
+              <option value="completed">completed</option>
+              <option value="cancelled">cancelled</option>
+            </select>
+          </div>
 
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Kezdés
-          </label>
-          <input
-            type="datetime-local"
-            name="start_time"
-            value={form.start_time}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          />
+          <div>
+            <label>Dolgozó</label>
+            <select
+              style={inputStyle}
+              value={employeeId}
+              onChange={(e) => setEmployeeId(e.target.value)}
+            >
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>
+                  {e.full_name ?? e.name ?? e.id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Ügyfél</label>
+            <select
+              style={inputStyle}
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+            >
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.full_name ?? c.name ?? c.id}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Befejezés
-          </label>
-          <input
-            type="datetime-local"
-            name="end_time"
-            value={form.end_time}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          />
+          <div>
+            <label>Szolgáltatás</label>
+            <select
+              style={inputStyle}
+              value={serviceId}
+              onChange={(e) => setServiceId(e.target.value)}
+            >
+              {services.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name ?? s.id}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label>Ár</label>
+            <input
+              style={inputStyle}
+              type="number"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Fizetés módja</label>
+            <input
+              style={inputStyle}
+              value={payment}
+              onChange={(e) => setPayment(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Megjegyzés</label>
+            <input
+              style={inputStyle}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Dátum</label>
+            <input
+              style={inputStyle}
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </div>
+          <div />
+          <div>
+            <label>Kezdés</label>
+            <input
+              style={inputStyle}
+              type="time"
+              value={startHM}
+              onChange={(e) => setStartHM(e.target.value)}
+            />
+          </div>
+          <div>
+            <label>Befejezés</label>
+            <input
+              style={inputStyle}
+              type="time"
+              value={endHM}
+              onChange={(e) => setEndHM(e.target.value)}
+            />
+          </div>
         </div>
 
-        {/* Jobb oszlop */}
-        <div className="flex flex-col">
-          <label className="font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Státusz
-          </label>
-          <select
-            name="status"
-            value={form.status}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          >
-            <option value="booked">Foglalt</option>
-            <option value="completed">Teljesítve</option>
-            <option value="cancelled">Törölve</option>
-          </select>
-
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Ár (Ft)
-          </label>
-          <input
-            type="number"
-            name="price"
-            value={form.price}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          />
-
-          <label className="font-medium text-gray-700 dark:text-gray-200 mt-3 mb-1">
-            Fizetési mód
-          </label>
-          <select
-            name="payment_method"
-            value={form.payment_method}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-2.5 focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          >
-            <option value="cash">Készpénz</option>
-            <option value="card">Bankkártya</option>
-            <option value="transfer">Átutalás</option>
-          </select>
-        </div>
-
-        {/* Megjegyzés */}
-        <div className="col-span-full flex flex-col">
-          <label className="font-medium text-gray-700 dark:text-gray-200 mb-1">
-            Megjegyzés
-          </label>
-          <textarea
-            name="notes"
-            value={form.notes}
-            onChange={handleChange}
-            className="border border-gray-300 dark:border-neutral-700 rounded-lg p-3 min-h-[100px] focus:ring-2 focus:ring-indigo-500 dark:bg-neutral-800"
-          />
-        </div>
-
-        {/* Láb */}
-        <div className="col-span-full flex justify-end gap-4 border-t border-gray-200 dark:border-neutral-700 pt-6 mt-4">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 8,
+            marginTop: 12,
+          }}
+        >
+          <button onClick={onRequestClose}>Mégse</button>
           <button
-            type="submit"
-            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-6 py-2.5 rounded-lg transition"
+            onClick={save}
+            style={{
+              background: "#111",
+              color: "#fff",
+              padding: "6px 10px",
+              borderRadius: 8,
+            }}
           >
             Mentés
           </button>
-          {event?.id && (
-            <button
-              type="button"
-              onClick={handleDelete}
-              className="bg-red-500 hover:bg-red-600 text-white font-semibold px-6 py-2.5 rounded-lg transition"
-            >
-              Törlés
-            </button>
-          )}
         </div>
-      </form>
-    </Modal>
+      </div>
+    </div>
   );
-};
+
+  return createPortal(content, document.body);
+}
 
 export default AdminEventModal;
