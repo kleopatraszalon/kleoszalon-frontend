@@ -1,6 +1,10 @@
 // src/App.tsx
 import React, { Suspense, lazy, type ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import EmployeeDetailsPage from "./pages/EmployeeDetails";
+
+const AppointmentsCalendar = lazy(() => import("./pages/AppointmentsCalendar"));
+
 // ⚠️ A lapoknak DEFAULT exporttal kell rendelkezniük (export default ...)
 const Login = lazy(() => import("./pages/Login"));
 const Home = lazy(() => import("./pages/Home"));
@@ -67,6 +71,7 @@ export default function App() {
           <Route path="/workorders/new" element={<RequireAuth><WorkOrderNew /></RequireAuth>} />
 
           {/* Munkatársak (védettek) */}
+          <Route path="/employees/:id" element={<RequireAuth><EmployeeDetailsPage /></RequireAuth>} />
           <Route path="/employees/:id" element={<RequireAuth><EmployeeDetails /></RequireAuth>} />
           <Route
   path="/employees"
@@ -80,6 +85,28 @@ export default function App() {
           <Route
             path="/employees/new"
             element={<RequireAuth><div>Új munkatárs felvétele (később készítjük el)</div></RequireAuth>}
+          />
+
+          {/* Appointments (védettek) */}
+          <Route
+            path="/appointments"
+            element={<RequireAuth><Navigate to="/appointments/calendar" replace /></RequireAuth>}
+          />
+          <Route
+            path="/appointments/calendar"
+            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+          />
+          <Route
+            path="/appointments/new"
+            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+          />
+          <Route
+            path="/appointments/cancel"
+            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+          />
+          <Route
+            path="/appointments/add-event"
+            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
           />
 
           {/* Fallback */}
