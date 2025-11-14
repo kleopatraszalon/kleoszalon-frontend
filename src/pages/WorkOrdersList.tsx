@@ -1,38 +1,165 @@
-// File: frontend/src/pages/WorkOrdersList.tsx
-// Generated: 2025-11-12 22:16
-import React, { useEffect, useState } from "react";
-import { apiFetch } from "../../utils/api";
-import { Link } from "react-router-dom";
+// src/pages/WorkOrdersList.tsx
+// Munkalapok listája
 
-type WO = {
+import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import { apiFetch } from "../utils/api";
+import { useCurrentUser } from "../hooks/useCurrentUser";
+
+type WorkOrder = {
   id: string;
-  status: string;
-  title?: string;
-  employee_name?: string;
-  client_name?: string;
-  grand_total?: number;
+  title: string;
+  status?: string;
   created_at?: string;
 };
 
-export default function WorkOrdersList(){
-  const [items, setItems] = useState<WO[]>([]);
-  useEffect(()=>{
-    apiFetch("/api/workorders").then(r=>r.json()).then(setItems);
-  },[]);
+const WorkOrdersList: React.FC = () => {
+  const { user } = useCurrentUser();
+  const [items, setItems] = useState<WorkOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const data = await apiFetch<any[]>("/api/workorders");
+
+        if (Array.isArray(data)) {
+          setItems(
+            data.map((d: any) => ({
+              id: String(d.id),
+              title: d.title ?? "",
+              status: d.status,
+              created_at: d.created_at,
+            }))
+          );
+        } else {
+          setItems([]);
+        }
+      } catch (err: any) {
+        console.error(err);
+        setError(err?.message || "Nem sikerült betölteni a munkalapokat");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-3">Munkalapok</h1>
-      <div className="grid gap-3">
-        {items.map(w => (
-          <Link to={`/workorders/${w.id}`} key={w.id} className="border rounded p-3 hover:bg-gray-50 block">
-            <div className="text-sm opacity-70">#{w.id.slice(0,8)}</div>
-            <div className="font-medium">{w.title || "Munkalap"}</div>
-            <div className="text-sm">{w.employee_name || "-"} • {w.client_name || "-"}</div>
-            <div className="text-xs uppercase mt-1">{w.status}</div>
+    <div className="home-container">
+      <Sidebar user={user} />
+      <main className="calendar-container">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
+            alignItems: "center",
+          }}
+        >
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 600 }}>Munkalapok</h2>
+          <Link
+            to="/workorders/new"
+            style={{
+              backgroundColor: "#4f46e5",
+              color: "#fff",
+              borderRadius: 6,
+              padding: "0.35rem 0.9rem",
+              fontSize: "0.9rem",
+              fontWeight: 600,
+              textDecoration: "none",
+            }}
+          >
+            + Új munkalap
           </Link>
-        ))}
-      </div>
+        </div>
+
+        {loading && <p>Betöltés...</p>}
+        {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+
+        {!loading && !error && (
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontSize: "0.9rem",
+            }}
+          >
+            <thead>
+              <tr>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>
+                  Azonosító
+                </th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>Cím</th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>
+                  Státusz
+                </th>
+                <th style={{ textAlign: "left", padding: "0.4rem" }}>
+                  Létrehozva
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((wo) => (
+                <tr key={wo.id}>
+                  <td
+                    style={{
+                      padding: "0.4rem",
+                      borderTop: "1px solid #e5e7eb",
+                    }}
+                  >
+                    <Link to={`/workorders/${wo.id}`}>{wo.id}</Link>
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.4rem",
+                      borderTop: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {wo.title}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.4rem",
+                      borderTop: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {wo.status || "—"}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.4rem",
+                      borderTop: "1px solid #e5e7eb",
+                    }}
+                  >
+                    {wo.created_at
+                      ? new Date(wo.created_at).toLocaleString("hu-HU")
+                      : "—"}
+                  </td>
+                </tr>
+              ))}
+              {items.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={4}
+                    style={{ padding: "0.6rem", textAlign: "center" }}
+                  >
+                    Nincs még munkalap.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </main>
     </div>
   );
-}
+};
+
+export default WorkOrdersList;

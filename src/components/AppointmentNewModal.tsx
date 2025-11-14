@@ -12,6 +12,18 @@ type PickerItem = {
 type Props = {
   onSaved: () => void;
   onClose: () => void;
+
+  /** Napi nézetben kattintott munkatárs id-ja (előválasztás) */
+  initialEmployeeId?: string;
+
+  /** Kiválasztott nap: 'YYYY-MM-DD' */
+  initialDate?: string;
+
+  /** Kattintott slot kezdete percben 0–1440 között (pl. 9:30 -> 570) */
+  initialStartMinutes?: number;
+
+  /** Alapértelmezett időtartam percben (pl. 30) */
+  initialDurationMinutes?: number;
 };
 
 // ======== Segédfüggvények ========

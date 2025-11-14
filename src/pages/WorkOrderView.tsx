@@ -1,44 +1,139 @@
-// File: frontend/src/pages/WorkOrderView.tsx
-// Generated: 2025-11-12 22:16
+// src/pages/WorkOrderView.tsx
+// Egy munkalap részletes nézete
+
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
-import { apiFetch } from "../../utils/api";
+import { useParams, Link } from "react-router-dom";
+import Sidebar from "../components/Sidebar";
+import { apiFetch } from "../utils/api";
+import { useCurrentUser } from "../hooks/useCurrentUser";
 
-export default function WorkOrderView(){
-  const { id } = useParams();
-  const [header, setHeader] = useState<any>(null);
+type WorkOrder = {
+  id: string;
+  title: string;
+  notes?: string;
+  status?: string;
+  created_at?: string;
+  updated_at?: string;
+};
 
-  useEffect(()=>{
-    apiFetch("/api/workorders").then(r=>r.json()).then((all)=>{
-      const h = all.find((x:any) => x.id === id);
-      setHeader(h || null);
-    });
-  },[id]);
+const WorkOrderView: React.FC = () => {
+  const { id } = useParams<{ id: string }>();
+  const { user } = useCurrentUser();
+  const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Biztos megoldás: listából keressük ki
+        const all = await apiFetch<any[]>("/api/workorders");
+        const found = Array.isArray(all)
+          ? all.find((x) => String(x.id) === String(id))
+          : null;
+
+        if (!found) {
+          setError("A munkalap nem található");
+          setWorkOrder(null);
+        } else {
+          setWorkOrder({
+            id: String(found.id),
+            title: found.title ?? "",
+            notes: found.notes ?? found.description ?? "",
+            status: found.status,
+            created_at: found.created_at,
+            updated_at: found.updated_at,
+          });
+        }
+      } catch (err: any) {
+        console.error(err);
+        setError(err?.message || "Nem sikerült betölteni a munkalapot");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id]);
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-semibold mb-2">Munkalap #{id?.slice(0,8)}</h1>
-      {header ? (
-        <div className="grid md:grid-cols-3 gap-3 mb-4">
-          <div className="border rounded p-3">
-            <div className="text-xs opacity-60">Állapot</div>
-            <div className="font-medium">{header.status}</div>
-          </div>
-          <div className="border rounded p-3">
-            <div className="text-xs opacity-60">Ügyfél</div>
-            <div className="font-medium">{header.client_name || "-"}</div>
-          </div>
-          <div className="border rounded p-3">
-            <div className="text-xs opacity-60">Összeg</div>
-            <div className="font-medium">{header.grand_total ?? 0} Ft</div>
-          </div>
+    <div className="home-container">
+      <Sidebar user={user} />
+      <main className="calendar-container">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
+            alignItems: "center",
+          }}
+        >
+          <h2 style={{ fontSize: "1.5rem", fontWeight: 600 }}>
+            Munkalap részletei
+          </h2>
+          <Link
+            to="/workorders"
+            style={{
+              fontSize: "0.85rem",
+              textDecoration: "none",
+              color: "#4f46e5",
+            }}
+          >
+            ← Vissza a listához
+          </Link>
         </div>
-      ) : <div className="opacity-60">Betöltés...</div>}
 
-      <div className="border rounded p-3">
-        <div className="font-medium mb-2">Tételek</div>
-        <div className="text-sm opacity-60">Az MVP-ben az elemeket a /api/workorders/items végponton át lehet felvinni.</div>
-      </div>
+        {loading && <p>Betöltés...</p>}
+        {error && <p style={{ color: "#dc2626" }}>{error}</p>}
+
+        {!loading && !error && workOrder && (
+          <div
+            style={{
+              padding: "1rem",
+              borderRadius: 8,
+              border: "1px solid #e5e7eb",
+              backgroundColor: "#fff",
+              maxWidth: 640,
+            }}
+          >
+            <p>
+              <strong>Azonosító:</strong> {workOrder.id}
+            </p>
+            <p>
+              <strong>Cím:</strong> {workOrder.title}
+            </p>
+            <p>
+              <strong>Státusz:</strong> {workOrder.status || "—"}
+            </p>
+            <p>
+              <strong>Létrehozva:</strong>{" "}
+              {workOrder.created_at
+                ? new Date(workOrder.created_at).toLocaleString("hu-HU")
+                : "—"}
+            </p>
+            <p>
+              <strong>Módosítva:</strong>{" "}
+              {workOrder.updated_at
+                ? new Date(workOrder.updated_at).toLocaleString("hu-HU")
+                : "—"}
+            </p>
+            {workOrder.notes && (
+              <p style={{ marginTop: "0.75rem", whiteSpace: "pre-wrap" }}>
+                <strong>Megjegyzés:</strong>
+                <br />
+                {workOrder.notes}
+              </p>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
-}
+};
+
+export default WorkOrderView;
