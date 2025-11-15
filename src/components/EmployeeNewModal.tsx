@@ -201,11 +201,14 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
         payload.photo_upload_dataurl = photoPreview;
       }
 
-      const res = await fetch(withBase("employees"), {
-        method: "POST",
-        headers: { "Content-Type": "application/json", ...authHeaders() },
-        body: JSON.stringify(payload),
-      });
+     const res = await fetch(withBase("employees"), {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    ...authHeaders(),
+  },
+  body: JSON.stringify(payload),
+});
 
       const txt = await res.text();
       const data = safeParse<any>(txt, {});

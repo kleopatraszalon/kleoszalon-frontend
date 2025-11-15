@@ -17,7 +17,7 @@ const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
 const WorkOrderNew = lazy(() => import("./pages/WorkOrderNew"));
 const EmployeesList = lazy(() => import("./pages/EmployeesList"));
 const EmployeeDetails = lazy(() => import("./pages/EmployeeDetails"));
-
+const ServicesList = lazy(() => import("./pages/ServicesList"));
 
 const HOME_PATH = "/";
 
@@ -54,59 +54,177 @@ export default function App() {
       <Suspense fallback={<div>Betöltés…</div>}>
         <Routes>
           {/* Public / Auth pages (csak kijelentkezve) */}
-          <Route path="/login" element={<PublicOnly><Login /></PublicOnly>} />
-          <Route path="/register" element={<PublicOnly><Register /></PublicOnly>} />
+          <Route
+            path="/login"
+            element={
+              <PublicOnly>
+                <Login />
+              </PublicOnly>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnly>
+                <Register />
+              </PublicOnly>
+            }
+          />
 
           {/* Home (védett) */}
-          <Route path="/" element={<RequireAuth><Home /></RequireAuth>} />
+          <Route
+            path="/"
+            element={
+              <RequireAuth>
+                <Home />
+              </RequireAuth>
+            }
+          />
 
           {/* Modulok (védettek) */}
-          <Route path="/bejelentkezesek" element={<RequireAuth><Bejelentkezesek /></RequireAuth>} />
-          <Route path="/munkalapok" element={<RequireAuth><Munkalapok /></RequireAuth>} />
-          <Route path="/penzugy" element={<RequireAuth><Penzugy /></RequireAuth>} />
-          <Route path="/logisztika" element={<RequireAuth><Logisztika /></RequireAuth>} />
+          <Route
+            path="/bejelentkezesek"
+            element={
+              <RequireAuth>
+                <Bejelentkezesek />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/munkalapok"
+            element={
+              <RequireAuth>
+                <Munkalapok />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/penzugy"
+            element={
+              <RequireAuth>
+                <Penzugy />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/logisztika"
+            element={
+              <RequireAuth>
+                <Logisztika />
+              </RequireAuth>
+            }
+          />
 
           {/* Munkalap / Work orders (védettek) */}
-          <Route path="/workorders" element={<RequireAuth><WorkOrdersList /></RequireAuth>} />
-          <Route path="/workorders/new" element={<RequireAuth><WorkOrderNew /></RequireAuth>} />
+          <Route
+            path="/workorders"
+            element={
+              <RequireAuth>
+                <WorkOrdersList />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/workorders/new"
+            element={
+              <RequireAuth>
+                <WorkOrderNew />
+              </RequireAuth>
+            }
+          />
 
           {/* Munkatársak (védettek) */}
-          <Route path="/employees/:id" element={<RequireAuth><EmployeeDetailsPage /></RequireAuth>} />
-          <Route path="/employees/:id" element={<RequireAuth><EmployeeDetails /></RequireAuth>} />
           <Route
-  path="/employees"
-  element={
-    <RequireAuth>
-      <EmployeesList />
-    </RequireAuth>
-  }
-/>
-          {/* Placeholder (védett) */}
+            path="/employees/:id"
+            element={
+              <RequireAuth>
+                <EmployeeDetailsPage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/employees/:id"
+            element={
+              <RequireAuth>
+                <EmployeeDetails />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <RequireAuth>
+                <EmployeesList />
+              </RequireAuth>
+            }
+          />
           <Route
             path="/employees/new"
-            element={<RequireAuth><div>Új munkatárs felvétele (később készítjük el)</div></RequireAuth>}
+            element={
+              <RequireAuth>
+                <div>Új munkatárs felvétele (később készítjük el)</div>
+              </RequireAuth>
+            }
+          />
+
+          {/* 🔹 Szolgáltatások admin – menü: /masterdata/services és /masters/services */}
+          <Route
+            path="/masterdata/services"
+            element={
+              <RequireAuth>
+                <ServicesList />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/masters/services"
+            element={
+              <RequireAuth>
+                <ServicesList />
+              </RequireAuth>
+            }
           />
 
           {/* Appointments (védettek) */}
           <Route
             path="/appointments"
-            element={<RequireAuth><Navigate to="/appointments/calendar" replace /></RequireAuth>}
+            element={
+              <RequireAuth>
+                <Navigate to="/appointments/calendar" replace />
+              </RequireAuth>
+            }
           />
           <Route
             path="/appointments/calendar"
-            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+            element={
+              <RequireAuth>
+                <AppointmentsCalendar />
+              </RequireAuth>
+            }
           />
           <Route
             path="/appointments/new"
-            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+            element={
+              <RequireAuth>
+                <AppointmentsCalendar />
+              </RequireAuth>
+            }
           />
           <Route
             path="/appointments/cancel"
-            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+            element={
+              <RequireAuth>
+                <AppointmentsCalendar />
+              </RequireAuth>
+            }
           />
           <Route
             path="/appointments/add-event"
-            element={<RequireAuth><AppointmentsCalendar /></RequireAuth>}
+            element={
+              <RequireAuth>
+                <AppointmentsCalendar />
+              </RequireAuth>
+            }
           />
 
           {/* Fallback */}

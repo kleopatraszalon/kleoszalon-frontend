@@ -82,35 +82,54 @@ const LoginPage: React.FC = () => {
 
   // telephelyek lekérése
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await apiFetch("locations");
-        if (!res.ok) {
-          throw new Error("HTTP " + res.status);
-        }
-        const data = await res.json();
-        
-// pl. data.token vagy data.accessToken – amit a backend küld
-if (data.token) {
-  localStorage.setItem("token", data.token);
-  // vagy sessionStorage, ha csak session-re akarod
-}
-        const opts: LocationOpt[] = (data || []).map((row: any) => {
-          const label =
-            row.city && row.name
-              ? `${row.city} – ${row.name}`
-              : row.name || String(row.id);
-          return { id: row.id, name: label };
-        });
-        setLocations(opts);
-      } catch (err) {
-        console.error("Telephelyek lekérése sikertelen:", err);
-        setLocations([]);
+  (async () => {
+    try {
+      const res = await apiFetch("locations");
+      if (!res.ok) {
+        throw new Error("HTTP " + res.status);
       }
-    })();
-  }, []);
 
-  const persistAuthAndGoHome = (body: VerifyResponse) => {
+      const raw = await res.json() as any;
+
+      // pl. raw.token vagy raw.accessToken – amit a backend küld
+      if (raw && raw.token) {
+        localStorage.setItem("token", raw.token);
+        // vagy sessionStorage, ha csak session-re akarod
+      }
+
+      // ⚙️ Itt normalizáljuk: akármi is jött, lesz belőle egy tömb
+      let dataArray: any[] = [];
+
+      if (Array.isArray(raw)) {
+        dataArray = raw;
+      } else if (raw && Array.isArray(raw.locations)) {
+        dataArray = raw.locations;
+      } else if (raw && Array.isArray(raw.items)) {
+        dataArray = raw.items;
+      } else if (raw && Array.isArray(raw.data)) {
+        dataArray = raw.data;
+      } else {
+        console.warn("Váratlan /api/locations válasz:", raw);
+        dataArray = [];
+      }
+
+      const opts: LocationOpt[] = dataArray.map((row: any) => {
+        const label =
+          row.city && row.name
+            ? `${row.city} – ${row.city} – ${row.name}`
+            : row.name || String(row.id);
+        return { id: row.id, name: label };
+      });
+
+      setLocations(opts);
+    } catch (err) {
+      console.error("Telephelyek lekérése sikertelen:", err);
+      setLocations([]);
+    }
+  })();
+}, []);
+
+const persistAuthAndGoHome = (body: VerifyResponse) => {
     const token = body.token;
 
     // 🔹 Ha van token, eltároljuk, ha nincs, akkor is továbbengedjük (cookie-alapú auth esetén is működik)
@@ -156,7 +175,7 @@ if (data.token) {
       setError("Nem sikerült elmenteni a belépési adatokat.");
     }
   };
-
+  
   // ÜGYFÉL: első lépcső – email + jelszó
   const handleCustomerLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
