@@ -2,6 +2,7 @@
 import React, { Suspense, lazy, type ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import EmployeeDetailsPage from "./pages/EmployeeDetails";
+import ProductsList from "./pages/ProductsList";
 
 const AppointmentsCalendar = lazy(() => import("./pages/AppointmentsCalendar"));
 
@@ -181,6 +182,14 @@ export default function App() {
             element={
               <RequireAuth>
                 <ServicesList />
+              </RequireAuth>
+             }
+          />
+          <Route
+            path="/products"
+            element={
+              <RequireAuth>
+                <ProductsList  />
               </RequireAuth>
             }
           />
