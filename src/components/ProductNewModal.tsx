@@ -241,7 +241,8 @@ const ProductNewModal: React.FC<ProductNewModalProps> = ({
       contentLabel="Új termék felvétele"
       style={{
         overlay: {
-          backgroundColor: "rgba(0,0,0,0.5)",
+          backgroundColor: "rgba(18,12,8,0.65)",
+          backdropFilter: "blur(4px)",
           zIndex: 9999,
         },
         content: {
@@ -256,22 +257,22 @@ const ProductNewModal: React.FC<ProductNewModalProps> = ({
         },
       }}
     >
-      <div className="bg-white text-gray-800 border border-gray-200 rounded-xl shadow-xl overflow-visible">
+      <div className="bg-white/98 text-[#120c08] border border-[#d5c4a4] rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.35)] overflow-visible">
         {/* Felső gombsor */}
-        <div className="flex items-center justify-end gap-2 p-3 border-b border-gray-200">
+        <div className="flex items-center justify-end gap-2 p-3 border-b border-[#e3d8c3] bg-gradient-to-r from-[#fffaf5] via-[#f9f0e4] to-[#fffaf5]">
           <button
             onClick={() => {
               resetForm();
               onRequestClose();
             }}
-            className="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            className="px-3 py-2 text-xs font-medium rounded-full border border-[#d5c4a4] text-[#5d5a55] bg-white/80 hover:bg-white"
           >
             Bezár
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className={`px-3 py-2 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 ${
+            className={`px-3 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-[#b69861] to-[#ec008c] text-white shadow-md hover:shadow-lg hover:brightness-105 ${
               saving
                 ? "opacity-60 cursor-not-allowed"
                 : ""
@@ -307,7 +308,7 @@ const ProductNewModal: React.FC<ProductNewModalProps> = ({
         <div className="px-4 pb-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Alapadatok */}
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">
                 Alapadatok
               </div>
@@ -490,7 +491,7 @@ const ProductNewModal: React.FC<ProductNewModalProps> = ({
             </section>
 
             {/* Árazás + flags */}
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">
                 Árazás
               </div>

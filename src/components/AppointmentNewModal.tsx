@@ -250,11 +250,11 @@ export function AppointmentNewModal({ onSaved, onClose }: Props) {
   }, [locationId, employeeId, clientId, serviceId, date, startHM, endHM, note, conflicts.length, onSaved]);
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-4 md:p-6 space-y-4">
+    <div className="fixed inset-0 bg-[rgba(18,12,8,0.65)] backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="bg-white/98 border border-[#d5c4a4] rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.35)] w-full max-w-2xl p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-lg md:text-xl font-semibold">Új időpont</h2>
-          <button onClick={onClose} className="px-3 py-1 rounded border hover:bg-gray-50">Bezár</button>
+          <button onClick={onClose} className="px-3 py-1 rounded-full border border-[#d5c4a4] text-[#5d5a55] bg-white/80 hover:bg-white">Bezár</button>
         </div>
 
         {error && (
@@ -338,10 +338,10 @@ export function AppointmentNewModal({ onSaved, onClose }: Props) {
 
         {/* Akciók */}
         <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-3 py-1 rounded border hover:bg-gray-50" disabled={saving}>Mégse</button>
+          <button onClick={onClose} className="px-3 py-1 rounded-full border border-[#d5c4a4] text-[#5d5a55] bg-white/80 hover:bg-white" disabled={saving}>Mégse</button>
           <button
             onClick={submit}
-            className="px-3 py-1 rounded bg-black text-white disabled:opacity-60"
+            className="px-3 py-1 rounded-full bg-gradient-to-r from-[#b69861] to-[#ec008c] text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
             disabled={!canSubmit || saving}
             title={!canSubmit ? "Ellenőrizd az időpontot és az ütközéseket." : "Mentés"}
           >

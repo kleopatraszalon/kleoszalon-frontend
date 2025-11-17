@@ -369,10 +369,10 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-[min(1100px,95vw)] max-h-[90vh] flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-neutral-800 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(18,12,8,0.65)] backdrop-blur-sm">
+      <div className="w-[min(1100px,95vw)] max-h-[90vh] flex flex-col rounded-2xl overflow-hidden bg-white/98 text-[#120c08] border border-[#d5c4a4] shadow-[0_18px_40px_rgba(0,0,0,0.35)]">
         {/* HEADER */}
-        <div className="p-4 border-b border-gray-200 dark:border-neutral-700 flex items-center justify-between">
+        <div className="p-4 border-b border-[#e3d8c3] bg-gradient-to-r from-[#fffaf5] via-[#f9f0e4] to-[#fffaf5] flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">
             Új munkatárs felvétele
           </h2>
@@ -794,7 +794,7 @@ const EmployeeCreateModal: React.FC<EmployeeCreateModalProps> = ({
             </button>
             <button
               onClick={handleSaveAll}
-              className="px-4 py-2 rounded-md text-sm font-medium text-white bg-[#d4a373] hover:bg-[#c58a4f] disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-[#b69861] to-[#ec008c] text-white shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowedm text-white bg-[#d4a373] hover:bg-[#c58a4f] disabled:opacity-60 disabled:cursor-not-allowed"
               disabled={savingWhole}
             >
               {savingWhole ? "Mentés..." : "Teljes mentés"}

@@ -3,6 +3,9 @@ import React, { Suspense, lazy, type ReactElement } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import EmployeeDetailsPage from "./pages/EmployeeDetails";
 import ProductsList from "./pages/ProductsList";
+import "./styles/kleo-theme.css";
+
+
 
 const AppointmentsCalendar = lazy(() => import("./pages/AppointmentsCalendar"));
 

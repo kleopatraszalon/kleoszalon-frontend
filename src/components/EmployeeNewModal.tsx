@@ -244,7 +244,8 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
       onRequestClose={onRequestClose}
       contentLabel="Új dolgozó felvétele"
       style={{
-        overlay: { backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999 },
+        overlay: { backgroundColor: "rgba(18,12,8,0.65)",
+          backdropFilter: "blur(4px)", zIndex: 9999 },
         content: {
           inset: "40px auto auto",
           maxWidth: "1200px",
@@ -257,19 +258,19 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
         },
       }}
     >
-      <div className="bg-white text-gray-800 border border-gray-200 rounded-xl shadow-xl overflow-visible">
+      <div className="bg-white/98 text-[#120c08] border border-[#d5c4a4] rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.35)] overflow-visible">
         {/* FELSŐ GOMBSOR – kicsi, NÉGYZETES, egy sorban */}
-        <div className="flex items-center justify-end gap-2 p-3 border-b border-gray-200">
+        <div className="flex items-center justify-end gap-2 p-3 border-b border-[#e3d8c3] bg-gradient-to-r from-[#fffaf5] via-[#f9f0e4] to-[#fffaf5]">
           <button
             onClick={onRequestClose}
-            className="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            className="px-3 py-2 text-xs font-medium rounded-full border border-[#d5c4a4] text-[#5d5a55] bg-white/80 hover:bg-white"
             title="Bezár"
           >
             Bezár
           </button>
           <button
             onClick={generatePassword}
-            className="px-3 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200"
+            className="px-3 py-2 text-xs font-medium rounded-full border border-[#d5c4a4] text-[#5d5a55] bg-white/80 hover:bg-white"
             title="Jelszó generálás"
           >
             Jelszó
@@ -277,7 +278,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
           <button
             onClick={handleSaveNewEmployee}
             disabled={saving}
-            className={`px-3 py-2 text-sm font-medium bg-emerald-600 text-white hover:bg-emerald-700 ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
+            className={`px-3 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-[#b69861] to-[#ec008c] text-white shadow-md hover:shadow-lg hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed bg-emerald-600 text-white hover:bg-emerald-700 ${saving ? "opacity-60 cursor-not-allowed" : ""}`}
             title="Mentés"
           >
             {saving ? "Mentés…" : "Mentés"}
@@ -318,7 +319,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
         <div className="px-4 pb-5">
           {/* Kapcsolat + Munkavégzés */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">Kapcsolat</div>
 
               <label className="text-xs block">
@@ -352,7 +353,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
               </label>
             </section>
 
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">Munkavégzés helye</div>
 
               <label className="text-xs block">
@@ -384,7 +385,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
 
           {/* Belépés & jogosultság */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">Belépés</div>
 
               <label className="text-xs block">
@@ -418,7 +419,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
               </label>
             </section>
 
-            <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2">
+            <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2">
               <div className="text-sm font-semibold">Jogosultságok / szerepkörök</div>
 
               <div className="grid grid-cols-2 gap-2 text-xs text-gray-700">
@@ -447,7 +448,7 @@ const EmployeeNewModal: React.FC<EmployeeNewModalProps> = ({
           </div>
 
           {/* Szolgáltatások */}
-          <section className="bg-[#faf7f0] border border-gray-200 rounded-lg p-3 space-y-2 mt-4">
+          <section className="bg-[#faf7f0] border border-[#e3d8c3] rounded-lg p-3 space-y-2 mt-4">
             <div className="text-sm font-semibold">Szolgáltatások</div>
             <p className="text-[11px] text-gray-500">
               Mit végezhet ez a dolgozó, és hány perc alatt? (A hozzárendelés később külön backend végponttal rögzíthető.)

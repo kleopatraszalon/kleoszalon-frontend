@@ -89,7 +89,8 @@ function AdminEventModal(props: Props) {
   const backdrop: React.CSSProperties = {
     position: "fixed",
     inset: 0,
-    background: "rgba(0,0,0,.4)",
+    background: "rgba(18,12,8,0.65)",
+    backdropFilter: "blur(4px)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
@@ -99,10 +100,11 @@ function AdminEventModal(props: Props) {
   const panel: React.CSSProperties = {
     width: "100%",
     maxWidth: 720,
-    background: "#fff",
-    borderRadius: 16,
-    boxShadow: "0 20px 60px rgba(0,0,0,.2)",
-    padding: 16,
+    background: "rgba(255,255,255,0.98)",
+    borderRadius: 20,
+    border: "1px solid #d5c4a4",
+    boxShadow: "0 20px 60px rgba(0,0,0,.35)",
+    padding: 20,
   };
 
   const inputStyle: React.CSSProperties = {

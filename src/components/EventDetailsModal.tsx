@@ -56,8 +56,8 @@ const EventDetailsModal: React.FC<EventDetailsModalProps> = ({
 }) => {
   // !!! egyszer globálisan: Modal.setAppElement("#root")
 
-const token =
-  localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
+  const token =
+    localStorage.getItem("token") || localStorage.getItem("kleo_token") || "";
 
   // ---------- Tabs ----------
   const [activeTab, setActiveTab] = useState<TabKey>("alap");
@@ -123,8 +123,8 @@ const token =
 
       try {
         const res = await fetch(withBase("services/available"), {
-           headers: { Authorization: `Bearer ${token}` },
-         });
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         const text = await res.text();
         const data = text ? (JSON.parse(text) as unknown) : [];
@@ -154,8 +154,7 @@ const token =
         > = {};
         list.forEach((srv) => {
           const sid = String(srv.id);
-          const mins =
-            srv.duration_minutes ?? srv.duration ?? null;
+          const mins = srv.duration_minutes ?? srv.duration ?? null;
           initMap[sid] = {
             checked: false,
             custom_minutes: mins != null ? String(mins) : "",
@@ -229,13 +228,13 @@ const token =
 
     try {
       const res = await fetch(withBase(`employees/${employee.id}/active`), {
-         method: "PATCH",
-         headers: {
-           "Content-Type": "application/json",
-           Authorization: `Bearer ${token}`,
-         },
-         body: JSON.stringify({ active: newActive }),
-       });
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ active: newActive }),
+      });
       const txt = await res.text();
       const data = txt ? (JSON.parse(txt) as any) : {};
       if (!res.ok) {
@@ -260,7 +259,8 @@ const token =
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
     let out = "";
-    for (let i = 0; i < 12; i++) out += chars[Math.floor(Math.random() * chars.length)];
+    for (let i = 0; i < 12; i++)
+      out += chars[Math.floor(Math.random() * chars.length)];
     setPlainPassword(out);
     setShowPassword(true);
   }
@@ -283,17 +283,20 @@ const token =
     try {
       if (employee?.id) {
         // meglévő dolgozó
-       const res = await fetch(withBase(`employees/${employee.id}/credentials`), {
-           method: "PATCH",
-           headers: {
-             "Content-Type": "application/json",
-             Authorization: `Bearer ${token}`,
-           },
-           body: JSON.stringify({
-             login_name: loginName.trim(),
-             plain_password: plainPassword || undefined,
-           }),
-         });
+        const res = await fetch(
+          withBase(`employees/${employee.id}/credentials`),
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              login_name: loginName.trim(),
+              plain_password: plainPassword || undefined,
+            }),
+          }
+        );
         const txt = await res.text();
         const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {
@@ -313,17 +316,17 @@ const token =
         }
       } else {
         // minimál user létrehozása (ha van ilyen endpoint)
-      const res = await fetch(withBase("employees/credentials"), {
-           method: "POST",
-           headers: {
-             "Content-Type": "application/json",
-             Authorization: `Bearer ${token}`,
-           },
-           body: JSON.stringify({
-             login_name: loginName.trim(),
-             plain_password: plainPassword,
-           }),
-         });
+        const res = await fetch(withBase("employees/credentials"), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            login_name: loginName.trim(),
+            plain_password: plainPassword,
+          }),
+        });
         const txt = await res.text();
         const data = txt ? (JSON.parse(txt) as any) : {};
         if (!res.ok) {
@@ -349,24 +352,28 @@ const token =
     <Modal
       isOpen={isOpen}
       onRequestClose={onRequestClose}
-      contentLabel="Részletek"
       style={{
         content: {
-          inset: "auto",
-          maxWidth: "720px",
-          width: "100%",
-          margin: "40px auto",
-          borderRadius: "12px",
-          padding: "0",
-          backgroundColor: "transparent",
+          inset: "unset",
+          padding: 0,
           border: "none",
+          background: "transparent",
+          overflow: "visible",
         },
-        overlay: { backgroundColor: "rgba(0,0,0,0.5)", zIndex: 9999 },
+        overlay: {
+          backgroundColor: "rgba(0,0,0,0.5)",
+          zIndex: 9999,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          // ha kell blur:
+          // backdropFilter: "blur(3px)",
+        },
       }}
     >
-      <div className="bg-white dark:bg-neutral-800 rounded-xl shadow-xl overflow-hidden text-gray-800 dark:text-gray-100">
+      <div className="bg-white/98 text-[#120c08] border border-[#d5c4a4] rounded-2xl shadow-[0_18px_40px_rgba(0,0,0,0.35)] overflow-hidden">
         {/* HEADER */}
-        <div className="flex items-start justify-between p-4 border-b border-gray-200 dark:border-neutral-700">
+        <div className="flex items-start justify-between p-4 border-b border-[#e3d8c3] bg-gradient-to-r from-[#fffaf5] via-[#f9f0e4] to-[#fffaf5]">
           <div>
             <div className="text-lg font-semibold">
               {event?.title || employeeDisplayName || "Részletek"}
@@ -377,14 +384,14 @@ const token =
           </div>
           <button
             onClick={onRequestClose}
-            className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+            className="text-sm px-2 py-1 rounded-full border border-[#d5c4a4] text-[#5d5a55] hover:bg_white/80 hover:text-[#120c08]"
           >
             ✕
           </button>
         </div>
 
         {/* TABS */}
-        <div className="flex border-b border-gray-200 dark:border-neutral-700 text-sm font-medium">
+        <div className="flex border-b border-[#e3d8c3] bg-white/80 text-sm font-medium">
           {([
             ["alap", "Alap adatok"],
             ["szolg", "Szolgáltatások"],
@@ -499,7 +506,11 @@ const token =
                             localActive
                               ? "bg-red-600 hover:bg-red-700 text-white"
                               : "bg-green-600 hover:bg-green-700 text-white"
-                          } ${updatingActive ? "opacity-60 cursor-not-allowed" : ""}`}
+                          } ${
+                            updatingActive
+                              ? "opacity-60 cursor-not-allowed"
+                              : ""
+                          }`}
                         >
                           {updatingActive
                             ? "Mentés..."
@@ -709,7 +720,9 @@ const token =
                   </button>
 
                   {credsError && (
-                    <div className="text-xs text-red-500 mt-2">{credsError}</div>
+                    <div className="text-xs text-red-500 mt-2">
+                      {credsError}
+                    </div>
                   )}
 
                   {credsSuccess && (

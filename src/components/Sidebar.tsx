@@ -1,12 +1,11 @@
 // src/components/Sidebar.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import "./Sidebar.css";
 import SidebarCalendar from "./SidebarCalendar";
-import { NavLink } from "react-router-dom";
 
 // API alap URL (ugyanaz a logika, mint máshol)
 const API_BASE =
@@ -43,14 +42,19 @@ function normalizeRoute(r?: string): string {
   if (!r) return "#";
   let s = r.trim();
   if (!s.startsWith("/")) s = "/" + s;
-  s = s.replace(/\/{2,}/g, "/");     // dupla perjelek kiszedése
+  s = s.replace(/\/{2,}/g, "/"); // dupla perjelek kiszedése
   return s;
 }
 
-export function Menu({ items }: { items: Array<{ id:number; name:string; route?:string; icon?:string; }> }) {
+/** Egyszerű menükomponens más oldalakhoz (opcionális felhasználásra) */
+export function Menu({
+  items,
+}: {
+  items: Array<{ id: number; name: string; route?: string; icon?: string }>;
+}) {
   return (
     <nav className="flex flex-col gap-1">
-      {items.map(it => {
+      {items.map((it) => {
         const to = normalizeRoute(it.route);
         const isDisabled = to === "#";
         return (
@@ -109,24 +113,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     );
   };
 
-  // Főmenü kattintás: ha van gyerek, lenyit; ha nincs, navigál
-  const handleTopClick = (menu: MenuItem) => {
-    const hasChildren = menu.children.length > 0;
-
-    if (hasChildren) {
-      toggleExpanded(menu.id);
-      return;
-    }
-
-    const to = normalizeRoute(menu.route);
-    if (to) navigate(to);
-  };
-
-  const handleChildClick = (child: MenuItem) => {
-    const to = normalizeRoute(child.route);
-    if (to) navigate(to);
-  };
-
   // Mini naptár: később a napi beosztást erre a dátumra fogjuk betölteni
   const handleDateSelect = (date: Date) => {
     const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
@@ -144,23 +130,24 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   return (
     <aside className="kleo-sidebar">
-      {/* LOGÓ + FELIRAT */}
-      <div className="kleo-sidebar-header">
-        <div className="kleo-sidebar-logo-wrap">
-          <img
-            src={Logo}
-            alt="Kleoszalon logó"
-            className="kleo-sidebar-logo"
-          />
+      {/* Hero kártya: logó + mini naptár */}
+      <div className="kleo-sidebar-hero-card">
+        <div className="kleo-sidebar-header">
+          <div className="kleo-sidebar-logo-wrap">
+            <img
+              src={Logo}
+              alt="Kleopátra Szépségszalonok logó"
+              className="kleo-sidebar-logo"
+            />
+          </div>
+          <div className="kleo-sidebar-brand">
+            <div className="kleo-sidebar-title">Kleoszalon</div>
+            <div className="kleo-sidebar-subtitle">Admin felület</div>
+          </div>
         </div>
-        <div className="kleo-sidebar-brand">
-          <div className="kleo-sidebar-title">Kleoszalon</div>
-          <div className="kleo-sidebar-subtitle">Admin felület</div>
-        </div>
-      </div>
 
-      {/* MINI NAPTÁR A LOGÓ ALATT */}
-      <SidebarCalendar onSelectDate={handleDateSelect} />
+        <SidebarCalendar onSelectDate={handleDateSelect} />
+      </div>
 
       {/* MENÜLISTA */}
       <nav className="kleo-sidebar-nav">
@@ -179,7 +166,11 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
               >
                 <button
                   type="button"
-                  onClick={() => (menu.children && menu.children.length ? toggleExpanded(menu.id) : navigate(normalizeRoute(menu.route)))}
+                  onClick={() =>
+                    menu.children && menu.children.length
+                      ? toggleExpanded(menu.id)
+                      : navigate(normalizeRoute(menu.route))
+                  }
                   className="kleo-sidebar-menu-button"
                 >
                   <span className="kleo-sidebar-menu-label">{menu.name}</span>
@@ -197,26 +188,28 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
                 {hasChildren && expanded && (
                   <ul className="kleo-sidebar-submenu">
-  {menu.children.map((child) => {
-    const to = normalizeRoute(child.route);
-    const isDisabled = to === "#";
-    return (
-      <li key={child.id}>
-        <NavLink
-          to={to}
-          className={({ isActive }) =>
-            "kleo-sidebar-submenu-item" +
-            (isActive ? " active" : "") +
-            (isDisabled ? " pointer-events-none opacity-50" : "")
-          }
-          aria-disabled={isDisabled}
-        >
-          {child.name}
-        </NavLink>
-      </li>
-    );
-  })}
-</ul>
+                    {menu.children.map((child) => {
+                      const to = normalizeRoute(child.route);
+                      const isDisabled = to === "#";
+                      return (
+                        <li key={child.id}>
+                          <NavLink
+                            to={to}
+                            className={({ isActive }) =>
+                              "kleo-sidebar-submenu-item" +
+                              (isActive ? " active" : "") +
+                              (isDisabled
+                                ? " pointer-events-none opacity-50"
+                                : "")
+                            }
+                            aria-disabled={isDisabled}
+                          >
+                            {child.name}
+                          </NavLink>
+                        </li>
+                      );
+                    })}
+                  </ul>
                 )}
               </li>
             );
@@ -236,16 +229,19 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   if (!raw.length) return [];
 
-  function canSee(required: string | null | undefined, role: string | null): boolean {
-  const req = (required || "").trim().toLowerCase();
-  if (!req || req === "all" || req === "*") return true;
-  if (!role) return false;
-  const r = String(role).toLowerCase();
-  if (r === "admin") return true;
-  return req === r;
-}
+  function canSee(
+    required: string | null | undefined,
+    role: string | null
+  ): boolean {
+    const req = (required || "").trim().toLowerCase();
+    if (!req || req === "all" || req === "*") return true;
+    if (!role) return false;
+    const r = String(role).toLowerCase();
+    if (r === "admin") return true;
+    return req === r;
+  }
 
-// role alapú szűrés – 'all' és '*' bárki, admin mindent lát
+  // role alapú szűrés – 'all' és '*' bárki, admin mindent lát
   const filtered = raw.filter((item) => canSee(item.required_role, role));
 
   // Ha már hierarchikus (submenus)

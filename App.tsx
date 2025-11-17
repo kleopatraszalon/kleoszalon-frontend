@@ -5,6 +5,9 @@ import Home from "./pages/Home";
 import EmployeesList from "./pages/EmployeesList";
 import EmployeeDetails from "./pages/EmployeeDetails";
 import EmployeeDetailsPage from "./pages/EmployeeDetails";
+import StyleEditor from "./pages/StyleEditor";
+
+
 function App() {
   return (
     <Router>
@@ -13,7 +16,7 @@ function App() {
         <Route path="/register" element={<Register />} />
         <Route path="/home" element={<Home />} />
         <Route path="/employees" element={<EmployeesList />} />
-       
+       <Route path="/style-editor" element={<StyleEditor />} />
 <Route
   path="/employees/:id"
   element={
