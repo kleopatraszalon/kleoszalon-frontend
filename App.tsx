@@ -17,6 +17,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/employees" element={<EmployeesList />} />
        <Route path="/style-editor" element={<StyleEditor />} />
+        <Route path="/webshop-admin" element={<WebshopAdmin />} />
 <Route
   path="/employees/:id"
   element={
@@ -24,7 +25,7 @@ function App() {
       <EmployeeDetailsPage />
     </RequireAuth>
   }
-/>
+ />
   }
 />
         <Route path="/employees/new" element={<div>Új munkatárs felvétele (admin felület jön ide)</div>} />

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import EmployeeDetailsPage from "./pages/EmployeeDetails";
 import ProductsList from "./pages/ProductsList";
 import "./styles/kleo-theme.css";
+import { WebshopAdmin } from "./pages/WebshopAdmin";
 
 
 

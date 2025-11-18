@@ -7,7 +7,7 @@ const CalendarPage: React.FC = () => {
   const { user } = useCurrentUser();
 
   return (
-    <div className="home-container">
+    <div className="home-container app-shell app-shell--collapsed">
       <Sidebar user={user} />
       <main className="calendar-container">
         <h2

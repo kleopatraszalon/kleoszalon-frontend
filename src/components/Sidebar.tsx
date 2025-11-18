@@ -129,7 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   };
 
   return (
-    <aside className="kleo-sidebar">
+    <aside className="kleo-sidebar app-sidebar">
       {/* Hero kártya: logó + mini naptár */}
       <div className="kleo-sidebar-hero-card">
         <div className="kleo-sidebar-header">

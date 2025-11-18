@@ -62,7 +62,7 @@ const WorkOrderView: React.FC = () => {
   }, [id]);
 
   return (
-    <div className="home-container">
+    <div className="home-container app-shell app-shell--collapsed">
       <Sidebar user={user} />
       <main className="calendar-container">
         <div

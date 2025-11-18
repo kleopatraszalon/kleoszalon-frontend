@@ -56,7 +56,7 @@ const WorkOrderNew: React.FC = () => {
   };
 
   return (
-    <div className="home-container">
+    <div className="home-container app-shell app-shell--collapsed">
       <Sidebar user={user} />
       <main className="calendar-container">
         <h2

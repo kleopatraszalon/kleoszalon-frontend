@@ -154,7 +154,7 @@ const Dashboard: React.FC = () => {
   // Betöltés közben – itt még nincs user, ezért nem hívjuk a Sidebart
   if (userLoading || loadingStats) {
     return (
-      <div className="home-container">
+      <div className="home-container app-shell app-shell--collapsed">
         <div className="calendar-container">
           <p>Betöltés...</p>
         </div>
@@ -165,7 +165,7 @@ const Dashboard: React.FC = () => {
   // ha valami félrement
   if (!user || !stats) {
     return (
-      <div className="home-container">
+      <div className="home-container app-shell app-shell--collapsed">
         <Sidebar user={user} />
         <main className="calendar-container">
           <div
@@ -220,7 +220,7 @@ const Dashboard: React.FC = () => {
 
   // NORMÁL RENDER – Sidebar jogosultsággal + Home.css layout
   return (
-    <div className="home-container">
+    <div className="home-container app-shell app-shell--collapsed">
       <Sidebar user={user} />
 
       <main className="calendar-container">

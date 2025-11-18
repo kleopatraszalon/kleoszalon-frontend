@@ -240,7 +240,7 @@ const ServicesList: React.FC = () => {
 
   /* ---------- Render ---------- */
   return (
-    <div className="home-container">
+    <div className="home-container app-shell app-shell--collapsed">
       <Sidebar />
 
       <main className="calendar-container">
