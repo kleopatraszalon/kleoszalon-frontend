@@ -352,6 +352,44 @@ a {
 }
 
 /* =========================================
+   GLOBÁLIS VÉKONY SCROLL – ARANY / MAGENTA
+   (Firefox + Chrome / Edge / Safari)
+========================================= */
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold-3) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari, Opera) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(182, 152, 97, 0.9),
+    rgba(236, 0, 140, 0.85)
+  );
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(182, 152, 97, 1),
+    rgba(236, 0, 140, 1)
+  );
+}
+
+/* =========================================
    RESPONSIVE
 ========================================= */
 
@@ -455,9 +493,9 @@ a {
 }
 
 .kleo-sidebar-logo-wrap {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
+  width: 4x;
+  height: 4px;
+  border-radius:  0px;
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -466,14 +504,14 @@ a {
 }
 
 .kleo-sidebar-logo {
-  max-width: 28px;
+  max-width: 110px;
   height: auto;
 }
 
 .kleo-sidebar-brand {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 10spx;
 }
 
 .kleo-sidebar-title {
@@ -547,9 +585,9 @@ a {
   margin-top: var(--space-md);
   padding-top: var(--space-sm);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  overflow-y: auto;
+  /* belső scroll ne legyen, a teljes oldal görgessen */
+  overflow: visible;
 }
-
 .kleo-sidebar-menu {
   list-style: none;
   margin: 0;
