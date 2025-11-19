@@ -1383,3 +1383,53 @@ textarea:focus {
     justify-content: flex-end;
   }
 }
+/* Kijelölt szolgáltatás kártya */
+.wo-service-card {
+  cursor: pointer;
+}
+
+.wo-service-card--selected {
+  border-color: var(--color-magenta);
+  box-shadow: 0 0 0 1px rgba(236, 0, 140, 0.35), 0 12px 26px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, #fff7fb, #ffffff);
+}
+
+.wo-service-empty {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+  padding: var(--space-md);
+}
+/* Webshop admin layout – Sidebar balra, tartalom jobbra */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg, #f5f5f5);
+}
+
+.app-main {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  overflow: auto;
+}
+
+/* Opció: hogy a tartalom max. szélességű legyen középen */
+.app-main .page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Kép cella szebbé tétele */
+.webshop-admin-image-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.webshop-admin-image-thumb {
+  display: block;
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}

@@ -7,7 +7,7 @@ import {
 } from "react-router-dom";
 import EmployeeDetailsPage from "./pages/EmployeeDetails";
 import ProductsList from "./pages/ProductsList";
-import { WebshopAdmin } from "./pages/WebshopAdmin";
+import WebshopAdmin from "./pages/WebshopAdmin";
 import "./styles/kleo-theme.css";
 
 const AppointmentsCalendar = lazy(

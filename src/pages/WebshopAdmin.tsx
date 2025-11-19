@@ -15,6 +15,16 @@ type Product = {
   image_url: string | null;
 };
 
+type NewProductForm = {
+  name: string;
+  retail_price_gross: string;
+  sale_price: string;
+  web_is_visible: boolean;
+  is_retail: boolean;
+  web_sort_order: string;
+  web_description: string;
+};
+
 type Coupon = {
   id: string;
   code: string;
@@ -59,14 +69,12 @@ type WebshopOrder = {
   coupon_code: string | null;
 };
 
-// ===== KOMPONENS =====
-
 export const WebshopAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"products" | "coupons" | "orders">(
     "products"
   );
 
-  // Termékek
+  // TERMÉKEK
   const [products, setProducts] = useState<Product[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
   const [productsError, setProductsError] = useState<string | null>(null);
@@ -75,7 +83,24 @@ export const WebshopAdmin: React.FC = () => {
     null
   );
 
-  // Kuponok
+  // ÚJ TERMÉK ŰRLAP
+  const [newProduct, setNewProduct] = useState<NewProductForm>({
+    name: "",
+    retail_price_gross: "",
+    sale_price: "",
+    web_is_visible: true,
+    is_retail: true,
+    web_sort_order: "",
+    web_description: "",
+  });
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [newProductSaving, setNewProductSaving] = useState(false);
+  const [newProductError, setNewProductError] = useState<string | null>(null);
+  const [newProductMessage, setNewProductMessage] = useState<string | null>(
+    null
+  );
+
+  // KUPONOK
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [couponsLoading, setCouponsLoading] = useState(false);
   const [couponsError, setCouponsError] = useState<string | null>(null);
@@ -96,25 +121,26 @@ export const WebshopAdmin: React.FC = () => {
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [couponFormError, setCouponFormError] = useState<string | null>(null);
 
-  // Rendelések
+  // RENDELÉSEK
   const [orders, setOrders] = useState<WebshopOrder[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
   const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  // ===== BETÖLTŐ FÜGGVÉNYEK =====
+  // ===== BETÖLTÉS – apiFetch JSON-t ad vissza =====
 
   const loadProducts = async () => {
     setProductsLoading(true);
     setProductsError(null);
     try {
-      const res = (await apiFetch(
+      const data = (await apiFetch(
         "/api/admin/webshop/products"
-      )) as Response;
-      const data = await res.json();
+      )) as Product[];
       setProducts(data);
     } catch (err: any) {
       console.error(err);
-      setProductsError("Nem sikerült betölteni a webshop termékeket.");
+      setProductsError(
+        err?.message || "Nem sikerült betölteni a webshop termékeket."
+      );
     } finally {
       setProductsLoading(false);
     }
@@ -124,14 +150,15 @@ export const WebshopAdmin: React.FC = () => {
     setCouponsLoading(true);
     setCouponsError(null);
     try {
-      const res = (await apiFetch(
+      const data = (await apiFetch(
         "/api/admin/webshop/coupons"
-      )) as Response;
-      const data = await res.json();
+      )) as Coupon[];
       setCoupons(data);
     } catch (err: any) {
       console.error(err);
-      setCouponsError("Nem sikerült betölteni a kuponokat.");
+      setCouponsError(
+        err?.message || "Nem sikerült betölteni a kuponokat."
+      );
     } finally {
       setCouponsLoading(false);
     }
@@ -141,27 +168,27 @@ export const WebshopAdmin: React.FC = () => {
     setOrdersLoading(true);
     setOrdersError(null);
     try {
-      const res = (await apiFetch(
+      const data = (await apiFetch(
         "/api/admin/webshop/orders"
-      )) as Response;
-      const data = await res.json();
+      )) as WebshopOrder[];
       setOrders(data);
     } catch (err: any) {
       console.error(err);
-      setOrdersError("Nem sikerült betölteni a rendeléseket.");
+      setOrdersError(
+        err?.message || "Nem sikerült betölteni a rendeléseket."
+      );
     } finally {
       setOrdersLoading(false);
     }
   };
 
   useEffect(() => {
-    // egyszer töltünk mindent
     loadProducts();
     loadCoupons();
     loadOrders();
   }, []);
 
-  // ===== TERMÉK MÓDOSÍTÁS =====
+  // ===== TERMÉKEK MÓDOSÍTÁSA =====
 
   const handleProductChange = <K extends keyof Product>(
     id: string,
@@ -199,38 +226,80 @@ export const WebshopAdmin: React.FC = () => {
     }
   };
 
-  // ===== RENDELÉS STÁTUSZ MENTÉSE =====
+  // ===== ÚJ TERMÉK FELVITELE + KÉP =====
 
-  const handleUpdateOrder = async (
-    orderId: string,
-    updates: Partial<Pick<WebshopOrder, "status" | "payment_status">>
+  const handleNewProductChange = <K extends keyof NewProductForm>(
+    field: K,
+    value: NewProductForm[K]
   ) => {
-    try {
-      const res = (await apiFetch(
-        `/api/admin/webshop/orders/${orderId}`,
-        {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(updates),
-        }
-      )) as Response;
+    setNewProduct((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || "Nem sikerült frissíteni a rendelést.");
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setNewProductError(null);
+    setNewProductMessage(null);
+    setNewProductSaving(true);
+
+    try {
+      if (!newProduct.name.trim()) {
+        throw new Error("A terméknév kötelező.");
       }
 
-      const updated = await res.json();
-      setOrders((prev) =>
-        prev.map((o) => (o.id === updated.id ? updated : o))
-      );
-    } catch (err) {
+      const payload = {
+        name: newProduct.name.trim(),
+        retail_price_gross: newProduct.retail_price_gross
+          ? Number(newProduct.retail_price_gross)
+          : null,
+        sale_price: newProduct.sale_price
+          ? Number(newProduct.sale_price)
+          : null,
+        web_is_visible: newProduct.web_is_visible,
+        is_retail: newProduct.is_retail,
+        web_sort_order: newProduct.web_sort_order
+          ? Number(newProduct.web_sort_order)
+          : null,
+        web_description: newProduct.web_description || null,
+      };
+
+      const created = (await apiFetch("/api/admin/webshop/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })) as Product;
+
+      // ha létrejött és van feltöltött kép, azonnal feltöltjük
+      if (newProductImage && created?.id) {
+        await handleUploadImage(created.id, newProductImage);
+      }
+
+      setNewProductMessage("Az új termék sikeresen létrejött.");
+      setNewProduct({
+        name: "",
+        retail_price_gross: "",
+        sale_price: "",
+        web_is_visible: true,
+        is_retail: true,
+        web_sort_order: "",
+        web_description: "",
+      });
+      setNewProductImage(null);
+
+      await loadProducts();
+    } catch (err: any) {
       console.error(err);
-      alert("Nem sikerült frissíteni a rendelést.");
+      setNewProductError(
+        err?.message || "Nem sikerült létrehozni az új terméket."
+      );
+    } finally {
+      setNewProductSaving(false);
     }
   };
 
-  // ===== TERMÉKKÉP FELTÖLTÉS =====
+  // ===== KÉPFELTÖLTÉS (termékhez) =====
 
   const handleUploadImage = async (productId: string, file: File | null) => {
     if (!file) return;
@@ -241,19 +310,13 @@ export const WebshopAdmin: React.FC = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = (await apiFetch(
+      const data = (await apiFetch(
         `/api/admin/webshop/products/${productId}/image`,
         {
           method: "POST",
           body: formData,
         }
-      )) as Response;
-
-      if (!res.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const data = await res.json();
+      )) as { image_url?: string };
 
       setProducts((prev) =>
         prev.map((p) =>
@@ -267,6 +330,31 @@ export const WebshopAdmin: React.FC = () => {
       alert("Nem sikerült feltölteni a képet.");
     } finally {
       setUploadingProductId(null);
+    }
+  };
+
+  // ===== RENDELÉSEK STÁTUSZA =====
+
+  const handleUpdateOrder = async (
+    orderId: string,
+    updates: Partial<Pick<WebshopOrder, "status" | "payment_status">>
+  ) => {
+    try {
+      const updated = (await apiFetch(
+        `/api/admin/webshop/orders/${orderId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updates),
+        }
+      )) as WebshopOrder;
+
+      setOrders((prev) =>
+        prev.map((o) => (o.id === updated.id ? updated : o))
+      );
+    } catch (err) {
+      console.error(err);
+      alert("Nem sikerült frissíteni a rendelést.");
     }
   };
 
@@ -316,16 +404,11 @@ export const WebshopAdmin: React.FC = () => {
         is_active: couponForm.is_active,
       };
 
-      const res = (await apiFetch("/api/admin/webshop/coupons", {
+      await apiFetch("/api/admin/webshop/coupons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
-      })) as Response;
-
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || "Nem sikerült létrehozni a kupont.");
-      }
+      });
 
       setCouponMessage("A kupon sikeresen létrejött.");
       setCouponForm({
@@ -345,7 +428,7 @@ export const WebshopAdmin: React.FC = () => {
     } catch (err: any) {
       console.error(err);
       setCouponFormError(
-        err.message || "Ismeretlen hiba a kupon mentése közben."
+        err?.message || "Ismeretlen hiba a kupon mentése közben."
       );
     } finally {
       setCouponSaving(false);
@@ -390,192 +473,334 @@ export const WebshopAdmin: React.FC = () => {
         </button>
       </div>
 
-      {/* TERMÉKEK */}
+      {/* TERMÉKEK TAB */}
       {activeTab === "products" && (
-        <section className="card">
-          <div className="card-header">
-            <h2>Webshop termékek</h2>
-          </div>
-
-          {productsLoading && <p>Termékek betöltése…</p>}
-          {productsError && <p className="text-error">{productsError}</p>}
-
-          {!productsLoading && !productsError && (
-            <div className="table-wrapper">
-              <table className="table table-sm">
-                <thead>
-                  <tr>
-                    <th>Kép</th>
-                    <th>Név</th>
-                    <th>Ár (bruttó)</th>
-                    <th>Akciós ár</th>
-                    <th>Web látható</th>
-                    <th>Retail</th>
-                    <th>Sorrend</th>
-                    <th>Leírás</th>
-                    <th>Műveletek</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id}>
-                      <td>
-                        <div className="webshop-admin-image-cell">
-                          {p.image_url ? (
-                            <img
-                              src={p.image_url}
-                              alt={p.name}
-                              className="webshop-admin-image-thumb"
-                            />
-                          ) : (
-                            <span className="text-muted">Nincs kép</span>
-                          )}
-                          <label className="btn btn-xs">
-                            {uploadingProductId === p.id
-                              ? "Feltöltés…"
-                              : "Kép feltöltése"}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              style={{ display: "none" }}
-                              onChange={(e) =>
-                                handleUploadImage(
-                                  p.id,
-                                  e.target.files?.[0] ?? null
-                                )
-                              }
-                            />
-                          </label>
-                        </div>
-                      </td>
-                      <td>
-                        <input
-                          type="text"
-                          className="input input-xs"
-                          value={p.name}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "name",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="input input-xs"
-                          value={p.retail_price_gross ?? ""}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "retail_price_gross",
-                              e.target.value === ""
-                                ? null
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="input input-xs"
-                          value={p.sale_price ?? ""}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "sale_price",
-                              e.target.value === ""
-                                ? null
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={!!p.web_is_visible}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "web_is_visible",
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={!!p.is_retail}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "is_retail",
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          className="input input-xs"
-                          value={p.web_sort_order ?? ""}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "web_sort_order",
-                              e.target.value === ""
-                                ? null
-                                : Number(e.target.value)
-                            )
-                          }
-                        />
-                      </td>
-                      <td style={{ maxWidth: 260 }}>
-                        <textarea
-                          className="input input-xs"
-                          rows={2}
-                          value={p.web_description ?? ""}
-                          onChange={(e) =>
-                            handleProductChange(
-                              p.id,
-                              "web_description",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-xs btn-primary"
-                          onClick={() => handleSaveProduct(p)}
-                          disabled={savingProductId === p.id}
-                        >
-                          {savingProductId === p.id ? "Mentés…" : "Mentés"}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {products.length === 0 && (
-                    <tr>
-                      <td colSpan={9} className="text-muted">
-                        Nincs megjeleníthető termék.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+        <>
+          {/* ÚJ TERMÉK FELVITELE */}
+          <section className="card mb-4">
+            <div className="card-header">
+              <h2>Új termék felvitele a webshopba</h2>
             </div>
-          )}
-        </section>
+            <div className="card-body">
+              <form className="form-grid" onSubmit={handleCreateProduct}>
+                <div className="form-row">
+                  <label>
+                    Terméknév*
+                    <input
+                      type="text"
+                      className="input"
+                      value={newProduct.name}
+                      onChange={(e) =>
+                        handleNewProductChange("name", e.target.value)
+                      }
+                    />
+                  </label>
+                  <label>
+                    Ár (bruttó Ft)
+                    <input
+                      type="number"
+                      className="input"
+                      value={newProduct.retail_price_gross}
+                      onChange={(e) =>
+                        handleNewProductChange(
+                          "retail_price_gross",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </label>
+                  <label>
+                    Akciós ár (Ft)
+                    <input
+                      type="number"
+                      className="input"
+                      value={newProduct.sale_price}
+                      onChange={(e) =>
+                        handleNewProductChange("sale_price", e.target.value)
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="form-row">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.web_is_visible}
+                      onChange={(e) =>
+                        handleNewProductChange(
+                          "web_is_visible",
+                          e.target.checked
+                        )
+                      }
+                    />
+                    Webshopban látható
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={newProduct.is_retail}
+                      onChange={(e) =>
+                        handleNewProductChange("is_retail", e.target.checked)
+                      }
+                    />
+                    Lakossági értékesítésre
+                  </label>
+                  <label>
+                    Webes sorrend
+                    <input
+                      type="number"
+                      className="input"
+                      value={newProduct.web_sort_order}
+                      onChange={(e) =>
+                        handleNewProductChange(
+                          "web_sort_order",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="form-row">
+                  <label>
+                    Rövid leírás
+                    <textarea
+                      className="input"
+                      rows={2}
+                      value={newProduct.web_description}
+                      onChange={(e) =>
+                        handleNewProductChange(
+                          "web_description",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </label>
+                </div>
+
+                <div className="form-row">
+                  <label>
+                    Termékkép
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="input"
+                      onChange={(e) =>
+                        setNewProductImage(e.target.files?.[0] ?? null)
+                      }
+                    />
+                  </label>
+                </div>
+
+                {newProductError && (
+                  <p className="text-error">{newProductError}</p>
+                )}
+                {newProductMessage && (
+                  <p className="text-success">{newProductMessage}</p>
+                )}
+
+                <div className="form-row">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={newProductSaving}
+                  >
+                    {newProductSaving
+                      ? "Mentés…"
+                      : "Új termék létrehozása"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {/* MEGLÉVŐ TERMÉKEK ADMINISZTRÁLÁSA */}
+          <section className="card">
+            <div className="card-header">
+              <h2>Webshop termékek</h2>
+            </div>
+
+            {productsLoading && <p>Termékek betöltése…</p>}
+            {productsError && <p className="text-error">{productsError}</p>}
+
+            {!productsLoading && !productsError && (
+              <div className="table-wrapper">
+                <table className="table table-sm">
+                  <thead>
+                    <tr>
+                      <th>Kép</th>
+                      <th>Név</th>
+                      <th>Ár (bruttó)</th>
+                      <th>Akciós ár</th>
+                      <th>Web látható</th>
+                      <th>Retail</th>
+                      <th>Sorrend</th>
+                      <th>Leírás</th>
+                      <th>Műveletek</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {products.map((p) => (
+                      <tr key={p.id}>
+                        <td>
+                          <div className="webshop-admin-image-cell">
+                            {p.image_url ? (
+                              <img
+                                src={p.image_url}
+                                alt={p.name}
+                                className="webshop-admin-image-thumb"
+                              />
+                            ) : (
+                              <span className="text-muted">Nincs kép</span>
+                            )}
+                            <label className="btn btn-xs">
+                              {uploadingProductId === p.id
+                                ? "Feltöltés…"
+                                : "Kép feltöltése"}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                style={{ display: "none" }}
+                                onChange={(e) =>
+                                  handleUploadImage(
+                                    p.id,
+                                    e.target.files?.[0] ?? null
+                                  )
+                                }
+                              />
+                            </label>
+                          </div>
+                        </td>
+                        <td>
+                          <input
+                            type="text"
+                            className="input input-xs"
+                            value={p.name}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "name",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input input-xs"
+                            value={p.retail_price_gross ?? ""}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "retail_price_gross",
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input input-xs"
+                            value={p.sale_price ?? ""}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "sale_price",
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={!!p.web_is_visible}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "web_is_visible",
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={!!p.is_retail}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "is_retail",
+                                e.target.checked
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input input-xs"
+                            value={p.web_sort_order ?? ""}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "web_sort_order",
+                                e.target.value === ""
+                                  ? null
+                                  : Number(e.target.value)
+                              )
+                            }
+                          />
+                        </td>
+                        <td style={{ maxWidth: 260 }}>
+                          <textarea
+                            className="input input-xs"
+                            rows={2}
+                            value={p.web_description ?? ""}
+                            onChange={(e) =>
+                              handleProductChange(
+                                p.id,
+                                "web_description",
+                                e.target.value
+                              )
+                            }
+                          />
+                        </td>
+                        <td>
+                          <button
+                            className="btn btn-xs btn-primary"
+                            onClick={() => handleSaveProduct(p)}
+                            disabled={savingProductId === p.id}
+                          >
+                            {savingProductId === p.id ? "Mentés…" : "Mentés"}
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {products.length === 0 && (
+                      <tr>
+                        <td colSpan={9} className="text-muted">
+                          Nincs megjeleníthető termék.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
       )}
 
-      {/* KUPONOK */}
+      {/* KUPONOK TAB */}
       {activeTab === "coupons" && (
         <section className="card">
           <div className="card-header">
@@ -813,7 +1038,7 @@ export const WebshopAdmin: React.FC = () => {
         </section>
       )}
 
-      {/* RENDELÉSEK */}
+      {/* RENDELÉSEK TAB */}
       {activeTab === "orders" && (
         <section className="card">
           <div className="card-header">

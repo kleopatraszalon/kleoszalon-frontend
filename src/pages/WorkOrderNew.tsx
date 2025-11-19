@@ -1,7 +1,7 @@
 // src/pages/WorkOrderNew.tsx
-// Új „munkalap” felugró modul – Kleopátra dizájn (kleo-theme.css alapján)
+// „Új munkalap” – Kleopátra dizájn, adatbázis alapú munkatárs + szolgáltatás választással
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { apiFetch } from "../utils/api";
@@ -9,65 +9,147 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 
 type WorkOrderStatus = "waiting" | "arrived" | "no_show" | "confirmed";
 
-type WorkOrderForm = {
-  // Backend által használt mezők
-  title: string;
-  notes: string;
+type Employee = {
+  id: string | number;
+  full_name?: string;
+  display_name?: string;
+};
 
-  // UI mezők – egyelőre csak a felületen élnek
-  employeeName: string;
-  duration: string;
-  clientName: string;
-  clientPhone: string;
-  clientEmail: string;
-  noteForAnotherVisitor: boolean;
-  fullyPaid: boolean;
-  status: WorkOrderStatus;
+type Service = {
+  id: string | number;
+  name: string;
+  duration_minutes?: number | null;
+  default_duration?: number | null;
+  price?: number | null;
+  price_gross?: number | null;
 };
 
 type WorkOrderPayload = {
   title: string;
   notes: string;
+  status: WorkOrderStatus;
+  employee_id?: string | number;
+  client_name?: string;
+  client_phone?: string;
+  client_email?: string;
+  services?: { service_id: string | number; quantity: number }[];
 };
 
 const WorkOrderNew: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useCurrentUser();
 
-  const [form, setForm] = useState<WorkOrderForm>({
+  const [form, setForm] = useState({
     title: "",
     notes: "",
-    employeeName: "",
-    duration: "",
     clientName: "",
     clientPhone: "",
     clientEmail: "",
     noteForAnotherVisitor: false,
     fullyPaid: false,
-    status: "arrived",
+    status: "arrived" as WorkOrderStatus,
   });
 
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [services, setServices] = useState<Service[]>([]);
   const [serviceSearch, setServiceSearch] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<"services" | "products">("services");
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // 🔧 EGYSÉGES field handler input + textarea + checkbox esetére
-  const handleFieldChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  // =====================
+  // Adatbetöltés
+  // =====================
+
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        // Ha nálad más az endpoint (pl. /api/locations/:id/employees), itt kell átírni
+        const data = await apiFetch<Employee[]>("/api/employees");
+        if (Array.isArray(data)) {
+          setEmployees(data);
+        }
+      } catch (err) {
+        console.error("Munkatársak betöltési hiba", err);
+      }
+    };
+
+    loadEmployees();
+  }, []);
+
+  const handleEmployeeChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    const target = e.target;
-    const { name, value } = target;
+    const employeeId = e.target.value;
+    setSelectedEmployeeId(employeeId);
+    setSelectedServiceIds([]);
 
-    // Ha input + checkbox, akkor a checked-et használjuk, különben value-t
-    const newValue =
-      target instanceof HTMLInputElement && target.type === "checkbox"
-        ? target.checked
-        : value;
+    if (!employeeId) {
+      setServices([]);
+      return;
+    }
 
+    try {
+      // ⬇ Itt szűrünk munkatársra – ha nálad más az endpoint, ezt az URL-t módosítsd
+      const data = await apiFetch<Service[]>(
+        `/api/services?employee_id=${encodeURIComponent(employeeId)}`
+      );
+      if (Array.isArray(data)) {
+        setServices(data);
+      } else {
+        setServices([]);
+      }
+    } catch (err) {
+      console.error("Szolgáltatások betöltési hiba", err);
+      setServices([]);
+    }
+  };
+
+  // =====================
+  // Keresés + összegzés
+  // =====================
+
+  const filteredServices = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((s) => s.name.toLowerCase().includes(q));
+  }, [services, serviceSearch]);
+
+  const selectedServices = useMemo(
+    () =>
+      services.filter((s) => selectedServiceIds.includes(String(s.id))),
+    [services, selectedServiceIds]
+  );
+
+  const totalPrice = useMemo(
+    () =>
+      selectedServices.reduce((sum, s) => {
+        const price = s.price_gross ?? s.price ?? 0;
+        return sum + (price || 0);
+      }, 0),
+    [selectedServices]
+  );
+
+  // =====================
+  // Mezőkezelők
+  // =====================
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: newValue,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+  };
+
+  const handleTextAreaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
     }));
   };
 
@@ -75,36 +157,79 @@ const WorkOrderNew: React.FC = () => {
     setForm((prev) => ({ ...prev, status }));
   };
 
+  const toggleService = (service: Service) => {
+    const id = String(service.id);
+    setSelectedServiceIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((x) => x !== id);
+      }
+      const next = [...prev, id];
+
+      // Ha még nincs cím, automatikusan az első kiválasztott szolgáltatás nevét használjuk
+      if (!form.title.trim()) {
+        setForm((old) => ({
+          ...old,
+          title: service.name,
+        }));
+      }
+
+      return next;
+    });
+  };
+
+  // =====================
+  // Mentés
+  // =====================
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim()) {
-      setError("A munkalap címe kötelező");
+
+    if (!form.title.trim() && selectedServices.length === 0) {
+      setError("Adj meg egy címet vagy válassz legalább egy szolgáltatást.");
       return;
     }
 
     const payload: WorkOrderPayload = {
-      title: form.title,
+      title: form.title.trim() || selectedServices[0]?.name || "Munkalap",
       notes: form.notes,
+      status: form.status,
+      employee_id: selectedEmployeeId || undefined,
+      client_name: form.clientName || undefined,
+      client_phone: form.clientPhone || undefined,
+      client_email: form.clientEmail || undefined,
+      services:
+        selectedServiceIds.length > 0
+          ? selectedServiceIds.map((id) => ({
+              service_id: id,
+              quantity: 1,
+            }))
+          : undefined,
     };
 
     try {
       setSaving(true);
       setError(null);
 
-      const data = await apiFetch<{ id?: string } | null>("/api/workorders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const data = await apiFetch<{ id?: string | number }>(
+        "/api/workorders",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
-      if (data && data.id) {
-        navigate(`/workorders/${data.id}`);
+      const newId = data?.id;
+      if (newId) {
+        navigate(`/workorders/${newId}`);
       } else {
         navigate("/workorders");
       }
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Hiba a mentés során");
+      setError(err?.message || "Hiba a munkalap mentése során");
     } finally {
       setSaving(false);
     }
@@ -118,7 +243,6 @@ const WorkOrderNew: React.FC = () => {
     <div className="home-container app-shell app-shell--collapsed">
       <Sidebar user={user} />
 
-      {/* A modal kitakar mindent – a háttér main most csak „tartó” */}
       <main className="calendar-container">
         <div className="admin-modal-overlay">
           <div className="admin-modal workorder-modal">
@@ -180,14 +304,14 @@ const WorkOrderNew: React.FC = () => {
               </header>
 
               <div className="modal-body">
-                {error && <div className="wo-error">{error}</div>}
+                {error && <div className="wo-error">API hiba: {error}</div>}
 
                 <div className="wo-modal-grid">
-                  {/* Bal hasáb – munkalap alapadatok */}
+                  {/* BAL HASÁB – munkalap alapadatok */}
                   <section className="card wo-column">
                     <div className="wo-section-header">
-                      <h3 className="wo-section-title">Munkalap adatai</h3>
-                      <span className="wo-section-pill">Kötelező mezők *</span>
+                      <h3 className="wo-section-title">MUNKALAP ADATAI</h3>
+                      <span className="wo-section-pill">KÖTELEZŐ MEZŐK *</span>
                     </div>
 
                     <div className="wo-field">
@@ -196,30 +320,46 @@ const WorkOrderNew: React.FC = () => {
                         id="title"
                         name="title"
                         value={form.title}
-                        onChange={handleFieldChange}
+                        onChange={handleInputChange}
                         placeholder="Pl. Vágás, szárítás (rövid) TOP"
                       />
                     </div>
 
                     <div className="wo-two-cols">
                       <div className="wo-field">
-                        <label htmlFor="employeeName">Munkatárs</label>
-                        <input
-                          id="employeeName"
-                          name="employeeName"
-                          value={form.employeeName}
-                          onChange={handleFieldChange}
-                          placeholder="Pl. Sülyi Alexandra"
-                        />
+                        <label htmlFor="employeeSelect">Munkatárs</label>
+                        <select
+                          id="employeeSelect"
+                          value={selectedEmployeeId}
+                          onChange={handleEmployeeChange}
+                        >
+                          <option value="">Válassz munkatársat</option>
+                          {employees.map((e) => (
+                            <option key={String(e.id)} value={String(e.id)}>
+                              {e.display_name ||
+                                e.full_name ||
+                                `#${e.id}`}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="wo-field">
-                        <label htmlFor="duration">Időtartam</label>
+                        <label>Időtartam</label>
                         <input
-                          id="duration"
                           name="duration"
-                          value={form.duration}
-                          onChange={handleFieldChange}
-                          placeholder="45 perc"
+                          value={
+                            selectedServices.length === 1
+                              ? `${
+                                  selectedServices[0].duration_minutes ??
+                                  selectedServices[0].default_duration ??
+                                  ""
+                                } perc`
+                              : selectedServices.length > 1
+                              ? "Több szolgáltatás"
+                              : ""
+                          }
+                          readOnly
+                          placeholder="Automatikusan számolva"
                         />
                       </div>
                     </div>
@@ -230,19 +370,19 @@ const WorkOrderNew: React.FC = () => {
                         id="notes"
                         name="notes"
                         value={form.notes}
-                        onChange={handleFieldChange}
+                        onChange={handleTextAreaChange}
                         rows={4}
                         placeholder="Megjegyzés a szolgáltatásról, különleges kérés, stb."
                       />
                     </div>
                   </section>
 
-                  {/* Középső hasáb – szolgáltatások / termékek + összegzés */}
+                  {/* KÖZÉPSŐ HASÁB – szolgáltatások / termékek */}
                   <section className="card wo-column">
                     <div className="wo-section-header">
-                      <h3 className="wo-section-title">Szolgáltatások</h3>
+                      <h3 className="wo-section-title">SZOLGÁLTATÁSOK</h3>
                       <span className="wo-section-pill wo-section-pill--success">
-                        {form.fullyPaid ? "Teljesen kifizetve" : "Fizetés folyamatban"}
+                        {form.fullyPaid ? "TELJESEN KIFIZETVE" : "FIZETÉS FOLYAMATBAN"}
                       </span>
                     </div>
 
@@ -256,7 +396,7 @@ const WorkOrderNew: React.FC = () => {
                         }
                         onClick={() => setActiveTab("services")}
                       >
-                        Szolgáltatások
+                        SZOLGÁLTATÁSOK
                       </button>
                       <button
                         type="button"
@@ -267,7 +407,7 @@ const WorkOrderNew: React.FC = () => {
                         }
                         onClick={() => setActiveTab("products")}
                       >
-                        Termékek
+                        TERMÉKEK
                       </button>
                     </div>
 
@@ -286,47 +426,57 @@ const WorkOrderNew: React.FC = () => {
                     </div>
 
                     <div className="wo-service-cards">
-                      <div className="wo-service-card">
-                        <div className="wo-service-main">
-                          <div className="wo-service-title">
-                            Vágás, szárítás (rövid) TOP
-                          </div>
-                          <div className="wo-service-meta">
-                            <span>7690 Ft</span>
-                            <span>45 perc</span>
-                          </div>
-                        </div>
-                      </div>
+                      {filteredServices.map((service) => {
+                        const id = String(service.id);
+                        const isSelected = selectedServiceIds.includes(id);
+                        const price = service.price_gross ?? service.price ?? 0;
+                        const duration =
+                          service.duration_minutes ??
+                          service.default_duration ??
+                          null;
 
-                      <div className="wo-service-card">
-                        <div className="wo-service-main">
-                          <div className="wo-service-title">
-                            Férfi mosás, vágás TOP
-                          </div>
-                          <div className="wo-service-meta">
-                            <span>5290 Ft</span>
-                            <span>30 perc</span>
-                          </div>
-                        </div>
-                      </div>
+                        return (
+                          <button
+                            type="button"
+                            key={id}
+                            className={
+                              isSelected
+                                ? "wo-service-card wo-service-card--selected"
+                                : "wo-service-card"
+                            }
+                            onClick={() => toggleService(service)}
+                          >
+                            <div className="wo-service-main">
+                              <div className="wo-service-title">
+                                {service.name}
+                              </div>
+                              <div className="wo-service-meta">
+                                <span>
+                                  {price
+                                    ? `${price.toLocaleString("hu-HU")} Ft`
+                                    : "—"}
+                                </span>
+                                <span>
+                                  {duration ? `${duration} perc` : ""}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
 
-                      <div className="wo-service-card">
-                        <div className="wo-service-main">
-                          <div className="wo-service-title">
-                            Keratin Botx hajkezelés (szárítással)
-                          </div>
-                          <div className="wo-service-meta">
-                            <span>7990 Ft</span>
-                            <span>20 perc</span>
-                          </div>
+                      {filteredServices.length === 0 && (
+                        <div className="wo-service-empty">
+                          Nincs megjeleníthető szolgáltatás.
+                          Válassz munkatársat vagy módosítsd a keresést.
                         </div>
-                      </div>
+                      )}
                     </div>
 
                     <div className="wo-totals">
                       <div className="wo-total-row">
                         <span>Összesen</span>
-                        <span>0 Ft</span>
+                        <span>{totalPrice.toLocaleString("hu-HU")} Ft</span>
                       </div>
                       <div className="wo-total-row">
                         <span>Kedvezmény</span>
@@ -334,15 +484,15 @@ const WorkOrderNew: React.FC = () => {
                       </div>
                       <div className="wo-total-row wo-total-row--strong">
                         <span>Fizetendő</span>
-                        <span>0 Ft</span>
+                        <span>{totalPrice.toLocaleString("hu-HU")} Ft</span>
                       </div>
                     </div>
                   </section>
 
-                  {/* Jobb hasáb – vendég adatai */}
+                  {/* JOBB HASÁB – vendég adatai */}
                   <section className="card wo-column wo-column-right">
                     <div className="wo-section-header">
-                      <h3 className="wo-section-title">Vendég adatai</h3>
+                      <h3 className="wo-section-title">VENDÉG ADATAI</h3>
                     </div>
 
                     <div className="wo-field">
@@ -351,8 +501,8 @@ const WorkOrderNew: React.FC = () => {
                         id="clientName"
                         name="clientName"
                         value={form.clientName}
-                        onChange={handleFieldChange}
-                        placeholder="John"
+                        onChange={handleInputChange}
+                        placeholder="Név"
                       />
                     </div>
 
@@ -362,7 +512,7 @@ const WorkOrderNew: React.FC = () => {
                         id="clientPhone"
                         name="clientPhone"
                         value={form.clientPhone}
-                        onChange={handleFieldChange}
+                        onChange={handleInputChange}
                         placeholder="+36 00 000 0000"
                       />
                     </div>
@@ -373,7 +523,7 @@ const WorkOrderNew: React.FC = () => {
                         id="clientEmail"
                         name="clientEmail"
                         value={form.clientEmail}
-                        onChange={handleFieldChange}
+                        onChange={handleInputChange}
                         placeholder="pelda@mail.hu"
                       />
                     </div>
@@ -384,7 +534,7 @@ const WorkOrderNew: React.FC = () => {
                           type="checkbox"
                           name="noteForAnotherVisitor"
                           checked={form.noteForAnotherVisitor}
-                          onChange={handleFieldChange}
+                          onChange={handleInputChange}
                         />
                         <span>Bejegyzés egy másik látogató számára</span>
                       </label>
@@ -400,7 +550,7 @@ const WorkOrderNew: React.FC = () => {
                       type="checkbox"
                       name="fullyPaid"
                       checked={form.fullyPaid}
-                      onChange={handleFieldChange}
+                      onChange={handleInputChange}
                     />
                     <span>Teljesen kifizetve</span>
                   </label>
@@ -419,7 +569,7 @@ const WorkOrderNew: React.FC = () => {
                     className="btn btn-primary btn-sm"
                     disabled={saving}
                   >
-                    {saving ? "Mentés..." : "Munkalap mentése"}
+                    {saving ? "Munkalap mentése..." : "Munkalap mentése"}
                   </button>
                 </div>
               </footer>
