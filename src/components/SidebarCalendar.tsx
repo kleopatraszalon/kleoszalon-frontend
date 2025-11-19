@@ -1,7 +1,5 @@
 // src/components/SidebarCalendar.tsx
 import React, { useState } from "react";
-import "./Sidebar.css";
-
 type SidebarCalendarProps = {
   /** Ha meg van adva, kattintáskor meghívjuk ezzel a dátummal */
   onSelectDate?: (date: Date) => void;

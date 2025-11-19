@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import Sidebar from "../components/Sidebar";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
-import "./Home.css";
 import ProductNewModal from "../components/ProductNewModal";
 
 Modal.setAppElement("#root");

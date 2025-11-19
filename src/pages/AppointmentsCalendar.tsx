@@ -6,8 +6,6 @@ import Sidebar from "../components/Sidebar";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { apiFetch } from "../utils/api";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
-import "./Home.css";
-
 type Employee = {
   id: string;
   full_name?: string | null;

@@ -3,8 +3,6 @@ import Sidebar from "../components/Sidebar";
 import EmployeeNewModal from "../components/EmployeeNewModal";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
-import "./Home.css";
-
 // A kártya komponens NÉV SZERINTI exportja ugyanebből a mappából
 import { EmployeeDetailsCard } from "./EmployeeDetails";
 

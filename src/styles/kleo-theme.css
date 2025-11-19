@@ -4,10 +4,10 @@
 ========================================= */
 
 :root {
-  /* Fő színek – kézikönyv */
+  /* Fő színek – kézikönyv szerinti paletta */
   --color-bg: #f5f5f5;
   --color-surface: #ffffff;
-  --color-text: #120c08;   /* fekete */
+  --color-text: #120c08;
   --color-muted: #5d5a55;
 
   --color-gold: #b69861;
@@ -28,10 +28,11 @@
   --color-border-subtle: #e2e2e2;
 
   /* Árnyék, lekerekítés */
-  --radius-lg: 18px;
   --radius-md: 12px;
+  --radius-lg: 18px;
   --radius-pill: 999px;
   --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0 22px 52px rgba(0, 0, 0, 0.22);
 
   /* Térközök */
   --space-xs: 4px;
@@ -47,7 +48,9 @@
   --font-lg: 1.1rem;
 }
 
-/* ===== RESET / ALAP ===== */
+/* =========================================
+   RESET + ALAP
+========================================= */
 
 *,
 *::before,
@@ -66,11 +69,12 @@ body,
 body {
   margin: 0;
   font-family: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont,
-    sans-serif;
+    "Segoe UI", sans-serif;
   background:
     radial-gradient(circle at top left, var(--color-magenta-4) 0, #ffffff 32%),
     linear-gradient(180deg, #ffffff 0, #f5f5f5 60%, #ffffff 100%);
   color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -79,6 +83,8 @@ h3,
 h4 {
   font-family: "Montserrat", system-ui, sans-serif;
   letter-spacing: 0.06em;
+  margin: 0;
+  color: var(--color-text);
 }
 
 a {
@@ -87,302 +93,7 @@ a {
 }
 
 /* =========================================
-   LAYOUT – SIDEBAR + MAIN
-========================================= */
-
-.app-shell {
-  display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
-  min-height: 100vh;
-  position: relative;
-}
-
-/* Sidebar alap – konkrét kinézet a Sidebar.css-ben */
-.app-sidebar {
-  background: radial-gradient(
-      circle at top,
-      rgba(236, 0, 140, 0.32),
-      transparent 55%
-    ),
-    linear-gradient(180deg, #120c08 0%, #120c08 40%, #5d5a55 100%);
-  color: #ffffff;
-  padding: var(--space-lg) var(--space-md);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-  position: relative;
-  z-index: 10;
-  overflow: visible;
-}
-
-/* Összecsukott mód – tartalom kitölti a képernyőt,
-   sidebar bal szélről csúszik elő (Sidebar.tsx kapcsolja) */
-.app-shell--collapsed {
-  grid-template-columns: 0 minmax(0, 1fr);
-}
-
-/* alap: csak egy vékony sáv látszik a bal oldalon */
-.app-shell--collapsed .app-sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 260px;
-  transform: translateX(calc(-100% + 18px));
-  transition: transform 0.25s ease;
-}
-
-/* ha az egér a sáv fölé kerül, kicsúszik a teljes sidebar */
-.app-shell--collapsed .app-sidebar:hover {
-  transform: translateX(0);
-  z-index: 30;
-}
-
-/* Kis színes "fül" a bal szélén – jelzi, hogy itt a VIR menü */
-.app-shell--collapsed .app-sidebar::before {
-  content: "";
-  position: absolute;
-  left: 100%;
-  top: 88px;
-  width: 18px;
-  height: 80px;
-  border-radius: 0 14px 14px 0;
-  background: linear-gradient(180deg, #b69861, #ec008c);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
-}
-
-/* Felirat a fülön: "≡ VIR MENÜ" – függőlegesen */
-.app-shell--collapsed .app-sidebar::after {
-  content: "≡ VIR MENÜ";
-  position: absolute;
-  left: 100%;
-  top: 96px;
-  width: 18px;
-  font-size: 10px;
-  color: #ffffff;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  letter-spacing: 0.18em;
-  text-align: center;
-}
-/* Main oszlop (topbar + content) */
-
-.app-main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-
-/* TOPBAR */
-
-.app-topbar {
-  height: 72px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--space-lg);
-  backdrop-filter: blur(18px);
-  background: rgba(255, 255, 255, 0.92);
-  border-bottom: 1px solid rgba(176, 175, 173, 0.4);
-  position: sticky;
-  top: 0;
-  z-index: 5;
-}
-
-.topbar-left {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.topbar-title {
-  font-family: "Montserrat", sans-serif;
-  font-size: var(--font-md);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  margin: 0;
-}
-
-.topbar-subtitle {
-  margin: 0;
-  font-size: var(--font-sm);
-  color: var(--color-gray-2);
-}
-
-.topbar-right {
-  display: flex;
-  align-items: center;
-  gap: var(--space-md);
-}
-
-.topbar-pill {
-  padding: 0.35rem 0.9rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid rgba(182, 152, 97, 0.6);
-  font-size: var(--font-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-}
-
-/* TARTALOM BLOKK */
-
-.app-content {
-  padding: var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-lg);
-}
-
-/* =========================================
-   KÁRTYÁK, GRID
-========================================= */
-
-.card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-soft);
-  padding: var(--space-lg);
-  border: 1px solid rgba(212, 196, 163, 0.7);
-}
-
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-lg);
-}
-
-.stat-card {
-  text-align: left;
-}
-
-.stat-title {
-  font-family: "Montserrat", sans-serif;
-  font-size: var(--font-xs);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  color: var(--color-gray-2);
-  margin: 0 0 6px 0;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-/* =========================================
-   GOMBOK – ARANY / MAGENTA
-========================================= */
-
-.btn-primary {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.85rem 1.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
-  font-size: var(--font-xs);
-  font-weight: 500;
-  border-radius: var(--radius-pill);
-  border: none;
-  background: linear-gradient(
-    90deg,
-    var(--color-gold),
-    var(--color-magenta)
-  );
-  color: #ffffff;
-  overflow: hidden;
-  cursor: pointer;
-  transition: transform 0.15s ease, box-shadow 0.15s ease,
-    filter 0.15s ease;
-  box-shadow: 0 8px 20px rgba(18, 12, 8, 0.35);
-}
-
-.btn-primary:hover {
-  transform: translateY(-1px);
-  filter: brightness(1.04);
-  box-shadow: 0 12px 26px rgba(18, 12, 8, 0.45);
-}
-
-.btn-primary:active {
-  transform: translateY(0);
-  box-shadow: 0 5px 14px rgba(18, 12, 8, 0.35);
-}
-
-.btn-ghost {
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-gold-3);
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.55rem 1.1rem;
-  font-size: var(--font-xs);
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease,
-    color 0.15s ease;
-}
-
-.btn-ghost:hover {
-  background: #ffffff;
-  border-color: var(--color-gold);
-  color: var(--color-black);
-}
-
-/* =========================================
-   ÁLTALÁNOS INPUT / TÁBLÁZAT
-========================================= */
-
-.input {
-  width: 100%;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--color-border-subtle);
-  padding: 0.5rem 0.9rem;
-  font-size: var(--font-sm);
-  outline: none;
-  background: rgba(255, 255, 255, 0.96);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.input:focus {
-  border-color: var(--color-magenta);
-  box-shadow: 0 0 0 1px rgba(236, 0, 140, 0.25);
-}
-
-.table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-sm);
-}
-
-.table thead {
-  background: linear-gradient(
-    90deg,
-    rgba(182, 152, 97, 0.1),
-    rgba(236, 0, 140, 0.08)
-  );
-}
-
-.table th,
-.table td {
-  padding: 0.65rem 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.table th {
-  font-family: "Montserrat", sans-serif;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  font-size: var(--font-xs);
-}
-
-.table tbody tr:hover {
-  background: rgba(249, 193, 217, 0.13);
-}
-
-/* =========================================
    GLOBÁLIS VÉKONY SCROLL – ARANY / MAGENTA
-   (Firefox + Chrome / Edge / Safari)
 ========================================= */
 
 /* Firefox */
@@ -419,204 +130,384 @@ html {
 }
 
 /* =========================================
-   RESPONSIVE
+   LAYOUT – ÚJ (app-shell)
+   Középre húzott, elegáns kártya, két oldalt levegő
 ========================================= */
 
-@media (max-width: 900px) {
-  .app-shell {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .app-sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 240px;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    z-index: 30;
-  }
-
-  .app-main {
-    position: relative;
-    z-index: 1;
-  }
-
-  .app-content {
-    padding: var(--space-md);
-  }
-
-  .app-topbar {
-    padding-inline: var(--space-md);
-  }
-
-  .dashboard-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-/* ============================================================
-   LEGACY LAYOUT: HOME + SIDEBAR (home-container + calendar-container)
-   ------------------------------------------------------------
-   A régi elrendezéshez (Home.tsx, EmployeesList stb.) adunk
-   elegáns, összehúzható sidebart a Kleopátra arculat szerint.
-   A sidebar alapból szinte teljesen el van rejtve, és ha az
-   egérrel a bal oldalra megyünk (a vékony sávra), finoman
-   becsúszik.
-============================================================ */
-
-.home-container {
-  position: relative;
+.app-shell {
+  display: grid;
+  grid-template-columns: 1300px minmax(0, 1fr);
   min-height: 100vh;
-  display: block;
-}
+  position: relative;
 
-/* Fő tartalmi hasáb – a dashboard / listák */
-.home-container > .calendar-container {
   max-width: 1320px;
-  margin: 0 auto;
-  padding: var(--space-lg);
+  margin: 5px auto;
+  border-radius: 0px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-strong);
+  overflow: hidden;
 }
 
-/* Összecsukható Kleo-sidebar (balra rejtve, hoverre kijön) */
-.home-container > .kleo-sidebar {
-  position: fixed;
-  inset: 0 auto 0 0; /* top:0, left:0, bottom:0 */
-  width: 260px;
-  transform: translateX(calc(-100% + 10px)); /* csak egy 10px-es sáv látszik */
-  transition: transform 0.25s ease;
+/* Sidebar alap (új layout) – konkrét kinézetet lejjebb finomítjuk */
+.app-sidebar {
   background:
-    radial-gradient(circle at top, rgba(236, 0, 140, 0.32), transparent 55%),
-    linear-gradient(180deg, #120c08 0%, #120c08 40%, #5d5a55 100%);
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(
+      180deg,
+      var(--color-gold) 0%,
+      var(--color-gold-2) 45%,
+      var(--color-gold-3) 100%
+    );
   color: #ffffff;
-  padding: var(--space-lg) var(--space-md);
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+}
+
+/* Fő tartalmi oszlop (új layout) */
+
+.app-main {
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.5);
-  z-index: 40;
+  min-width: 0;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f8f4ec 40%,
+    #ffffff 100%
+  );
 }
 
-/* Vékony fogantyú – mindig van mit „elkapni” a bal szélen */
-.home-container > .kleo-sidebar::after {
-  content: "";
-  position: absolute;
+/* Felső sáv (topbar) – üveges, arany szegéllyel */
+
+.app-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(212, 196, 163, 0.7);
+  position: sticky;
   top: 0;
-  right: -10px;
-  width: 10px;
-  height: 100%;
+  z-index: 5;
 }
 
-/* Ha bal szélre húzzuk az egeret (a látható sáv fölé), becsúszik */
-.home-container > .kleo-sidebar:hover {
-  transform: translateX(0);
+.topbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
-/* ---------- LOGÓ + FELIRAT BLOKK ---------- */
+.topbar-title {
+  font-family: "Montserrat", sans-serif;
+  font-size: var(--font-md);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0;
+}
 
-.kleo-sidebar-header {
+.topbar-subtitle {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.topbar-right {
   display: flex;
   align-items: center;
   gap: var(--space-md);
 }
 
-.kleo-sidebar-logo-wrap {
-  width: 4x;
-  height: 4px;
-  border-radius:  0px;
-  background: #ffffff;
+.topbar-pill {
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(182, 152, 97, 0.7);
+  font-size: var(--font-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+/* Tartalomblokk */
+
+.app-content {
+  padding: 24px 32px 28px;
   display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* =========================================
+   LEGACY LAYOUT: HOME + SIDEBAR
+   (home-container + calendar-container)
+   – becsúszó arany füllel
+========================================= */
+
+.home-container {
+  position: relative;
+  min-height: 100vh;
+}
+
+/* Fő tartalmi hasáb – naptár, listák stb. */
+
+.home-container > .calendar-container {
+  max-width: 1320px;
+  margin: 32px auto;
+  padding: var(--space-lg);
+  border-radius: 0px;
+  background: #ffffff;
+  box-shadow: var(--shadow-strong);
+}
+
+/* Bal oldali arany fül + sidebar – régi komponensekhez */
+
+.home-container > .kleo-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 260px;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    var(--color-gold-2) 45%,
+    var(--color-gold-3) 100%
+  );
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  transform: translateX(calc(-100% + 14px));
+  transition: transform 0.25s ease;
+  z-index: 30;
+}
+
+.home-container > .kleo-sidebar:hover {
+  transform: translateX(0);
+}
+
+/* Kis fül a bal szélén */
+
+.home-container > .kleo-sidebar::before {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 82px;
+  width: 14px;
+  height: 96px;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    var(--color-gold-2) 55%
+  );
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.home-container > .kleo-sidebar::after {
+  content: "≡ VIR MENÜ";
+  position: absolute;
+  left: 100%;
+  top: 86px;
+  width: 14px;
+  font-size: 9px;
+  color: #120c08;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+
+/* =========================================
+   SIDEBAR – HERO KÁRTYA + MENÜ
+========================================= */
+
+.kleo-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: stretch;
+  height: 100%;
+}
+
+/* Hero kártya: logó + mini naptár */
+
+.kleo-sidebar-hero-card {
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.94)
+    );
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.8);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 260px;
+  margin: 6px auto var(--space-lg);
+}
+
+/* Logó + felirat – logó NINCS körbe zárva, csak a PNG */
+
+.kleo-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.kleo-sidebar-logo-wrap {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.38);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .kleo-sidebar-logo {
-  max-width: 110px;
-  height: auto;
+  display: block;
+  height: 40px;
+  width: auto;
 }
 
 .kleo-sidebar-brand {
   display: flex;
   flex-direction: column;
-  gap: 10spx;
+  gap: 2px;
 }
 
 .kleo-sidebar-title {
-  font-family: "Montserrat", system-ui, sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 0.18em;
+  font-family: "Montserrat", sans-serif;
   font-size: var(--font-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-text);
 }
 
 .kleo-sidebar-subtitle {
+  font-family: "Open Sans", system-ui, sans-serif;
   font-size: var(--font-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gray-2);
+}
+
+/* MINI NAPTÁR A HERO-BAN */
+
+.sidebar-calendar {
+  border-radius: 18px;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background: linear-gradient(
+      180deg,
+      rgba(249, 193, 217, 0.96),
+      rgba(18, 12, 8, 0.96)
+    );
+  box-shadow: 0 16px 40px rgba(18, 12, 8, 0.45);
+  color: #ffffff;
+}
+
+.sidebar-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.sidebar-calendar-month {
+  font-family: "Montserrat", sans-serif;
+  font-size: var(--font-sm);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-4);
+}
+
+.sidebar-calendar-nav-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.sidebar-calendar-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.32);
+  transform: translateY(-1px);
+}
+
+.sidebar-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sidebar-calendar-weekday {
+  font-size: 0.68rem;
+  text-align: center;
+  text-transform: uppercase;
   color: rgba(255, 255, 255, 0.78);
 }
 
-/* ---------- MINI NAPTÁR (react-calendar) ---------- */
-
-.kleo-sidebar-calendar {
-  margin-top: var(--space-md);
-  border-radius: var(--radius-lg);
-  border: 1px solid rgba(212, 196, 163, 0.65);
-  padding: var(--space-sm);
-  background:
-    radial-gradient(circle at top left, rgba(236, 0, 140, 0.25), transparent 60%),
-    rgba(18, 12, 8, 0.85);
-}
-
-/* Alap react-calendar stílus, csak a sidebarban */
-.kleo-sidebar .react-calendar {
+.sidebar-calendar-day {
+  position: relative;
   width: 100%;
-  background: transparent;
-  border: none;
-  font-family: "Open Sans", system-ui, sans-serif;
-  font-size: var(--font-xs);
-  color: #ffffff;
-}
-
-.kleo-sidebar .react-calendar__navigation {
-  margin-bottom: 0.25rem;
-}
-
-.kleo-sidebar .react-calendar__navigation button {
-  min-height: 26px;
-  color: #ffffff;
-  font-size: var(--font-xs);
-}
-
-.kleo-sidebar .react-calendar__month-view__weekdays abbr {
-  text-decoration: none;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.kleo-sidebar .react-calendar__tile {
-  padding: 4px 0;
+  aspect-ratio: 1 / 1;
   border-radius: 999px;
-  color: rgba(255, 255, 255, 0.85);
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.08s ease;
 }
 
-.kleo-sidebar .react-calendar__tile--now {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
+.sidebar-calendar-day:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
 }
 
-.kleo-sidebar .react-calendar__tile--active {
-  background: linear-gradient(120deg, var(--color-gold), var(--color-magenta));
-  color: #ffffff;
+.sidebar-calendar-day--other-month {
+  opacity: 0.35;
 }
 
-/* ---------- MENÜLISTA ---------- */
+.sidebar-calendar-day--today {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-calendar-day--selected {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold),
+    var(--color-magenta)
+  );
+  color: #120c08;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* MENÜLISTA – finom, elegáns */
 
 .kleo-sidebar-nav {
   margin-top: var(--space-md);
   padding-top: var(--space-sm);
   border-top: 1px solid rgba(255, 255, 255, 0.12);
-  /* belső scroll ne legyen, a teljes oldal görgessen */
-  overflow: visible;
 }
+
 .kleo-sidebar-menu {
   list-style: none;
   margin: 0;
@@ -676,18 +567,819 @@ html {
   color: #ffffff;
 }
 
-/* ---------- Reszponzív finomhangolás ---------- */
+/* =========================================
+   KÁRTYÁK, TÁBLÁK, GOMBOK
+========================================= */
+
+.card,
+.stat-card,
+.chart-card,
+.warnings-card,
+.employees-list-card,
+.kleo-daily-location-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.4);
+  padding: var(--space-md);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.card-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+}
+
+.card-subtitle {
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+.card-body {
+  font-size: var(--font-sm);
+}
+
+/* Táblák */
+
+.data-table,
+.appointments-table,
+.employees-table,
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.data-table thead,
+.appointments-table thead,
+.employees-table thead,
+.table thead {
+  background: var(--color-gold-4);
+}
+
+.data-table th,
+.data-table td,
+.appointments-table th,
+.appointments-table td,
+.employees-table th,
+.employees-table td,
+.table th,
+.table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table th,
+.appointments-table th,
+.employees-table th,
+.table th {
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: var(--font-xs);
+  color: var(--color-gray-1);
+}
+
+.data-table tbody tr:nth-child(odd),
+.appointments-table tbody tr:nth-child(odd),
+.employees-table tbody tr:nth-child(odd),
+.table tbody tr:nth-child(odd) {
+  background: #fbf8f2;
+}
+
+.data-table tbody tr:hover,
+.appointments-table tbody tr:hover,
+.employees-table tbody tr:hover,
+.table tbody tr:hover {
+  background: rgba(249, 193, 217, 0.13);
+}
+
+/* Gombok */
+
+button,
+.btn {
+  font-family: inherit;
+  font-size: var(--font-sm);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--color-gold);
+  color: #ffffff;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.btn:hover {
+  background: #a9864f;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold),
+    var(--color-magenta)
+  );
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(
+    135deg,
+    #a9864f,
+    #d4007e
+  );
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-gold);
+  color: var(--color-text);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: var(--font-xs);
+}
+
+.btn-xs {
+  padding: 0.22rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+/* Inputok */
+
+label {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--color-gray-1);
+  margin-bottom: 4px;
+  display: block;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: var(--font-sm);
+  border-radius: 6px;
+  border: 1px solid #e4ded5;
+  padding: 8px 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(201, 139, 75, 0.25);
+}
+
+/* =========================================
+   LOGIN OLDAL – FINOM, ARCULATHOZ IGAZÍTVA
+========================================= */
+
+:root {
+  --kleo-bg: #fbf3ea;
+  --kleo-gold: #c8b187;
+}
+
+.login-page {
+  min-height: 100vh;
+  padding: 32px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kleo-bg);
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  border: 1px solid #f3e3d1;
+}
+
+.login-card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.login-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.96),
+    rgba(255, 255, 255, 0.99)
+  );
+}
+
+.login-card-inner {
+  position: relative;
+  padding: 28px 26px 22px;
+}
+
+@media (min-width: 640px) {
+  .login-card-inner {
+    padding: 32px 36px 24px;
+  }
+}
+
+.login-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo img {
+  height: 58px;
+  width: auto;
+}
+
+.login-tagline {
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.login-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 4px 0 4px;
+  color: #111827;
+  font-family: "Montserrat", "Open Sans", system-ui, sans-serif;
+}
+
+.login-subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.login-tabs {
+  display: flex;
+  border-bottom: 1px solid #ead7c3;
+  margin-bottom: 18px;
+}
+
+.login-tab {
+  flex: 1;
+  padding: 8px 0 9px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-tab--active {
+  color: var(--color-gold);
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-gold);
+}
+
+.login-field {
+  margin-bottom: 10px;
+}
+
+.login-input {
+  width: 100%;
+}
+
+.login-code-input {
+  text-align: center;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.login-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.login-link {
+  color: var(--kleo-gold);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 11px;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.login-link[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.login-button,
+.login-secondary-button {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 999px;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-button {
+  background: var(--kleo-gold);
+  color: #ffffff;
+}
+
+.login-button:hover {
+  background: #ec008c;
+}
+
+.login-button:disabled,
+.login-secondary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-secondary-button {
+  background: #5cb58c;
+  color: #ffffff;
+}
+
+.login-secondary-button:hover {
+  background: #4ba378;
+}
+
+.login-footer {
+  margin-top: 12px;
+  font-size: 11px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* =========================================
+   MODALOK – ADMIN / ÁLTALÁNOS
+========================================= */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.admin-modal {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-strong);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  border-bottom: 1px solid rgba(228, 224, 215, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-footer {
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid rgba(228, 224, 215, 0.9);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.admin-modal .modal-body {
+  padding: var(--space-md) var(--space-lg) var(--space-md);
+  overflow-y: auto;
+}
+
+/* =========================================
+   NAPTÁR FŐNÉZET – HEADEREK
+========================================= */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.calendar-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-lg);
+}
+
+.calendar-subtitle {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.calendar-grid-wrapper {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.5);
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
 
 @media (max-width: 900px) {
-  .home-container > .calendar-container {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 30;
+  }
+
+  .app-main {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-content {
     padding: var(--space-md);
   }
 
-  .home-container > .kleo-sidebar {
-    transform: translateX(-100%); /* teljesen rejtett, csak érintés / hoverre jön ki */
+  .home-container > .calendar-container {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+/* =========================================
+   MUNKALAP MODAL – ÚJ FELUGRÓ NÉZET
+   (WorkOrderNew.tsx-hez)
+========================================= */
+
+.workorder-modal {
+  max-width: 1120px;
+}
+
+.workorder-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workorder-modal-header {
+  gap: var(--space-md);
+}
+
+.wo-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.wo-subtitle {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.wo-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.wo-status-chip {
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.9rem;
+  font-size: var(--font-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  background: #f4f1ea;
+  color: var(--color-gray-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.wo-status-chip--active {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-magenta));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: var(--shadow-soft);
+}
+
+.wo-error {
+  margin-bottom: var(--space-sm);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: var(--font-xs);
+}
+
+/* Rácsos elrendezés – 3 hasáb */
+
+.wo-modal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 1.1fr);
+  gap: var(--space-lg);
+  align-items: flex-start;
+  padding-top: var(--space-sm);
+}
+
+.wo-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.wo-column-right {
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.wo-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.wo-section-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.wo-section-pill {
+  padding: 0.18rem 0.75rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-2);
+  background: #fbf8f2;
+}
+
+.wo-section-pill--success {
+  background: #e5f7ee;
+  border-color: #8ad1ae;
+  color: #21744a;
+}
+
+.wo-field {
+  margin-bottom: var(--space-sm);
+}
+
+.wo-two-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--space-sm);
+}
+
+/* Szolgáltatás / termék tabok */
+
+.wo-service-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: #f5f3ef;
+  border: 1px solid rgba(212, 196, 163, 0.8);
+  margin-bottom: var(--space-sm);
+}
+
+.wo-service-tab {
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  padding: 0.28rem 0.9rem;
+  font-size: var(--font-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--color-gray-2);
+}
+
+.wo-service-tab--active {
+  background: #ffffff;
+  color: var(--color-text);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* Szolgáltatás kártyák */
+
+.wo-service-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.wo-service-card {
+  border-radius: var(--radius-md);
+  border: 1px solid #ede4d8;
+  padding: var(--space-sm) var(--space-md);
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.02);
+}
+
+.wo-service-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-service-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wo-service-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+/* Összegzés */
+
+.wo-totals {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed rgba(212, 196, 163, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.wo-total-row--strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Vendég adatok + checkbox */
+
+.wo-checkbox-field {
+  margin-top: var(--space-sm);
+}
+
+.wo-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-sm);
+  color: var(--color-gray-1);
+}
+
+.wo-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+/* Lábléc */
+
+.workorder-modal-footer {
+  align-items: center;
+}
+
+.wo-footer-left {
+  flex: 1;
+}
+
+.wo-footer-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Mobil nézet */
+
+@media (max-width: 1024px) {
+  .workorder-modal {
+    max-width: 100%;
+    margin: 0 var(--space-md);
   }
 
-  .home-container > .kleo-sidebar:hover {
-    transform: translateX(0);
+  .wo-modal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wo-column-right {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .workorder-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .wo-status-chips {
+    justify-content: flex-start;
+  }
+
+  .workorder-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .wo-footer-actions {
+    justify-content: flex-end;
   }
 }

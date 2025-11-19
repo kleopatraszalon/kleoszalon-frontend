@@ -1,7 +1,6 @@
 // src/pages/Login.tsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Login.css";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
 

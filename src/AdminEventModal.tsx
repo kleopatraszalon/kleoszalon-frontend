@@ -1,6 +1,4 @@
 import React, { useEffect, useMemo, useState } from "react";
-import "./AdminEventModal.css";
-
 export type Employee = {
   id: string;
   full_name?: string | null;

@@ -4,7 +4,6 @@ import axios from "axios";
 import { useNavigate, NavLink } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
-import "./Sidebar.css";
 import SidebarCalendar from "./SidebarCalendar";
 
 // API alap URL (ugyanaz a logika, mint máshol)

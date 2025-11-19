@@ -2,8 +2,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import withBase from "../utils/apiBase";
-import "./Home.css";
-
 /* ===== Props ===== */
 export type EmployeeDetailsProps = {
   employeeId: string;

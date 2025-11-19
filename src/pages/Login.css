@@ -22,7 +22,7 @@
   background: rgba(255, 255, 255, 0.94);
   box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
   overflow: hidden;
-  border: 1px solid #f3e3d1;
+  border: 20px solid #f3e3d1;
 }
 
 /* háttérkép a kártyán */
