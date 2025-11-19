@@ -69,7 +69,7 @@ type WebshopOrder = {
   coupon_code: string | null;
 };
 
-export const WebshopAdmin: React.FC = () => {
+const WebshopAdmin: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"products" | "coupons" | "orders">(
     "products"
   );
@@ -1140,3 +1140,4 @@ export const WebshopAdmin: React.FC = () => {
     </div>
   );
 };
+export default WebshopAdmin;
