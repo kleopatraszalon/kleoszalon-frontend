@@ -29,23 +29,44 @@ export default apiFetchRaw;
 /**
  * Magasabb szintű helper:
  *  - ugyanazt a `apiFetchRaw`-t használja, mint a fetch.ts-ben
- *  - tehát:
- *      • automatikus Authorization header (token / kleo_token)
- *      • API_BASE / REACT_APP_API_BASE figyelembevétele
- *      • ugyanaz az "API hiba: ..." hibaüzenet
- *  - viszont itt már JSON-t adunk vissza generikus T típussal
+ *  - automatikusan `credentials: "include"`-dal hívja, hogy a "token" süti menjen
+ *  - JSON-t próbál visszaadni generikus T típussal
+ *  - 204 / üres body esetén `null`-t ad vissza
+ *  - ha nem JSON a válasz, sima szövegként adja vissza
  */
-export async function apiFetch<T>(
+export async function apiFetch<T = any>(
   input: string | Request,
   init?: RequestInit
 ): Promise<T> {
-  const res = await apiFetchRaw(input, init || {});
-  const text = await res.text();
+  // 🔹 mindig küldjük a sütiket (token cookie miatt fontos)
+  const res = await apiFetchRaw(input, {
+    credentials: "include",
+    ...(init || {}),
+  });
 
-  if (!text) {
-    // ha üres a body, adunk egy "üres" értéket
-    return {} as T;
+  // 204 No Content → nincs mit parsolni
+  if (res.status === 204) {
+    return null as T;
   }
 
-  return JSON.parse(text) as T;
+  const text = await res.text();
+
+  // üres body
+  if (!text) {
+    return null as T;
+  }
+
+  // Próbáljuk JSON-ként értelmezni
+  try {
+    return JSON.parse(text) as T;
+  } catch (err) {
+    console.warn("apiFetch: nem JSON válasz, sima szövegként adom vissza", {
+      input,
+      status: res.status,
+      text,
+    });
+
+    // ha nem JSON, adjuk vissza a textet
+    return text as unknown as T;
+  }
 }
