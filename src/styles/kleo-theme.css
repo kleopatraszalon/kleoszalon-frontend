@@ -1433,3 +1433,395 @@ textarea:focus {
   object-fit: cover;
   border-radius: 8px;
 }
+/* =========================================
+   PUBLIC WEBSHOP – HERO + TERMÉK GRID
+   (WebshopPage.tsx / WebshopProductDetailPage.tsx)
+========================================= */
+
+/* HERO – teljes szélességű háttérkép, fölötte úszó gömbök */
+.webshop-hero {
+  position: relative;
+  overflow: hidden;
+  background: #f9f5ef;
+}
+
+/* Háttérkép – kitölti a hero szekciót */
+.webshop-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.webshop-hero__bg img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center right;
+}
+
+/* Tartalom – szöveg jobb oldalon, a kép területén marad */
+.webshop-hero__content {
+  position: relative;
+  min-height: 520px;
+  padding: clamp(3rem, 6vw, 4.2rem)
+    clamp(1.5rem, 6vw, 4rem)
+    clamp(3.2rem, 6vw, 4.8rem);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Szövegblokk – buborékok fölé rétegezve */
+.webshop-hero__text {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Tipográfia – egységes a többi oldallal */
+.section-eyebrow {
+  font-size: var(--font-xs);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-magenta);
+  margin: 0 0 0.4rem;
+}
+
+.hero-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: clamp(2.1rem, 3vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hero-title--tight {
+  letter-spacing: 0.16em;
+}
+
+.hero-part-magenta {
+  color: var(--color-magenta);
+}
+
+.hero-lead {
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-gray-1);
+  max-width: 38rem;
+  margin: 0;
+}
+
+.hero-lead--narrow {
+  max-width: 32rem;
+}
+
+/* Gombsor + vendégszámla */
+.webshop-hero__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.webshop-invoice {
+  margin-top: var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+}
+
+.webshop-invoice__image {
+  width: 72px;
+  flex: 0 0 auto;
+}
+
+.webshop-invoice__image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.webshop-invoice__text {
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+/* =========================================
+   GÖMB SÁV – TELJES SZÉLESSÉGBEN, KVÁZI RANDOM MOZGÁS
+========================================= */
+
+.webshop-hero__bubbles {
+  position: absolute;
+  top: 14%;
+  left: 0;
+  right: 0;
+  padding-inline: clamp(1.2rem, 7vw, 4.5rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: clamp(1.8rem, 4vw, 3rem);
+  pointer-events: none; /* ne zavarja a kattintást */
+  z-index: 1; /* kép fölött, szöveg alatt */
+}
+
+/* Alap gömb stílus */
+.webshop-hero__bubble {
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  background: var(--color-magenta);
+  box-shadow: var(--shadow-strong);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+/* Ha képet teszel a gömbbe */
+.webshop-hero__bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Három külön animáció – ettől lesz „össze-vissza” érzés */
+.webshop-hero__bubble--top {
+  animation: bubbleDriftA 11s ease-in-out infinite alternate;
+}
+
+.webshop-hero__bubble--middle {
+  animation: bubbleDriftB 9s ease-in-out infinite alternate;
+  animation-delay: -2.3s;
+}
+
+.webshop-hero__bubble--bottom {
+  animation: bubbleDriftC 13s ease-in-out infinite alternate;
+  animation-delay: -4.1s;
+}
+
+/* Kvázirandom vízszintes + függőleges mozgások */
+@keyframes bubbleDriftA {
+  0% {
+    transform: translate3d(-8%, 0, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(6%, -18px, 0) scale(1.03);
+  }
+  50% {
+    transform: translate3d(18%, 10px, 0) scale(0.98);
+  }
+  75% {
+    transform: translate3d(4%, -14px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(-10%, 6px, 0) scale(1);
+  }
+}
+
+@keyframes bubbleDriftB {
+  0% {
+    transform: translate3d(10%, 6px, 0) scale(1);
+  }
+  20% {
+    transform: translate3d(-4%, -12px, 0) scale(1.04);
+  }
+  45% {
+    transform: translate3d(-16%, 16px, 0) scale(0.97);
+  }
+  70% {
+    transform: translate3d(8%, -8px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(14%, 10px, 0) scale(1);
+  }
+}
+
+@keyframes bubbleDriftC {
+  0% {
+    transform: translate3d(-12%, 10px, 0) scale(0.98);
+  }
+  30% {
+    transform: translate3d(4%, -20px, 0) scale(1.04);
+  }
+  55% {
+    transform: translate3d(18%, 12px, 0) scale(1);
+  }
+  80% {
+    transform: translate3d(-6%, -10px, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-14%, 4px, 0) scale(0.99);
+  }
+}
+
+/* =========================================
+   TERMÉKLISTA – RUGALMAS GRID A KIJELZŐ SZÉLESSÉGE ALAPJÁN
+========================================= */
+
+.section--webshop {
+  padding: 3rem 0 4rem;
+  background: linear-gradient(180deg, #f9f5ef 0, #ffffff 70%);
+}
+
+/* Layout: bal oldalt termékek, jobb oldalt kosár */
+.webshop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.7fr) minmax(300px, 1fr);
+  gap: clamp(2rem, 4vw, 3rem);
+  align-items: flex-start;
+}
+
+.webshop-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Rugalmas termék-grid: annyi oszlop, amennyi kifér */
+.webshop-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.75rem;
+  align-items: stretch;
+}
+
+/* Termékkártyák */
+.webshop-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(212, 196, 163, 0.55);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.webshop-card__image-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  aspect-ratio: 4 / 3;
+}
+
+.webshop-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.webshop-card__title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0;
+}
+
+.webshop-card__text {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+  margin: 0;
+}
+
+.webshop-card__footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.webshop-card__price {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-gold);
+}
+
+/* Kosár hasáb – jobb oldali oszlop */
+.webshop-cart {
+  position: sticky;
+  top: 88px;
+  align-self: flex-start;
+}
+
+/* Állapot üzenetek */
+.webshop-status {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.webshop-status--error {
+  color: #b00020;
+}
+
+.webshop-status--hint {
+  color: var(--color-gold);
+}
+
+/* Kategória gombsorok */
+.webshop-subcategory-row,
+.webshop-servicecategory-row {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.webshop-subcategory-group {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(212, 196, 163, 0.6);
+}
+
+/* RESPONSIVE – mobil / tablet */
+@media (max-width: 1024px) {
+  .webshop-hero__content {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .webshop-hero__text {
+    align-items: center;
+  }
+
+  .webshop-hero__bubbles {
+    top: 10%;
+    padding-inline: clamp(0.8rem, 4vw, 2rem);
+  }
+
+  .webshop-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .webshop-cart {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .webshop-hero__bubbles {
+    top: 8%;
+    gap: 1rem;
+  }
+
+  .webshop-hero__bubble {
+    width: 150px;
+    height: 150px;
+  }
+}

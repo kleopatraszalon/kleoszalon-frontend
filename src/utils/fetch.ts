@@ -37,31 +37,9 @@ export function withBase(path: string): string {
   return base + p;
 }
 
-export function safeParse<T = unknown>(value: string): T | null {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return null;
-  }
-}
-
-export function safeJson<T>(value: string, fallback: T): T {
-  try {
-    return JSON.parse(value) as T;
-  } catch {
-    return fallback;
-  }
-}
-
-export function toArray<T = unknown>(value: unknown): T[] {
-  if (Array.isArray(value)) return value as T[];
-  if (value == null) return [];
-  return [value as T];
-}
-
 export function authHeaders(): Record<string, string> {
   try {
-    // 🔹 token keresése: "token" vagy "kleo_token"
+    // 🔹 Itt volt a gond: csak "token"-t nézett
     const token =
       localStorage.getItem("token") || localStorage.getItem("kleo_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
@@ -81,12 +59,7 @@ export async function apiFetch(
     ...authHeaders(),
   };
 
-  const res = await fetch(url as RequestInfo, {
-    ...init,
-    headers,
-    // 🔹 mindig küldjük a sütiket (token cookie miatt)
-    credentials: "include",
-  });
+  const res = await fetch(url as RequestInfo, { ...init, headers });
 
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
@@ -103,6 +76,27 @@ export async function apiFetch(
   return res;
 }
 
+export function safeJson<T>(text: string, fallback: T): T {
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function safeParse<T>(text: string, fallback: T): T {
+  return safeJson(text, fallback);
+}
+
+export function toArray<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (!value) return [];
+  const v: any = value;
+  if (Array.isArray(v.data)) return v.data as T[];
+  if (Array.isArray(v.items)) return v.items as T[];
+  return [];
+}
+
 export async function fetchJSON<T>(
   input: string | Request,
   init?: RequestInit,
@@ -117,10 +111,7 @@ export async function fetchJSON<T>(
     return safeJson<T>(text, fallback);
   } catch (err: any) {
     const msg = String(err?.message || "");
-    if (
-      (msg.includes("404") || msg.toLowerCase().includes("not found")) &&
-      fallback !== undefined
-    ) {
+    if ((msg.includes("404") || msg.toLowerCase().includes("not found")) && fallback !== undefined) {
       return fallback;
     }
     throw err;
