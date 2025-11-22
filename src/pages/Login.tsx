@@ -176,61 +176,74 @@ const persistAuthAndGoHome = (body: VerifyResponse) => {
   };
   
   // ÜGYFÉL: első lépcső – email + jelszó
-  const handleCustomerLogin = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    setError(null);
+const handleCustomerLogin = async (ev: React.FormEvent) => {
+  ev.preventDefault();
+  setError(null);
 
-    if (locations.length > 0 && !locationId) {
-      setError("Kérlek válassz telephelyet.");
+  // Telephely választás ellenőrzés
+  if (locations.length > 0 && !locationId) {
+    setError("Kérlek válassz telephelyet.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    const res = await apiFetch("login", {
+      method: "POST",
+      body: JSON.stringify({
+        // 🔹 A backend az előzőek szerint email / identifier mezőt vár
+        email: email.trim(),
+        password,
+        location_id: locationId || null,
+      }),
+    });
+
+    // Válasz body biztonságos parse-olása
+    const text = await res.text();
+    let body: LoginResponse & VerifyResponse = {} as any;
+
+    try {
+      body = text ? JSON.parse(text) : {};
+    } catch (err) {
+      console.error(
+        "Nem sikerült JSON-ként értelmezni a login választ:",
+        err,
+        text
+      );
+      body = {} as any;
+    }
+
+    console.log("Login válasz:", res.status, body);
+
+    // Hibakezelés
+    if (!res.ok || body.success === false) {
+      setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
       return;
     }
 
-    setLoading(true);
-
-    try {
-      const res = await apiFetch("login", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-          location_id: locationId || null,
-        }),
-      });
-
-      const text = await res.text();
-      let body: LoginResponse & VerifyResponse = {};
-      try {
-        body = text ? JSON.parse(text) : {};
-      } catch {
-        body = {};
-      }
-
-      if (!res.ok || body.success === false) {
-        setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
-        return;
-      }
-
-      // 🔹 Ha a backend már tokennel válaszol: azonnali belépés
-      if (body.token) {
-        persistAuthAndGoHome(body);
-        return;
-      }
-
-      // 🔹 Ha a backend 2FA-t kér, marad a kódos lépés
-      if (body.step === "code_required") {
-        setStep("code");
-        return;
-      }
-
-      // 🔹 Ha sikeres, de nincs token / step, akkor is megyünk tovább (pl. cookie-alapú auth)
-      persistAuthAndGoHome(body);
-    } catch (e: any) {
-      console.error("Login error:", e);
-      setError("Váratlan hiba történt a bejelentkezés során.");
-    } finally {
-      setLoading(false);
+    // Ha a backend 2FA-t kér (step: 'code_required')
+    if (body.step === "code_required") {
+      setStep("code");
+      return;
     }
-  };
+
+    // Ha a backend tokennel is válaszol (opcionális, ha beépíted)
+    if ((body as any).token) {
+      persistAuthAndGoHome(body);
+      return;
+    }
+
+    // Ha cookie alapú auth van (token sütiben), akkor is lépünk tovább
+    persistAuthAndGoHome(body);
+  } catch (e: any) {
+    console.error("Login error:", e);
+    setError("Váratlan hiba történt a bejelentkezés során.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // ÜGYFÉL: második lépcső – kód
   const handleVerify = async (ev: React.FormEvent) => {
