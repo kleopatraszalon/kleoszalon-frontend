@@ -136,11 +136,12 @@ html {
 
 .app-shell {
   display: grid;
-  grid-template-columns: 1300px minmax(0, 1fr);
+  
   min-height: 100vh;
   position: relative;
 
-  max-width: 1320px;
+  width: 90%;
+  max-width: 90%;
   margin: 5px auto;
   border-radius: 0px;
   background: rgba(255, 255, 255, 0.98);
@@ -243,16 +244,14 @@ html {
    – becsúszó arany füllel
 ========================================= */
 
-.home-container {
-  position: relative;
-  min-height: 100vh;
-}
+
 
 /* Fő tartalmi hasáb – naptár, listák stb. */
 
 .home-container > .calendar-container {
-  max-width: 1320px;
-  margin: 32px auto;
+  width: 99%;          /* a szülő szélességének 90%-a */
+  max-width: 99;      /* ne szűküljön vissza 1320px-re */
+  margin: 5px auto;
   padding: var(--space-lg);
   border-radius: 0px;
   background: #ffffff;
@@ -264,7 +263,7 @@ html {
 .home-container > .kleo-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  width: 260px;
+  width: 300px;
   background: linear-gradient(
     180deg,
     var(--color-gold) 0%,
@@ -1052,7 +1051,7 @@ textarea:focus {
    RESPONSIVE
 ========================================= */
 
-@media (max-width: 900px) {
+@media (max-width: 1900px) {
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
     max-width: 100%;
