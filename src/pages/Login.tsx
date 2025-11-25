@@ -129,52 +129,67 @@ const LoginPage: React.FC = () => {
 }, []);
 
 const persistAuthAndGoHome = (body: VerifyResponse) => {
-    const token = body.token;
+  const token = body.token;
 
-    // 🔹 Ha van token, eltároljuk, ha nincs, akkor is továbbengedjük (cookie-alapú auth esetén is működik)
-    try {
-      if (token) {
-        localStorage.setItem("kleo_token", token);
-        localStorage.setItem("token", token);
-      }
-
-      const effectiveLocationId =
-        body.location_id ??
-        (locationId ? Number(locationId) || locationId : null);
-
-      const effectiveLocationName =
-        body.location_name ??
-        (effectiveLocationId != null
-          ? locations.find((l) => String(l.id) === String(effectiveLocationId))
-              ?.name ?? null
-          : null);
-
-      if (body.role) {
-        localStorage.setItem("kleo_role", String(body.role));
-      }
-      if (effectiveLocationId != null) {
-        localStorage.setItem("kleo_location_id", String(effectiveLocationId));
-      }
-      if (effectiveLocationName != null) {
-        localStorage.setItem("kleo_location_name", effectiveLocationName);
-      }
-      if (body.full_name != null) {
-        localStorage.setItem("kleo_full_name", String(body.full_name));
-      }
-      if (email) {
-        localStorage.setItem("email", email);
-      }
-
-      // IDE NAVIGÁLUNK SIKERES BELÉPÉS UTÁN
-      navigate("/", { replace: true });
-      // ha nálad a főoldal nem "/", hanem pl. "/home", akkor ezt írd át arra
-      // navigate("/home", { replace: true });
-    } catch (err) {
-      console.error("Auth persist error:", err);
-      setError("Nem sikerült elmenteni a belépési adatokat.");
+  try {
+    if (token) {
+      localStorage.setItem("kleo_token", token);
+      localStorage.setItem("token", token);
     }
-  };
-  
+
+    const effectiveLocationId =
+      body.location_id ??
+      (locationId ? Number(locationId) || locationId : null);
+
+    const effectiveLocationName =
+      body.location_name ??
+      (effectiveLocationId != null
+        ? locations.find((l) => String(l.id) === String(effectiveLocationId))
+            ?.name ?? null
+        : null);
+
+    if (body.role) {
+      localStorage.setItem("kleo_role", String(body.role));
+    }
+    if (effectiveLocationId != null) {
+      localStorage.setItem("kleo_location_id", String(effectiveLocationId));
+    }
+    if (effectiveLocationName != null) {
+      localStorage.setItem("kleo_location_name", effectiveLocationName);
+    }
+    if (body.full_name != null) {
+      localStorage.setItem("kleo_full_name", String(body.full_name));
+    }
+    if (email) {
+      localStorage.setItem("email", email);
+    }
+
+    const authData = {
+      token: token ?? null,
+      role: body.role ?? null,
+      location_id: effectiveLocationId ?? null,
+      location_name: effectiveLocationName ?? null,
+      full_name: body.full_name ?? null,
+      email: email || (body as any).email || null,
+    };
+
+    try {
+      localStorage.setItem("kleo_auth", JSON.stringify(authData));
+      localStorage.setItem("auth", JSON.stringify(authData));
+      localStorage.setItem("isLoggedIn", "true");
+    } catch {
+      // storage quota hiba esetén is menjen tovább a belépés
+    }
+
+    // Sikeres belépés után teljes reload, hogy az App mindenhol az új auth állapotot lássa
+    window.location.href = "/";
+    // Ha inkább SPA navigációval akarod:
+    // navigate("/", { replace: true });
+  } catch (err) {
+    console.error("Auth persist error:", err);
+    setError("Nem sikerült elmenteni a belépési adatokat.");
+  }
+};  
   // ÜGYFÉL: első lépcső – email + jelszó
 const handleCustomerLogin = async (ev: React.FormEvent) => {
   ev.preventDefault();
@@ -189,7 +204,7 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
   setLoading(true);
 
   try {
-    const res = await apiFetch("login", {
+    const res = await apiFetch("auth/login", {
       method: "POST",
       body: JSON.stringify({
         // 🔹 A backend az előzőek szerint email / identifier mezőt vár
@@ -252,7 +267,7 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
     setLoading(true);
 
     try {
-      const res = await apiFetch("verify-code", {
+      const res = await apiFetch("auth/verify-code", {
         method: "POST",
         body: JSON.stringify({
           email: email.trim(),
@@ -296,7 +311,7 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
     setLoading(true);
 
     try {
-      const res = await apiFetch("employee-login", {
+      const res = await apiFetch("auth/login", {
         method: "POST",
         body: JSON.stringify({
           login_name: staffName.trim(),

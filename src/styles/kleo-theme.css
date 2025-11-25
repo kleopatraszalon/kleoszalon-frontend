@@ -136,12 +136,12 @@ html {
 
 .app-shell {
   display: grid;
-  
+  grid-template-columns: 99% minmax(0, 1fr);
   min-height: 100vh;
   position: relative;
 
-  width: 90%;
-  max-width: 90%;
+  width: 100%;      /* ⬅ teljes ablak szélesség */
+  max-width: 100%;
   margin: 5px auto;
   border-radius: 0px;
   background: rgba(255, 255, 255, 0.98);
@@ -249,15 +249,14 @@ html {
 /* Fő tartalmi hasáb – naptár, listák stb. */
 
 .home-container > .calendar-container {
-  width: 99%;          /* a szülő szélességének 90%-a */
-  max-width: 99;      /* ne szűküljön vissza 1320px-re */
-  margin: 5px auto;
+  width: 99%;           /* ⬅ a SZÜLŐ (app-shell) 90%-a → az ablak 90%-a */
+  max-width: 99%;
+  margin: 2px auto;
   padding: var(--space-lg);
   border-radius: 0px;
   background: #ffffff;
   box-shadow: var(--shadow-strong);
 }
-
 /* Bal oldali arany fül + sidebar – régi komponensekhez */
 
 .home-container > .kleo-sidebar {
