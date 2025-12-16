@@ -129,68 +129,55 @@ const LoginPage: React.FC = () => {
 }, []);
 
 const persistAuthAndGoHome = (body: VerifyResponse) => {
-  const token = body.token;
+    const token = body.token;
 
-  try {
-    if (token) {
-      localStorage.setItem("kleo_token", token);
-      localStorage.setItem("token", token);
-    }
-
-    const effectiveLocationId =
-      body.location_id ??
-      (locationId ? Number(locationId) || locationId : null);
-
-    const effectiveLocationName =
-      body.location_name ??
-      (effectiveLocationId != null
-        ? locations.find((l) => String(l.id) === String(effectiveLocationId))
-            ?.name ?? null
-        : null);
-
-    if (body.role) {
-      localStorage.setItem("kleo_role", String(body.role));
-    }
-    if (effectiveLocationId != null) {
-      localStorage.setItem("kleo_location_id", String(effectiveLocationId));
-    }
-    if (effectiveLocationName != null) {
-      localStorage.setItem("kleo_location_name", effectiveLocationName);
-    }
-    if (body.full_name != null) {
-      localStorage.setItem("kleo_full_name", String(body.full_name));
-    }
-    if (email) {
-      localStorage.setItem("email", email);
-    }
-
-    const authData = {
-      token: token ?? null,
-      role: body.role ?? null,
-      location_id: effectiveLocationId ?? null,
-      location_name: effectiveLocationName ?? null,
-      full_name: body.full_name ?? null,
-      email: email || (body as any).email || null,
-    };
-
+    // 🔹 Ha van token, eltároljuk, ha nincs, akkor is továbbengedjük (cookie-alapú auth esetén is működik)
     try {
-      localStorage.setItem("kleo_auth", JSON.stringify(authData));
-      localStorage.setItem("auth", JSON.stringify(authData));
-      localStorage.setItem("isLoggedIn", "true");
-    } catch {
-      // storage quota hiba esetén is menjen tovább a belépés
-    }
+      if (token) {
+        localStorage.setItem("kleo_token", token);
+        localStorage.setItem("token", token);
+      }
 
-    // Sikeres belépés után teljes reload, hogy az App mindenhol az új auth állapotot lássa
-    window.location.href = "/";
-    // Ha inkább SPA navigációval akarod:
-    // navigate("/", { replace: true });
-  } catch (err) {
-    console.error("Auth persist error:", err);
-    setError("Nem sikerült elmenteni a belépési adatokat.");
-  }
-};  
-  // ÜGYFÉL: első lépcső – email + jelszó
+      const effectiveLocationId =
+        body.location_id ??
+        (locationId ? Number(locationId) || locationId : null);
+
+      const effectiveLocationName =
+        body.location_name ??
+        (effectiveLocationId != null
+          ? locations.find((l) => String(l.id) === String(effectiveLocationId))
+              ?.name ?? null
+          : null);
+
+      if (body.role) {
+        localStorage.setItem("kleo_role", String(body.role));
+      }
+      if (effectiveLocationId != null) {
+        localStorage.setItem("kleo_location_id", String(effectiveLocationId));
+      }
+      if (effectiveLocationName != null) {
+        localStorage.setItem("kleo_location_name", effectiveLocationName);
+      }
+      if (body.full_name != null) {
+        localStorage.setItem("kleo_full_name", String(body.full_name));
+      }
+      if (email) {
+        localStorage.setItem("email", email);
+      }
+
+      // IDE NAVIGÁLUNK SIKERES BELÉPÉS UTÁN
+      navigate("/", { replace: true });
+      // ha nálad a főoldal nem "/", hanem pl. "/home", akkor ezt írd át arra
+      // navigate("/home", { replace: true });
+    } catch (err) {
+      console.error("Auth persist error:", err);
+      setError("Nem sikerült elmenteni a belépési adatokat.");
+    }
+  };
+  
+// ... a fájl eleje változatlan ...
+
+// ÜGYFÉL: első lépcső – email + jelszó
 const handleCustomerLogin = async (ev: React.FormEvent) => {
   ev.preventDefault();
   setError(null);
@@ -204,17 +191,16 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
   setLoading(true);
 
   try {
+    // 🔴 RÉGI: apiFetch("login", { ... })
     const res = await apiFetch("auth/login", {
       method: "POST",
       body: JSON.stringify({
-        // 🔹 A backend az előzőek szerint email / identifier mezőt vár
         email: email.trim(),
         password,
         location_id: locationId || null,
       }),
     });
 
-    // Válasz body biztonságos parse-olása
     const text = await res.text();
     let body: LoginResponse & VerifyResponse = {} as any;
 
@@ -231,25 +217,21 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
 
     console.log("Login válasz:", res.status, body);
 
-    // Hibakezelés
     if (!res.ok || body.success === false) {
       setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
       return;
     }
 
-    // Ha a backend 2FA-t kér (step: 'code_required')
     if (body.step === "code_required") {
       setStep("code");
       return;
     }
 
-    // Ha a backend tokennel is válaszol (opcionális, ha beépíted)
     if ((body as any).token) {
       persistAuthAndGoHome(body);
       return;
     }
 
-    // Ha cookie alapú auth van (token sütiben), akkor is lépünk tovább
     persistAuthAndGoHome(body);
   } catch (e: any) {
     console.error("Login error:", e);
@@ -259,89 +241,91 @@ const handleCustomerLogin = async (ev: React.FormEvent) => {
   }
 };
 
+// ÜGYFÉL: második lépcső – kód
+const handleVerify = async (ev: React.FormEvent) => {
+  ev.preventDefault();
+  setError(null);
+  setLoading(true);
 
-  // ÜGYFÉL: második lépcső – kód
-  const handleVerify = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    setError(null);
-    setLoading(true);
+  try {
+    // 🔴 RÉGI: apiFetch("verify-code", { ... })
+    const res = await apiFetch("auth/verify-code", {
+      method: "POST",
+      body: JSON.stringify({
+        email: email.trim(),
+        code: code.trim(),
+        location_id: locationId || null,
+      }),
+    });
 
+    const text = await res.text();
+    let body: VerifyResponse = {};
     try {
-      const res = await apiFetch("auth/verify-code", {
-        method: "POST",
-        body: JSON.stringify({
-          email: email.trim(),
-          code: code.trim(),
-          location_id: locationId || null,
-        }),
-      });
-
-      const text = await res.text();
-      let body: VerifyResponse = {};
-      try {
-        body = text ? JSON.parse(text) : {};
-      } catch {
-        body = {};
-      }
-
-      if (!res.ok || body.success === false) {
-        setError(body.error || `Érvénytelen kód (HTTP ${res.status}).`);
-        return;
-      }
-
-      persistAuthAndGoHome(body);
-    } catch (e: any) {
-      console.error("Verify error:", e);
-      setError("Váratlan hiba történt a kód ellenőrzése közben.");
-    } finally {
-      setLoading(false);
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = {};
     }
-  };
 
-  // MUNKATÁRSI BELÉPÉS: employees.login_name + password
-  const handleStaffLogin = async (ev: React.FormEvent) => {
-    ev.preventDefault();
-    setError(null);
-
-    if (locations.length > 0 && !locationId) {
-      setError("Kérlek válassz telephelyet.");
+    if (!res.ok || body.success === false) {
+      setError(body.error || `Érvénytelen kód (HTTP ${res.status}).`);
       return;
     }
 
-    setLoading(true);
+    persistAuthAndGoHome(body);
+  } catch (e: any) {
+    console.error("Verify error:", e);
+    setError("Váratlan hiba történt a kód ellenőrzése közben.");
+  } finally {
+    setLoading(false);
+  }
+};
 
+// MUNKATÁRSI BELÉPÉS: employees.login_name + password
+const handleStaffLogin = async (ev: React.FormEvent) => {
+  ev.preventDefault();
+  setError(null);
+
+  if (locations.length > 0 && !locationId) {
+    setError("Kérlek válassz telephelyet.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // 🔴 RÉGI: apiFetch("employee-login", { ... })
+    const res = await apiFetch("auth/login", {
+      method: "POST",
+      body: JSON.stringify({
+        login_name: staffName.trim(),
+        password: staffPassword,
+        location_id: locationId || null,
+      }),
+    });
+
+    const text = await res.text();
+    let body: VerifyResponse = {};
     try {
-      const res = await apiFetch("auth/login", {
-        method: "POST",
-        body: JSON.stringify({
-          login_name: staffName.trim(),
-          password: staffPassword,
-          location_id: locationId || null,
-        }),
-      });
-
-      const text = await res.text();
-      let body: VerifyResponse = {};
-      try {
-        body = text ? JSON.parse(text) : {};
-      } catch {
-        body = {};
-      }
-
-      if (!res.ok || body.success === false) {
-        setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
-        return;
-      }
-
-      // itt is: ha van token, elmentjük, ha nincs, csak megyünk tovább
-      persistAuthAndGoHome(body);
-    } catch (e: any) {
-      console.error("Employee login error:", e);
-      setError("Váratlan hiba történt a munkatársi belépés során.");
-    } finally {
-      setLoading(false);
+      body = text ? JSON.parse(text) : {};
+    } catch {
+      body = {};
     }
-  };
+
+    if (!res.ok || body.success === false) {
+      setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
+      return;
+    }
+
+    persistAuthAndGoHome(body);
+  } catch (e: any) {
+    console.error("Employee login error:", e);
+    setError("Váratlan hiba történt a munkatársi belépés során.");
+  } finally {
+    setLoading(false);
+  }
+};
+
+// ... a komponens JSX része változatlan ...
 
   const switchTab = (tab: "customer" | "staff") => {
     setActiveTab(tab);

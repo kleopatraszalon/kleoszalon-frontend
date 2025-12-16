@@ -1823,3 +1823,162 @@ textarea:focus {
     height: 150px;
   }
 }
+/* =============================
+   HEADER – NYELVVÁLASZTÓ ZÁSZLÓK
+   ============================= */
+
+.header-lang-switch {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0;
+}
+
+.header-lang-switch .lang-btn {
+  border-radius: 999px;
+  border: 1px solid var(--border-subtle);
+  padding: 0.15rem 0.25rem;
+  background: rgba(255, 255, 255, 0.96);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.18s ease,
+    color 0.18s ease,
+    border-color 0.18s ease,
+    transform 0.12s ease;
+}
+
+/* Zászló méret: 25×25 px */
+.header-lang-switch .lang-btn .lang-flag {
+  width: 25px;
+  height: 25px;
+  border-radius: 999px;
+  display: block;
+  object-fit: cover;
+}
+
+.header-lang-switch .lang-btn:hover {
+  transform: translateY(-1px);
+  background: #f6f1ff;
+}
+
+.header-lang-switch .lang-btn--active {
+  background: var(--magenta);
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.4);
+}
+
+
+/* =====================
+   LÁBLÉC – LINK + SOCIAL
+   ===================== */
+
+.footer {
+  padding: 2.2rem 0 1.8rem;
+  background: #000000;
+  color: #ffffff;
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.footer-inner.footer-top {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.4rem;
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.7rem;
+  opacity: 0.9;
+}
+
+.footer-link {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.footer-link:hover {
+  color: var(--magenta-400);
+}
+
+.footer-separator {
+  opacity: 0.55;
+}
+
+.footer-social-block {
+  margin-bottom: 1.4rem;
+}
+
+.footer-follow-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 0.7rem;
+  color: #ffffff;
+}
+
+.footer-social-icons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.8rem;
+}
+
+.footer-social-icons a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-social-icons img {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: block;
+  object-fit: contain;
+}
+
+/* Cookie sáv a footer alján */
+.footer-cookie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.8rem;
+  font-size: 0.72rem;
+  opacity: 0.9;
+}
+
+.footer-cookie-link {
+  color: var(--magenta-400);
+  text-decoration: none;
+}
+
+.footer-cookie-link:hover {
+  text-decoration: underline;
+}
+
+.footer-cookie-btn {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--color-gold);
+  border-radius: 999px;
+  border: none;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.4);
+}
+
+.footer-cookie-btn:hover {
+  background: #a98651;
+}
