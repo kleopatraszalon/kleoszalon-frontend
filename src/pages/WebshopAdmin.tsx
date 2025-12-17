@@ -18,11 +18,17 @@ const API_ROOT = API_BASE.replace(/\/api$/, "");
 
 const buildImageUrl = (imageUrl?: string | null): string | undefined => {
   if (!imageUrl) return undefined;
+
+  // Ha már teljes URL, visszaadjuk
   if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
-  const cleaned = imageUrl.replace(/^\/+/, "");
-  // Ha csak fájlnév van (pl. "kep.png"), akkor tipikusan az /uploads alatt van kiszolgálva
-  const normalized = cleaned.includes("/") ? cleaned : `uploads/${cleaned}`;
-  return `${API_ROOT}/${normalized}`;
+
+  // Takarítás + kompatibilitás: DB-ben gyakran csak fájlnév van (pl. "kep.png")
+  // Ilyenkor automatikusan /uploads alá tesszük.
+  const cleaned = String(imageUrl).replace(/^\/+/, "");
+  const pathPart = cleaned.includes("/") ? cleaned : `uploads/${cleaned}`;
+
+  // encodeURI: szóköz/ékezet miatt ne törjön a link
+  return `${API_ROOT}/${encodeURI(pathPart)}`;
 };
 
 const getToken = () =>
@@ -74,13 +80,73 @@ async function adminFetch<T = any>(
 
   if (!res.ok) {
     const msg =
-      (data && (data.error || data.message)) ||
+      (data && typeof data === "object" && (data.error || data.message)) ||
+      (typeof data === "string" && data.trim()) ||
       `Admin API hiba: ${res.status} ${res.statusText}`;
-    throw new Error(msg);
+    const err: any = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
   }
 
   return (data ?? undefined) as T;
 }
+
+
+// Általános (nem admin) API fetch, pl. /api/product-categories, /api/product-groups
+async function apiFetch<T = any>(
+  path: string,
+  options: RequestInit = {}
+): Promise<T> {
+  const url = `${API_BASE}/${path.replace(/^\/+/, "")}`;
+  const token = getToken();
+  const isFormData = options.body instanceof FormData;
+
+  const baseHeaders: Record<string, string> = {};
+  if (!isFormData) {
+    baseHeaders["Content-Type"] = "application/json";
+  }
+  if (token) {
+    baseHeaders["Authorization"] = `Bearer ${token}`;
+  }
+
+  const mergedHeaders: Record<string, string> = {
+    ...baseHeaders,
+    ...(options.headers as Record<string, string> | undefined),
+  };
+
+  const res = await fetch(url, {
+    ...options,
+    headers: mergedHeaders,
+    credentials: "include",
+  });
+
+  const text = await res.text().catch(() => "");
+  let data: any = null;
+
+  if (text) {
+    try {
+      data = JSON.parse(text);
+    } catch {
+      data = text;
+    }
+  }
+
+  if (!res.ok) {
+    const msg =
+      (data && typeof data === "object" && (data.error || data.message)) ||
+      (typeof data === "string" && data.trim()) ||
+      `API hiba: ${res.status} ${res.statusText}`;
+    const err: any = new Error(msg);
+    err.status = res.status;
+    err.data = data;
+    throw err;
+  }
+
+  return (data ?? undefined) as T;
+}
+
+
 
 /* =================================================================== */
 /*                                 TÍPUSOK                              */
@@ -100,56 +166,35 @@ type Product = {
 
 type NewProductForm = {
   name: string;
-  product_group_id: string;
-  product_category_id: string;
   retail_price_gross: string;
   sale_price: string;
+
+  // kategorizálás (admin létrehozásnál kötelező/hasznos)
+  product_group_id: string; // főkategória
+  product_category_id: string; // kategória (általában kötelező)
+
   web_is_visible: boolean;
   is_retail: boolean;
   web_sort_order: string;
   web_description: string;
 };
 
+
 type ProductGroup = {
   id: string;
-  name?: string | null;
-  name_hu?: string | null;
-  name_en?: string | null;
-  name_ru?: string | null;
-  label?: string | null;
-  label_hu?: string | null;
-  label_en?: string | null;
-  label_ru?: string | null;
+  name: string;
+  sort_order?: number | null;
+  is_active?: boolean;
 };
 
 type ProductCategory = {
   id: string;
+  name: string;
+  // eltérő back-endeknél előfordulhat group_id vagy product_group_id
   product_group_id?: string | null;
   group_id?: string | null;
-  name?: string | null;
-  name_hu?: string | null;
-  name_en?: string | null;
-  name_ru?: string | null;
-  label?: string | null;
-  label_hu?: string | null;
-  label_en?: string | null;
-  label_ru?: string | null;
-};
-
-const pickLabel = (o: any): string => {
-  return (
-    o?.name_hu ||
-    o?.label_hu ||
-    o?.name ||
-    o?.label ||
-    o?.code ||
-    o?.title ||
-    (o?.id ? String(o.id) : "")
-  );
-};
-
-const getCategoryGroupId = (c: any): string | null => {
-  return (c?.product_group_id || c?.group_id || c?.productGroupId || null) as any;
+  sort_order?: number | null;
+  is_active?: boolean;
 };
 
 type Coupon = {
@@ -209,6 +254,15 @@ const WebshopAdmin: React.FC = () => {
     null
   );
 
+  // KATEGÓRIÁK / CSOPORTOK (létrehozáshoz)
+  const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
+  const [productCategories, setProductCategories] = useState<ProductCategory[]>(
+    []
+  );
+  const [taxonomyLoading, setTaxonomyLoading] = useState(false);
+  const [taxonomyError, setTaxonomyError] = useState<string | null>(null);
+
+
   // Szűrés / keresés
   const [productSearch, setProductSearch] = useState("");
   const [filterVisibleOnly, setFilterVisibleOnly] = useState(false);
@@ -217,10 +271,12 @@ const WebshopAdmin: React.FC = () => {
   // ÚJ TERMÉK ŰRLAP
   const [newProduct, setNewProduct] = useState<NewProductForm>({
     name: "",
-    product_group_id: "",
-    product_category_id: "",
     retail_price_gross: "",
     sale_price: "",
+
+    product_group_id: "",
+    product_category_id: "",
+
     web_is_visible: true,
     is_retail: true,
     web_sort_order: "",
@@ -232,22 +288,6 @@ const WebshopAdmin: React.FC = () => {
   const [createProductMessage, setCreateProductMessage] = useState<
     string | null
   >(null);
-
-  // FŐKATEGÓRIÁK + KATEGÓRIÁK (kötelező a termék létrehozásához)
-  const [productGroups, setProductGroups] = useState<ProductGroup[]>([]);
-  const [productCategories, setProductCategories] = useState<ProductCategory[]>([]);
-  const [taxLoading, setTaxLoading] = useState(false);
-  const [taxError, setTaxError] = useState<string | null>(null);
-
-  const [newGroupNameHu, setNewGroupNameHu] = useState("");
-  const [newGroupNameEn, setNewGroupNameEn] = useState("");
-  const [newGroupNameRu, setNewGroupNameRu] = useState("");
-  const [creatingGroup, setCreatingGroup] = useState(false);
-
-  const [newCategoryNameHu, setNewCategoryNameHu] = useState("");
-  const [newCategoryNameEn, setNewCategoryNameEn] = useState("");
-  const [newCategoryNameRu, setNewCategoryNameRu] = useState("");
-  const [creatingCategory, setCreatingCategory] = useState(false);
 
   // KUPONOK
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -296,7 +336,45 @@ const WebshopAdmin: React.FC = () => {
     }
   };
 
-  const loadCoupons = async () => {
+  
+  const normalizeItems = (data: any): any[] => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data.items)) return data.items;
+    if (Array.isArray(data.rows)) return data.rows;
+    if (Array.isArray(data.data)) return data.data;
+    return [];
+  };
+
+  const loadTaxonomy = async () => {
+    setTaxonomyLoading(true);
+    setTaxonomyError(null);
+    try {
+      const [groupsRaw, categoriesRaw] = await Promise.all([
+        apiFetch<any>("product-groups"),
+        apiFetch<any>("product-categories"),
+      ]);
+
+      const groups = normalizeItems(groupsRaw) as ProductGroup[];
+      const categories = normalizeItems(categoriesRaw) as ProductCategory[];
+
+      // opcionális rendezés, ha van sort_order
+      groups.sort((a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      categories.sort(
+        (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      );
+
+      setProductGroups(groups);
+      setProductCategories(categories);
+    } catch (err: any) {
+      console.error("Kategóriák betöltési hiba:", err);
+      setTaxonomyError(err?.message || "Nem sikerült betölteni a kategóriákat.");
+    } finally {
+      setTaxonomyLoading(false);
+    }
+  };
+
+const loadCoupons = async () => {
     setCouponsLoading(true);
     setCouponsError(null);
     try {
@@ -326,399 +404,11 @@ const WebshopAdmin: React.FC = () => {
     }
   };
 
-  const tryAdminFetch = async <T,>(paths: string[]): Promise<T> => {
-    let lastErr: any = null;
-    for (const p of paths) {
-      try {
-        return await adminFetch<T>(p);
-      } catch (e: any) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("Nem sikerült betölteni az adatokat.");
-  };
-
-const normalizeArray = <T,>(data: any): T[] => {
-  if (Array.isArray(data)) return data as T[];
-  if (Array.isArray(data?.items)) return data.items as T[];
-  if (Array.isArray(data?.data)) return data.data as T[];
-  return [];
-};
-
-const getLang = (): string => {
-  const raw =
-    localStorage.getItem("lang") ||
-    localStorage.getItem("i18nextLng") ||
-    "hu";
-  return String(raw).toLowerCase().slice(0, 2);
-};
-
-const publicFetch = async <T,>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> => {
-  const cleaned = path.replace(/^\/+/, "");
-  const url = `${API_BASE}/public/webshop/${cleaned}`;
-  const res = await fetch(url, {
-    ...options,
-    credentials: "omit",
-    headers: {
-      ...(options.headers || {}),
-      "Content-Type": "application/json",
-    },
-  });
-
-  const text = await res.text();
-  let data: any = null;
-  if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      data = text;
-    }
-  }
-
-  if (!res.ok) {
-    const msg =
-      (data && (data.error || data.message)) ||
-      `Public API hiba: ${res.status} ${res.statusText}`;
-    throw new Error(msg);
-  }
-
-  return (data ?? undefined) as T;
-};
-
-const tryPublicFetch = async <T,>(paths: string[]): Promise<T> => {
-  let lastErr: any = null;
-  for (const p of paths) {
-    try {
-      return await publicFetch<T>(p);
-    } catch (e: any) {
-      lastErr = e;
-    }
-  }
-  throw lastErr || new Error("Nem sikerült betölteni az adatokat.");
-};
-
-const deriveTaxonomiesFromProducts = (
-  items: any[]
-): { groups: ProductGroup[]; categories: ProductCategory[] } => {
-  const groups = new Map<string, ProductGroup>();
-  const categories = new Map<string, ProductCategory>();
-
-  const pickText = (...vals: any[]) => {
-    for (const v of vals) {
-      if (v === null || v === undefined) continue;
-      const s = String(v).trim();
-      if (s) return s;
-    }
-    return "";
-  };
-
-  for (const p of items || []) {
-    const gObj = p?.product_group || p?.group || p?.productGroup || null;
-    const cObj = p?.product_category || p?.category || p?.productCategory || null;
-
-    const groupId = pickText(
-      p?.product_group_id,
-      p?.group_id,
-      p?.productGroupId,
-      gObj?.id
-    );
-    const categoryId = pickText(
-      p?.product_category_id,
-      p?.category_id,
-      p?.productCategoryId,
-      cObj?.id
-    );
-
-    if (groupId && !groups.has(groupId)) {
-      const name = pickText(
-        p?.product_group_name_hu,
-        p?.group_name_hu,
-        p?.product_group_label_hu,
-        p?.group_label_hu,
-        gObj?.name_hu,
-        gObj?.label_hu,
-        p?.product_group_name,
-        p?.group_name,
-        gObj?.name,
-        gObj?.label
-      );
-      groups.set(groupId, {
-        id: groupId,
-        name_hu: name || groupId,
-        label_hu: name || groupId,
-      });
-    }
-
-    if (categoryId && !categories.has(categoryId)) {
-      const gid = pickText(
-        p?.product_group_id,
-        p?.group_id,
-        p?.productGroupId,
-        cObj?.product_group_id,
-        cObj?.group_id,
-        gObj?.id
-      );
-      const name = pickText(
-        p?.product_category_name_hu,
-        p?.category_name_hu,
-        p?.product_category_label_hu,
-        p?.category_label_hu,
-        cObj?.name_hu,
-        cObj?.label_hu,
-        p?.product_category_name,
-        p?.category_name,
-        cObj?.name,
-        cObj?.label
-      );
-      categories.set(categoryId, {
-        id: categoryId,
-        product_group_id: gid || null,
-        group_id: gid || null,
-        name_hu: name || categoryId,
-        label_hu: name || categoryId,
-      });
-    }
-  }
-
-  return {
-    groups: Array.from(groups.values()),
-    categories: Array.from(categories.values()),
-  };
-};
-
-
-
-  const loadTaxonomies = async () => {
-    setTaxLoading(true);
-    setTaxError(null);
-
-    try {
-      let loaded = false;
-
-      // 1) Admin taxonómia endpointok (ha léteznek)
-      try {
-        const groupsRaw = await tryAdminFetch<any>([
-          "product-groups",
-          "product_groups",
-          "groups",
-        ]);
-        const catsRaw = await tryAdminFetch<any>([
-          "product-categories",
-          "product_categories",
-          "categories",
-        ]);
-
-        const groups = normalizeArray<ProductGroup>(groupsRaw);
-        const cats = normalizeArray<ProductCategory>(catsRaw);
-
-        if (groups.length || cats.length) {
-          setProductGroups(groups);
-          setProductCategories(cats);
-          loaded = true;
-        }
-      } catch (errAdmin: any) {
-        console.warn("Admin taxonómia endpointok nem elérhetők:", errAdmin);
-      }
-
-      // 2) Public taxonómia endpointok (ha léteznek)
-      if (!loaded) {
-        try {
-          const groupsRaw = await tryPublicFetch<any>([
-            "product-groups",
-            "product_groups",
-            "groups",
-            "categories/groups",
-            "taxonomy/groups",
-            "menu/groups",
-          ]);
-
-          const catsRaw = await tryPublicFetch<any>([
-            "product-categories",
-            "product_categories",
-            "categories",
-            "taxonomy/categories",
-            "menu/categories",
-          ]);
-
-          const groups = normalizeArray<ProductGroup>(groupsRaw);
-          const cats = normalizeArray<ProductCategory>(catsRaw);
-
-          if (groups.length || cats.length) {
-            setProductGroups(groups);
-            setProductCategories(cats);
-            loaded = true;
-          }
-        } catch (errPublic: any) {
-          console.warn("Public taxonómia endpointok nem elérhetők:", errPublic);
-        }
-      }
-
-      // 3) Deriválás admin terméklistából (ha a termékek endpoint működik)
-      if (!loaded) {
-        try {
-          const productsRaw = await adminFetch<any>("products");
-          const items = normalizeArray<any>(productsRaw);
-          const derived = deriveTaxonomiesFromProducts(items);
-
-          if (derived.groups.length || derived.categories.length) {
-            setProductGroups(derived.groups);
-            setProductCategories(derived.categories);
-            setTaxError(
-              "Figyelem: a kategóriákat a terméklistából állítottuk elő (nincs külön taxonómia endpoint)."
-            );
-            loaded = true;
-          }
-        } catch (errDeriveAdmin: any) {
-          console.warn(
-            "Admin terméklistából nem sikerült deriválni:",
-            errDeriveAdmin
-          );
-        }
-      }
-
-      // 4) Deriválás public webshop terméklistából
-      if (!loaded) {
-        const lang = getLang();
-        const productsRaw = await publicFetch<any>(
-          `products?lang=${encodeURIComponent(lang)}`
-        );
-        const items = normalizeArray<any>(productsRaw);
-        const derived = deriveTaxonomiesFromProducts(items);
-
-        setProductGroups(derived.groups);
-        setProductCategories(derived.categories);
-
-        if (!derived.groups.length || !derived.categories.length) {
-          setTaxError(
-            "Nem sikerült betölteni a kategóriákat. A backend oldalon hiányozhat a kategória/főkategória endpoint, vagy a terméklista nem tartalmazza a szükséges mezőket."
-          );
-        } else {
-          setTaxError(
-            "Figyelem: a kategóriákat a public terméklistából állítottuk elő (nincs külön taxonómia endpoint)."
-          );
-        }
-      }
-    } catch (errFinal: any) {
-      console.error("Kategóriák betöltési hiba:", errFinal);
-      setTaxError(
-        errFinal?.message ||
-          "Nem sikerült betölteni a kategóriákat. (Ellenőrizd a kategória endpointokat és a terméklista mezőit.)"
-      );
-    } finally {
-      setTaxLoading(false);
-    }
-  };
-
-  const tryAdminPost = async <T,>(paths: string[], body: any): Promise<T> => {
-    let lastErr: any = null;
-    for (const p of paths) {
-      try {
-        return await adminFetch<T>(p, {
-          method: "POST",
-          body: JSON.stringify(body),
-        });
-      } catch (e: any) {
-        lastErr = e;
-      }
-    }
-    throw lastErr || new Error("Sikertelen mentés.");
-  };
-
-  const handleCreateGroup = async () => {
-    setTaxError(null);
-    if (!newGroupNameHu.trim()) {
-      setTaxError("Az új főkategória magyar neve kötelező.");
-      return;
-    }
-    setCreatingGroup(true);
-    try {
-      const payload = {
-        name_hu: newGroupNameHu.trim(),
-        name_en: newGroupNameEn.trim() || null,
-        name_ru: newGroupNameRu.trim() || null,
-        // kompatibilitás különböző backend mezőnevekhez
-        label_hu: newGroupNameHu.trim(),
-        label_en: newGroupNameEn.trim() || null,
-        label_ru: newGroupNameRu.trim() || null,
-      };
-
-      const created = await tryAdminPost<any>([
-        "product-groups",
-        "product_groups",
-        "groups",
-      ], payload);
-
-      const newId = created?.id || created?.group_id || created?.product_group_id;
-      await loadTaxonomies();
-      if (newId) {
-        handleNewProductChange("product_group_id", String(newId));
-        // új főkategória esetén a kategóriát nullázzuk
-        handleNewProductChange("product_category_id", "");
-      }
-      setNewGroupNameHu("");
-      setNewGroupNameEn("");
-      setNewGroupNameRu("");
-    } catch (err: any) {
-      console.error("Főkategória létrehozási hiba:", err);
-      setTaxError(err?.message || "Nem sikerült létrehozni a főkategóriát.");
-    } finally {
-      setCreatingGroup(false);
-    }
-  };
-
-  const handleCreateCategory = async () => {
-    setTaxError(null);
-    if (!newProduct.product_group_id) {
-      setTaxError("Előbb válassz főkategóriát a kategória létrehozásához.");
-      return;
-    }
-    if (!newCategoryNameHu.trim()) {
-      setTaxError("Az új kategória magyar neve kötelező.");
-      return;
-    }
-    setCreatingCategory(true);
-    try {
-      const payload = {
-        product_group_id: newProduct.product_group_id,
-        group_id: newProduct.product_group_id,
-        name_hu: newCategoryNameHu.trim(),
-        name_en: newCategoryNameEn.trim() || null,
-        name_ru: newCategoryNameRu.trim() || null,
-        label_hu: newCategoryNameHu.trim(),
-        label_en: newCategoryNameEn.trim() || null,
-        label_ru: newCategoryNameRu.trim() || null,
-      };
-
-      const created = await tryAdminPost<any>([
-        "product-categories",
-        "product_categories",
-        "categories",
-      ], payload);
-
-      const newId = created?.id || created?.category_id || created?.product_category_id;
-      await loadTaxonomies();
-      if (newId) {
-        handleNewProductChange("product_category_id", String(newId));
-      }
-      setNewCategoryNameHu("");
-      setNewCategoryNameEn("");
-      setNewCategoryNameRu("");
-    } catch (err: any) {
-      console.error("Kategória létrehozási hiba:", err);
-      setTaxError(err?.message || "Nem sikerült létrehozni a kategóriát.");
-    } finally {
-      setCreatingCategory(false);
-    }
-  };
-
   useEffect(() => {
     loadProducts();
     loadCoupons();
     loadOrders();
-    loadTaxonomies();
+    loadTaxonomy();
   }, []);
 
   /* --------------------------- Szűrt lista -------------------------- */
@@ -736,6 +426,18 @@ const deriveTaxonomiesFromProducts = (
       return true;
     });
   }, [products, productSearch, filterVisibleOnly, filterRetailOnly]);
+
+  const categoriesForSelectedGroup = useMemo(() => {
+    const gid = newProduct.product_group_id;
+    if (!gid) return productCategories;
+
+    return productCategories.filter((c) => {
+      const cg = (c.product_group_id ?? c.group_id ?? "") as string;
+      return cg === gid;
+    });
+  }, [productCategories, newProduct.product_group_id]);
+
+
 
   /* ---------------------- Termék szerkesztés ------------------------ */
 
@@ -795,24 +497,13 @@ const deriveTaxonomiesFromProducts = (
       return;
     }
 
-    if (!newProduct.product_group_id) {
-      setNewProductError("Főkategória (product_group_id) kötelező.");
-      return;
-    }
-
     if (!newProduct.product_category_id) {
-      setNewProductError("Kategória (product_category_id) kötelező.");
+      setNewProductError("A kategória kiválasztása kötelező.");
       return;
     }
 
-
-    const payload = {
+    const basePayload = {
       name: newProduct.name.trim(),
-      product_group_id: newProduct.product_group_id,
-      product_category_id: newProduct.product_category_id,
-      // kompatibilitás különböző backend elnevezésekkel
-      group_id: newProduct.product_group_id,
-      category_id: newProduct.product_category_id,
       retail_price_gross: newProduct.retail_price_gross
         ? parseFloat(newProduct.retail_price_gross.replace(",", "."))
         : null,
@@ -827,29 +518,56 @@ const deriveTaxonomiesFromProducts = (
       web_description: newProduct.web_description || null,
     };
 
+    const groupId = newProduct.product_group_id || null;
+    const categoryId = newProduct.product_category_id || null;
+
     setCreateProductLoading(true);
 
     try {
-      const created = await adminFetch<Product>("products", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
+      const tryCreate = (payload: any) =>
+        adminFetch<Product>("products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+
+      // Kompatibilitás: egyes backendek product_category_id-t várnak,
+      // mások category_id-t. 400-as validációs hibánál megpróbáljuk a másik formát is.
+      let created: Product;
+
+      try {
+        created = await tryCreate({
+          ...basePayload,
+          product_group_id: groupId,
+          product_category_id: categoryId,
+        });
+      } catch (err: any) {
+        if (err?.status === 400) {
+          created = await tryCreate({
+            ...basePayload,
+            group_id: groupId,
+            category_id: categoryId,
+          });
+        } else {
+          throw err;
+        }
+      }
 
       // ha azonnal képet is akarunk, feltöltjük
       if (newProductImage && created?.id) {
         await handleUploadImage(created.id, newProductImage);
       }
 
-      setNewProduct((prev) => ({
-        ...prev,
+      setNewProduct({
         name: "",
         retail_price_gross: "",
         sale_price: "",
+        product_group_id: "",
+        product_category_id: "",
         web_is_visible: true,
         is_retail: true,
         web_sort_order: "",
         web_description: "",
-      }));
+      });
       setNewProductImage(null);
       setCreateProductMessage("Új termék sikeresen létrehozva.");
       await loadProducts();
@@ -1139,174 +857,6 @@ const deriveTaxonomiesFromProducts = (
                       </label>
                     </div>
 
-                    {taxError && (
-                      <p className="error-text">{taxError}</p>
-                    )}
-                    {taxLoading && <p>Főkategóriák/kategóriák betöltése…</p>}
-
-                    <div className="form-row">
-                      <label>
-                        Főkategória*
-                        <select
-                          className="input"
-                          value={newProduct.product_group_id}
-                          onChange={(e) => {
-                            const nextGroupId = e.target.value;
-                            handleNewProductChange("product_group_id", nextGroupId);
-                            // ha a kiválasztott kategória nem ehhez tartozik, ürítsük
-                            const currentCat = productCategories.find(
-                              (c) => String(c.id) === String(newProduct.product_category_id)
-                            );
-                            const catGroup = currentCat ? getCategoryGroupId(currentCat) : null;
-                            if (currentCat && catGroup && String(catGroup) !== String(nextGroupId)) {
-                              handleNewProductChange("product_category_id", "");
-                            }
-                          }}
-                        >
-                          <option value="">Válassz főkategóriát…</option>
-                          {productGroups.map((g) => (
-                            <option key={g.id} value={g.id}>
-                              {pickLabel(g) || g.id}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-
-                      <label>
-                        Kategória*
-                        <select
-                          className="input"
-                          value={newProduct.product_category_id}
-                          disabled={!newProduct.product_group_id}
-                          onChange={(e) => {
-                            const nextCatId = e.target.value;
-                            handleNewProductChange("product_category_id", nextCatId);
-                            const cat = productCategories.find(
-                              (c) => String(c.id) === String(nextCatId)
-                            );
-                            const gid = cat ? getCategoryGroupId(cat) : null;
-                            if (gid && String(gid) !== String(newProduct.product_group_id)) {
-                              handleNewProductChange("product_group_id", String(gid));
-                            }
-                          }}
-                        >
-                          <option value="">Válassz kategóriát…</option>
-                          {productCategories
-                            .filter((c) => {
-                              if (!newProduct.product_group_id) return true;
-                              const gid = getCategoryGroupId(c);
-                              return gid ? String(gid) === String(newProduct.product_group_id) : true;
-                            })
-                            .map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {pickLabel(c) || c.id}
-                              </option>
-                            ))}
-                        </select>
-                      </label>
-                    </div>
-
-                    <div className="form-row" style={{ gap: 12 }}>
-                      <div
-                        style={{
-                          flex: 1,
-                          border: "1px solid rgba(0,0,0,0.12)",
-                          borderRadius: 8,
-                          padding: 12,
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                          Új főkategória
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="HU név *"
-                            value={newGroupNameHu}
-                            onChange={(e) => setNewGroupNameHu(e.target.value)}
-                            style={{ minWidth: 180, flex: 1 }}
-                          />
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="EN név"
-                            value={newGroupNameEn}
-                            onChange={(e) => setNewGroupNameEn(e.target.value)}
-                            style={{ minWidth: 160, flex: 1 }}
-                          />
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="RU név"
-                            value={newGroupNameRu}
-                            onChange={(e) => setNewGroupNameRu(e.target.value)}
-                            style={{ minWidth: 160, flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={handleCreateGroup}
-                            disabled={creatingGroup}
-                          >
-                            {creatingGroup ? "Mentés…" : "Létrehozás"}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div
-                        style={{
-                          flex: 1,
-                          border: "1px solid rgba(0,0,0,0.12)",
-                          borderRadius: 8,
-                          padding: 12,
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, marginBottom: 8 }}>
-                          Új kategória
-                        </div>
-                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="HU név *"
-                            value={newCategoryNameHu}
-                            onChange={(e) => setNewCategoryNameHu(e.target.value)}
-                            style={{ minWidth: 180, flex: 1 }}
-                          />
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="EN név"
-                            value={newCategoryNameEn}
-                            onChange={(e) => setNewCategoryNameEn(e.target.value)}
-                            style={{ minWidth: 160, flex: 1 }}
-                          />
-                          <input
-                            type="text"
-                            className="input"
-                            placeholder="RU név"
-                            value={newCategoryNameRu}
-                            onChange={(e) => setNewCategoryNameRu(e.target.value)}
-                            style={{ minWidth: 160, flex: 1 }}
-                          />
-                          <button
-                            type="button"
-                            className="btn btn-secondary"
-                            onClick={handleCreateCategory}
-                            disabled={creatingCategory || !newProduct.product_group_id}
-                          >
-                            {creatingCategory ? "Mentés…" : "Létrehozás"}
-                          </button>
-                        </div>
-                        {!newProduct.product_group_id && (
-                          <div style={{ fontSize: 12, opacity: 0.8, marginTop: 6 }}>
-                            Kategória létrehozáshoz előbb válassz főkategóriát.
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
                     <div className="form-row">
                       <label className="checkbox-label">
                         <input
@@ -1348,6 +898,64 @@ const deriveTaxonomiesFromProducts = (
                           }
                         />
                       </label>
+                    </div>
+
+                    {/* KATEGÓRIA VÁLASZTÁS */}
+                    <div className="form-row">
+                      <label style={{ flex: 1 }}>
+                        Főkategória
+                        <select
+                          className="input"
+                          value={newProduct.product_group_id}
+                          onChange={(e) =>
+                            handleNewProductChange(
+                              "product_group_id",
+                              e.target.value
+                            )
+                          }
+                          disabled={taxonomyLoading}
+                        >
+                          <option value="">(opcionális)</option>
+                          {productGroups.map((g) => (
+                            <option key={g.id} value={g.id}>
+                              {g.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label style={{ flex: 1 }}>
+                        Kategória*
+                        <select
+                          className="input"
+                          value={newProduct.product_category_id}
+                          onChange={(e) =>
+                            handleNewProductChange(
+                              "product_category_id",
+                              e.target.value
+                            )
+                          }
+                          disabled={taxonomyLoading || productCategories.length === 0}
+                        >
+                          <option value="">Válassz kategóriát…</option>
+                          {categoriesForSelectedGroup.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                        {taxonomyLoading && (
+                          <span style={{ fontSize: 12 }}>Kategóriák betöltése…</span>
+                        )}
+                        {taxonomyError && (
+                          <span className="error-text" style={{ margin: 0 }}>
+                            {taxonomyError}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="form-row">
