@@ -1,0 +1,26 @@
+// --- PATCHES ---
+// 1) Router (e.g., frontend/src/App.tsx):
+//    Add route:
+//
+//    import AppointmentsCalendar from "./pages/AppointmentsCalendar";
+//    ...
+//    <Routes>
+//      ...
+//      <Route path="/calendar" element={<AppointmentsCalendar/>} />
+//    </Routes>
+//
+// 2) Menu (example for a simple Navbar component):
+//
+//    // frontend/src/components/Navbar.tsx (or similar)
+//    import { NavLink } from "react-router-dom";
+//    export function Navbar(){
+//      return (
+//        <nav className="flex gap-3 p-2 border-b">
+//          {/* existing items ... */}
+//          <NavLink to="/calendar" className={({isActive})=> isActive ? "font-semibold underline" : ""}>Naptár</NavLink>
+//        </nav>
+//      );
+//    }
+//
+// If you use a Sidebar instead, add a <NavLink to="/calendar">Naptár</NavLink> entry
+// in the corresponding list.

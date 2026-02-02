@@ -1,0 +1,1826 @@
+/* =========================================
+   KLEOPÁTRA – KÖZPONTI DESIGN RENDSZER
+   (arculati kézikönyv alapján)
+========================================= */
+
+:root {
+  /* Fő színek – kézikönyv szerinti paletta */
+  --color-bg: #f5f5f5;
+  --color-surface: #ffffff;
+  --color-text: #120c08;
+  --color-muted: #5d5a55;
+
+  --color-gold: #b69861;
+  --color-gold-2: #c8b187;
+  --color-gold-3: #d5c4a4;
+  --color-gold-4: #e3d8c3;
+
+  --color-black: #120c08;
+  --color-gray-1: #5d5a55;
+  --color-gray-2: #84837e;
+  --color-gray-3: #b0afad;
+
+  --color-magenta: #ec008c;
+  --color-magenta-2: #f173ac;
+  --color-magenta-3: #f59ac2;
+  --color-magenta-4: #f9c1d9;
+
+  --color-border-subtle: #e2e2e2;
+
+  /* Árnyék, lekerekítés */
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-soft: 0 14px 34px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0 22px 52px rgba(0, 0, 0, 0.22);
+
+  /* Térközök */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* Betűméretek */
+  --font-xs: 0.75rem;
+  --font-sm: 0.85rem;
+  --font-md: 0.95rem;
+  --font-lg: 1.1rem;
+}
+
+/* =========================================
+   RESET + ALAP
+========================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  margin: 0;
+  font-family: "Open Sans", system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, var(--color-magenta-4) 0, #ffffff 32%),
+    linear-gradient(180deg, #ffffff 0, #f5f5f5 60%, #ffffff 100%);
+  color: var(--color-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: "Montserrat", system-ui, sans-serif;
+  letter-spacing: 0.06em;
+  margin: 0;
+  color: var(--color-text);
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* =========================================
+   GLOBÁLIS VÉKONY SCROLL – ARANY / MAGENTA
+========================================= */
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-gold-3) transparent;
+}
+
+/* WebKit (Chrome, Edge, Safari, Opera) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(182, 152, 97, 0.9),
+    rgba(236, 0, 140, 0.85)
+  );
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(
+    180deg,
+    rgba(182, 152, 97, 1),
+    rgba(236, 0, 140, 1)
+  );
+}
+
+/* =========================================
+   LAYOUT – ÚJ (app-shell)
+   Középre húzott, elegáns kártya, két oldalt levegő
+========================================= */
+
+.app-shell {
+  display: grid;
+  
+  min-height: 100vh;
+  position: relative;
+
+  width: 90%;
+  max-width: 90%;
+  margin: 5px auto;
+  border-radius: 0px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: var(--shadow-strong);
+  overflow: hidden;
+}
+
+/* Sidebar alap (új layout) – konkrét kinézetet lejjebb finomítjuk */
+.app-sidebar {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.16), transparent 55%),
+    linear-gradient(
+      180deg,
+      var(--color-gold) 0%,
+      var(--color-gold-2) 45%,
+      var(--color-gold-3) 100%
+    );
+  color: #ffffff;
+  padding: var(--space-lg) var(--space-md) var(--space-md);
+}
+
+/* Fő tartalmi oszlop (új layout) */
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f8f4ec 40%,
+    #ffffff 100%
+  );
+}
+
+/* Felső sáv (topbar) – üveges, arany szegéllyel */
+
+.app-topbar {
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--space-lg);
+  backdrop-filter: blur(18px);
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(212, 196, 163, 0.7);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.topbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.topbar-title {
+  font-family: "Montserrat", sans-serif;
+  font-size: var(--font-md);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.topbar-subtitle {
+  margin: 0;
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.topbar-pill {
+  padding: 0.35rem 0.9rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(182, 152, 97, 0.7);
+  font-size: var(--font-xs);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+/* Tartalomblokk */
+
+.app-content {
+  padding: 24px 32px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+/* =========================================
+   LEGACY LAYOUT: HOME + SIDEBAR
+   (home-container + calendar-container)
+   – becsúszó arany füllel
+========================================= */
+
+
+
+/* Fő tartalmi hasáb – naptár, listák stb. */
+
+.home-container > .calendar-container {
+  width: 99%;          /* a szülő szélességének 90%-a */
+  max-width: 99;      /* ne szűküljön vissza 1320px-re */
+  margin: 5px auto;
+  padding: var(--space-lg);
+  border-radius: 0px;
+  background: #ffffff;
+  box-shadow: var(--shadow-strong);
+}
+
+/* Bal oldali arany fül + sidebar – régi komponensekhez */
+
+.home-container > .kleo-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 300px;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    var(--color-gold-2) 45%,
+    var(--color-gold-3) 100%
+  );
+  color: #ffffff;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
+  transform: translateX(calc(-100% + 14px));
+  transition: transform 0.25s ease;
+  z-index: 30;
+}
+
+.home-container > .kleo-sidebar:hover {
+  transform: translateX(0);
+}
+
+/* Kis fül a bal szélén */
+
+.home-container > .kleo-sidebar::before {
+  content: "";
+  position: absolute;
+  left: 100%;
+  top: 82px;
+  width: 14px;
+  height: 96px;
+  border-radius: 0 12px 12px 0;
+  background: linear-gradient(
+    180deg,
+    var(--color-gold) 0%,
+    var(--color-gold-2) 55%
+  );
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.home-container > .kleo-sidebar::after {
+  content: "≡ VIR MENÜ";
+  position: absolute;
+  left: 100%;
+  top: 86px;
+  width: 14px;
+  font-size: 12px;
+  color: #120c08;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.18em;
+  text-align: center;
+}
+
+/* =========================================
+   SIDEBAR – HERO KÁRTYA + MENÜ
+========================================= */
+
+.kleo-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+  align-items: stretch;
+  height: 100%;
+}
+
+/* Hero kártya: logó + mini naptár */
+
+.kleo-sidebar-hero-card {
+  background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.98),
+      rgba(255, 255, 255, 0.94)
+    );
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.8);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  max-width: 260px;
+  margin: 6px auto var(--space-lg);
+}
+
+/* Logó + felirat – logó NINCS körbe zárva, csak a PNG */
+
+.kleo-sidebar-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  text-align: center;
+}
+
+.kleo-sidebar-logo-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.kleo-sidebar-logo {
+  display: block;
+  height: 40px;
+  width: auto;
+}
+
+.kleo-sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kleo-sidebar-title {
+  font-family: "Montserrat", sans-serif;
+  font-size: var(--font-xs);
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: var(--color-text);
+}
+
+.kleo-sidebar-subtitle {
+  font-family: "Open Sans", system-ui, sans-serif;
+  font-size: var(--font-xs);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gray-2);
+}
+
+/* MINI NAPTÁR A HERO-BAN */
+
+.sidebar-calendar {
+  border-radius: 18px;
+  padding: var(--space-sm) var(--space-md) var(--space-md);
+  background: linear-gradient(
+      180deg,
+      rgba(249, 193, 217, 0.96),
+      rgba(18, 12, 8, 0.96)
+    );
+  box-shadow: 0 16px 40px rgba(18, 12, 8, 0.45);
+  color: #ffffff;
+}
+
+.sidebar-calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.sidebar-calendar-month {
+  font-family: "Montserrat", sans-serif;
+  font-size: var(--font-sm);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-gold-4);
+}
+
+.sidebar-calendar-nav-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(0, 0, 0, 0.18);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.sidebar-calendar-nav-btn:hover {
+  background: rgba(0, 0, 0, 0.32);
+  transform: translateY(-1px);
+}
+
+.sidebar-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.sidebar-calendar-weekday {
+  font-size: 0.68rem;
+  text-align: center;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.sidebar-calendar-day {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.sidebar-calendar-day:hover {
+  background: rgba(255, 255, 255, 0.12);
+  transform: translateY(-1px);
+}
+
+.sidebar-calendar-day--other-month {
+  opacity: 0.35;
+}
+
+.sidebar-calendar-day--today {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.7);
+}
+
+.sidebar-calendar-day--selected {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold),
+    var(--color-magenta)
+  );
+  color: #120c08;
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.55),
+    0 10px 18px rgba(0, 0, 0, 0.45);
+}
+
+/* MENÜLISTA – finom, elegáns */
+
+.kleo-sidebar-nav {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.kleo-sidebar-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kleo-sidebar-menu-item {
+  border-radius: var(--radius-md);
+}
+
+.kleo-sidebar-menu-button {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: #ffffff;
+  padding: 0.45rem 0.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  cursor: pointer;
+  font-size: var(--font-sm);
+}
+
+.kleo-sidebar-menu-button:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.kleo-sidebar-menu-item--open > .kleo-sidebar-menu-button {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.kleo-sidebar-submenu {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 0 0 4px 0;
+}
+
+.kleo-sidebar-submenu-item {
+  display: block;
+  padding: 0.3rem 0.9rem;
+  font-size: var(--font-xs);
+  color: rgba(255, 255, 255, 0.82);
+  border-radius: 999px;
+}
+
+.kleo-sidebar-submenu-item:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.kleo-sidebar-submenu-item.active {
+  background: linear-gradient(120deg, var(--color-gold), var(--color-magenta));
+  color: #ffffff;
+}
+
+/* =========================================
+   KÁRTYÁK, TÁBLÁK, GOMBOK
+========================================= */
+
+.card,
+.stat-card,
+.chart-card,
+.warnings-card,
+.employees-list-card,
+.kleo-daily-location-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.4);
+  padding: var(--space-md);
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
+
+.card-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+}
+
+.card-subtitle {
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+.card-body {
+  font-size: var(--font-sm);
+}
+
+/* Táblák */
+
+.data-table,
+.appointments-table,
+.employees-table,
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-sm);
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+
+.data-table thead,
+.appointments-table thead,
+.employees-table thead,
+.table thead {
+  background: var(--color-gold-4);
+}
+
+.data-table th,
+.data-table td,
+.appointments-table th,
+.appointments-table td,
+.employees-table th,
+.employees-table td,
+.table th,
+.table td {
+  padding: 0.65rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eee;
+}
+
+.data-table th,
+.appointments-table th,
+.employees-table th,
+.table th {
+  font-family: "Montserrat", sans-serif;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: var(--font-xs);
+  color: var(--color-gray-1);
+}
+
+.data-table tbody tr:nth-child(odd),
+.appointments-table tbody tr:nth-child(odd),
+.employees-table tbody tr:nth-child(odd),
+.table tbody tr:nth-child(odd) {
+  background: #fbf8f2;
+}
+
+.data-table tbody tr:hover,
+.appointments-table tbody tr:hover,
+.employees-table tbody tr:hover,
+.table tbody tr:hover {
+  background: rgba(249, 193, 217, 0.13);
+}
+
+/* Gombok */
+
+button,
+.btn {
+  font-family: inherit;
+  font-size: var(--font-sm);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0.55rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  background: var(--color-gold);
+  color: #ffffff;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.08s ease;
+}
+
+.btn:hover {
+  background: #a9864f;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24);
+  transform: translateY(-1px);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+.btn-primary {
+  background: linear-gradient(
+    135deg,
+    var(--color-gold),
+    var(--color-magenta)
+  );
+  border-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(
+    135deg,
+    #a9864f,
+    #d4007e
+  );
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--color-gold);
+  color: var(--color-text);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: rgba(255, 255, 255, 0.7);
+  color: #ffffff;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.8rem;
+  font-size: var(--font-xs);
+}
+
+.btn-xs {
+  padding: 0.22rem 0.6rem;
+  font-size: 0.7rem;
+}
+
+/* Inputok */
+
+label {
+  font-size: var(--font-xs);
+  font-weight: 500;
+  color: var(--color-gray-1);
+  margin-bottom: 4px;
+  display: block;
+}
+
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: var(--font-sm);
+  border-radius: 6px;
+  border: 1px solid #e4ded5;
+  padding: 8px 10px;
+  outline: none;
+  background: rgba(255, 255, 255, 0.96);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-gold);
+  box-shadow: 0 0 0 1px rgba(201, 139, 75, 0.25);
+}
+
+/* =========================================
+   LOGIN OLDAL – FINOM, ARCULATHOZ IGAZÍTVA
+========================================= */
+
+:root {
+  --kleo-bg: #fbf3ea;
+  --kleo-gold: #c8b187;
+}
+
+.login-page {
+  min-height: 100vh;
+  padding: 32px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--kleo-bg);
+  font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    system-ui, sans-serif;
+}
+
+.login-card {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+  overflow: hidden;
+  border: 1px solid #f3e3d1;
+}
+
+.login-card-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.login-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.96),
+    rgba(255, 255, 255, 0.99)
+  );
+}
+
+.login-card-inner {
+  position: relative;
+  padding: 28px 26px 22px;
+}
+
+@media (min-width: 640px) {
+  .login-card-inner {
+    padding: 32px 36px 24px;
+  }
+}
+
+.login-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.login-logo img {
+  height: 58px;
+  width: auto;
+}
+
+.login-tagline {
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #6b7280;
+  margin-bottom: 10px;
+}
+
+.login-title {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 600;
+  margin: 4px 0 4px;
+  color: #111827;
+  font-family: "Montserrat", "Open Sans", system-ui, sans-serif;
+}
+
+.login-subtitle {
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.login-tabs {
+  display: flex;
+  border-bottom: 1px solid #ead7c3;
+  margin-bottom: 18px;
+}
+
+.login-tab {
+  flex: 1;
+  padding: 8px 0 9px;
+  text-align: center;
+  font-size: 13px;
+  color: #6b7280;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.login-tab--active {
+  color: var(--color-gold);
+  font-weight: 600;
+  border-bottom: 2px solid var(--color-gold);
+}
+
+.login-field {
+  margin-bottom: 10px;
+}
+
+.login-input {
+  width: 100%;
+}
+
+.login-code-input {
+  text-align: center;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+}
+
+.login-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.login-link {
+  color: var(--kleo-gold);
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 11px;
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+.login-link[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.login-button,
+.login-secondary-button {
+  width: 100%;
+  margin-top: 8px;
+  border-radius: 999px;
+  border: none;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.login-button {
+  background: var(--kleo-gold);
+  color: #ffffff;
+}
+
+.login-button:hover {
+  background: #ec008c;
+}
+
+.login-button:disabled,
+.login-secondary-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.login-secondary-button {
+  background: #5cb58c;
+  color: #ffffff;
+}
+
+.login-secondary-button:hover {
+  background: #4ba378;
+}
+
+.login-footer {
+  margin-top: 12px;
+  font-size: 11px;
+  text-align: center;
+  color: #6b7280;
+}
+
+/* =========================================
+   MODALOK – ADMIN / ÁLTALÁNOS
+========================================= */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+}
+
+.admin-modal {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  max-width: 720px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: var(--shadow-strong);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  padding: var(--space-md) var(--space-lg) var(--space-sm);
+  border-bottom: 1px solid rgba(228, 224, 215, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modal-footer {
+  padding: var(--space-sm) var(--space-lg);
+  border-top: 1px solid rgba(228, 224, 215, 0.9);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+
+.admin-modal .modal-body {
+  padding: var(--space-md) var(--space-lg) var(--space-md);
+  overflow-y: auto;
+}
+
+/* =========================================
+   NAPTÁR FŐNÉZET – HEADEREK
+========================================= */
+
+.calendar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.calendar-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-lg);
+}
+
+.calendar-subtitle {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.calendar-grid-wrapper {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.5);
+  padding: var(--space-md);
+  overflow: hidden;
+}
+
+/* =========================================
+   RESPONSIVE
+========================================= */
+
+@media (max-width: 1900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 240px;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 30;
+  }
+
+  .app-main {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-content {
+    padding: var(--space-md);
+  }
+
+  .home-container > .calendar-container {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+}
+/* =========================================
+   MUNKALAP MODAL – ÚJ FELUGRÓ NÉZET
+   (WorkOrderNew.tsx-hez)
+========================================= */
+
+.workorder-modal {
+  max-width: 1120px;
+}
+
+.workorder-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.workorder-modal-header {
+  gap: var(--space-md);
+}
+
+.wo-header-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.wo-subtitle {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.wo-status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
+.wo-status-chip {
+  border-radius: var(--radius-pill);
+  padding: 0.35rem 0.9rem;
+  font-size: var(--font-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  background: #f4f1ea;
+  color: var(--color-gray-1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.wo-status-chip--active {
+  background: linear-gradient(135deg, var(--color-gold), var(--color-magenta));
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: var(--shadow-soft);
+}
+
+.wo-error {
+  margin-bottom: var(--space-sm);
+  padding: 0.55rem 0.75rem;
+  border-radius: var(--radius-md);
+  background: #fef2f2;
+  color: #991b1b;
+  font-size: var(--font-xs);
+}
+
+/* Rácsos elrendezés – 3 hasáb */
+
+.wo-modal-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1.4fr) minmax(0, 1.1fr);
+  gap: var(--space-lg);
+  align-items: flex-start;
+  padding-top: var(--space-sm);
+}
+
+.wo-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.wo-column-right {
+  max-width: 320px;
+  margin-left: auto;
+}
+
+.wo-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.wo-section-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+}
+
+.wo-section-pill {
+  padding: 0.18rem 0.75rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gray-2);
+  background: #fbf8f2;
+}
+
+.wo-section-pill--success {
+  background: #e5f7ee;
+  border-color: #8ad1ae;
+  color: #21744a;
+}
+
+.wo-field {
+  margin-bottom: var(--space-sm);
+}
+
+.wo-two-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: var(--space-sm);
+}
+
+/* Szolgáltatás / termék tabok */
+
+.wo-service-tabs {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: #f5f3ef;
+  border: 1px solid rgba(212, 196, 163, 0.8);
+  margin-bottom: var(--space-sm);
+}
+
+.wo-service-tab {
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  padding: 0.28rem 0.9rem;
+  font-size: var(--font-xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--color-gray-2);
+}
+
+.wo-service-tab--active {
+  background: #ffffff;
+  color: var(--color-text);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.06);
+}
+
+/* Szolgáltatás kártyák */
+
+.wo-service-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.wo-service-card {
+  border-radius: var(--radius-md);
+  border: 1px solid #ede4d8;
+  padding: var(--space-sm) var(--space-md);
+  background: #ffffff;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.02);
+}
+
+.wo-service-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-service-title {
+  font-size: var(--font-sm);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.wo-service-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+/* Összegzés */
+
+.wo-totals {
+  margin-top: var(--space-md);
+  padding-top: var(--space-sm);
+  border-top: 1px dashed rgba(212, 196, 163, 0.7);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wo-total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.wo-total-row--strong {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+/* Vendég adatok + checkbox */
+
+.wo-checkbox-field {
+  margin-top: var(--space-sm);
+}
+
+.wo-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-sm);
+  color: var(--color-gray-1);
+}
+
+.wo-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+/* Lábléc */
+
+.workorder-modal-footer {
+  align-items: center;
+}
+
+.wo-footer-left {
+  flex: 1;
+}
+
+.wo-footer-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+
+/* Mobil nézet */
+
+@media (max-width: 1024px) {
+  .workorder-modal {
+    max-width: 100%;
+    margin: 0 var(--space-md);
+  }
+
+  .wo-modal-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .wo-column-right {
+    max-width: none;
+    margin-left: 0;
+  }
+
+  .workorder-modal-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .wo-status-chips {
+    justify-content: flex-start;
+  }
+
+  .workorder-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-sm);
+  }
+
+  .wo-footer-actions {
+    justify-content: flex-end;
+  }
+}
+/* Kijelölt szolgáltatás kártya */
+.wo-service-card {
+  cursor: pointer;
+}
+
+.wo-service-card--selected {
+  border-color: var(--color-magenta);
+  box-shadow: 0 0 0 1px rgba(236, 0, 140, 0.35), 0 12px 26px rgba(0, 0, 0, 0.12);
+  background: linear-gradient(135deg, #fff7fb, #ffffff);
+}
+
+.wo-service-empty {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+  padding: var(--space-md);
+}
+/* Webshop admin layout – Sidebar balra, tartalom jobbra */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg, #f5f5f5);
+}
+
+.app-main {
+  flex: 1;
+  padding: 1.5rem 2rem;
+  overflow: auto;
+}
+
+/* Opció: hogy a tartalom max. szélességű legyen középen */
+.app-main .page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Kép cella szebbé tétele */
+.webshop-admin-image-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  align-items: flex-start;
+}
+
+.webshop-admin-image-thumb {
+  display: block;
+  max-width: 80px;
+  max-height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+/* =========================================
+   PUBLIC WEBSHOP – HERO + TERMÉK GRID
+   (WebshopPage.tsx / WebshopProductDetailPage.tsx)
+========================================= */
+
+/* HERO – teljes szélességű háttérkép, fölötte úszó gömbök */
+.webshop-hero {
+  position: relative;
+  overflow: hidden;
+  background: #f9f5ef;
+}
+
+/* Háttérkép – kitölti a hero szekciót */
+.webshop-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.webshop-hero__bg img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center right;
+}
+
+/* Tartalom – szöveg jobb oldalon, a kép területén marad */
+.webshop-hero__content {
+  position: relative;
+  min-height: 520px;
+  padding: clamp(3rem, 6vw, 4.2rem)
+    clamp(1.5rem, 6vw, 4rem)
+    clamp(3.2rem, 6vw, 4.8rem);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* Szövegblokk – buborékok fölé rétegezve */
+.webshop-hero__text {
+  position: relative;
+  z-index: 2;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Tipográfia – egységes a többi oldallal */
+.section-eyebrow {
+  font-size: var(--font-xs);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-magenta);
+  margin: 0 0 0.4rem;
+}
+
+.hero-title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: clamp(2.1rem, 3vw, 2.7rem);
+  line-height: 1.08;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.hero-title--tight {
+  letter-spacing: 0.16em;
+}
+
+.hero-part-magenta {
+  color: var(--color-magenta);
+}
+
+.hero-lead {
+  font-size: var(--font-md);
+  line-height: 1.6;
+  color: var(--color-gray-1);
+  max-width: 38rem;
+  margin: 0;
+}
+
+.hero-lead--narrow {
+  max-width: 32rem;
+}
+
+/* Gombsor + vendégszámla */
+.webshop-hero__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+
+.webshop-invoice {
+  margin-top: var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(212, 196, 163, 0.9);
+}
+
+.webshop-invoice__image {
+  width: 72px;
+  flex: 0 0 auto;
+}
+
+.webshop-invoice__image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.webshop-invoice__text {
+  font-size: var(--font-xs);
+  color: var(--color-gray-2);
+}
+
+/* =========================================
+   GÖMB SÁV – TELJES SZÉLESSÉGBEN, KVÁZI RANDOM MOZGÁS
+========================================= */
+
+.webshop-hero__bubbles {
+  position: absolute;
+  top: 14%;
+  left: 0;
+  right: 0;
+  padding-inline: clamp(1.2rem, 7vw, 4.5rem);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: clamp(1.8rem, 4vw, 3rem);
+  pointer-events: none; /* ne zavarja a kattintást */
+  z-index: 1; /* kép fölött, szöveg alatt */
+}
+
+/* Alap gömb stílus */
+.webshop-hero__bubble {
+  width: 200px;
+  height: 200px;
+  border-radius: 999px;
+  background: var(--color-magenta);
+  box-shadow: var(--shadow-strong);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+}
+
+/* Ha képet teszel a gömbbe */
+.webshop-hero__bubble img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Három külön animáció – ettől lesz „össze-vissza” érzés */
+.webshop-hero__bubble--top {
+  animation: bubbleDriftA 11s ease-in-out infinite alternate;
+}
+
+.webshop-hero__bubble--middle {
+  animation: bubbleDriftB 9s ease-in-out infinite alternate;
+  animation-delay: -2.3s;
+}
+
+.webshop-hero__bubble--bottom {
+  animation: bubbleDriftC 13s ease-in-out infinite alternate;
+  animation-delay: -4.1s;
+}
+
+/* Kvázirandom vízszintes + függőleges mozgások */
+@keyframes bubbleDriftA {
+  0% {
+    transform: translate3d(-8%, 0, 0) scale(1);
+  }
+  25% {
+    transform: translate3d(6%, -18px, 0) scale(1.03);
+  }
+  50% {
+    transform: translate3d(18%, 10px, 0) scale(0.98);
+  }
+  75% {
+    transform: translate3d(4%, -14px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(-10%, 6px, 0) scale(1);
+  }
+}
+
+@keyframes bubbleDriftB {
+  0% {
+    transform: translate3d(10%, 6px, 0) scale(1);
+  }
+  20% {
+    transform: translate3d(-4%, -12px, 0) scale(1.04);
+  }
+  45% {
+    transform: translate3d(-16%, 16px, 0) scale(0.97);
+  }
+  70% {
+    transform: translate3d(8%, -8px, 0) scale(1.02);
+  }
+  100% {
+    transform: translate3d(14%, 10px, 0) scale(1);
+  }
+}
+
+@keyframes bubbleDriftC {
+  0% {
+    transform: translate3d(-12%, 10px, 0) scale(0.98);
+  }
+  30% {
+    transform: translate3d(4%, -20px, 0) scale(1.04);
+  }
+  55% {
+    transform: translate3d(18%, 12px, 0) scale(1);
+  }
+  80% {
+    transform: translate3d(-6%, -10px, 0) scale(1.03);
+  }
+  100% {
+    transform: translate3d(-14%, 4px, 0) scale(0.99);
+  }
+}
+
+/* =========================================
+   TERMÉKLISTA – RUGALMAS GRID A KIJELZŐ SZÉLESSÉGE ALAPJÁN
+========================================= */
+
+.section--webshop {
+  padding: 3rem 0 4rem;
+  background: linear-gradient(180deg, #f9f5ef 0, #ffffff 70%);
+}
+
+/* Layout: bal oldalt termékek, jobb oldalt kosár */
+.webshop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2.7fr) minmax(300px, 1fr);
+  gap: clamp(2rem, 4vw, 3rem);
+  align-items: flex-start;
+}
+
+.webshop-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Rugalmas termék-grid: annyi oszlop, amennyi kifér */
+.webshop-grid {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.75rem;
+  align-items: stretch;
+}
+
+/* Termékkártyák */
+.webshop-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(212, 196, 163, 0.55);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  height: 100%;
+}
+
+.webshop-card__image-wrap {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  aspect-ratio: 4 / 3;
+}
+
+.webshop-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.webshop-card__title {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-sm);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin: 0.25rem 0 0;
+}
+
+.webshop-card__text {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+  margin: 0;
+}
+
+.webshop-card__footer {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
+.webshop-card__price {
+  font-family: "Montserrat", system-ui, sans-serif;
+  font-size: var(--font-md);
+  font-weight: 600;
+  color: var(--color-gold);
+}
+
+/* Kosár hasáb – jobb oldali oszlop */
+.webshop-cart {
+  position: sticky;
+  top: 88px;
+  align-self: flex-start;
+}
+
+/* Állapot üzenetek */
+.webshop-status {
+  font-size: var(--font-sm);
+  color: var(--color-gray-2);
+}
+
+.webshop-status--error {
+  color: #b00020;
+}
+
+.webshop-status--hint {
+  color: var(--color-gold);
+}
+
+/* Kategória gombsorok */
+.webshop-subcategory-row,
+.webshop-servicecategory-row {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.webshop-subcategory-group {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(212, 196, 163, 0.6);
+}
+
+/* RESPONSIVE – mobil / tablet */
+@media (max-width: 1024px) {
+  .webshop-hero__content {
+    justify-content: center;
+    text-align: center;
+  }
+
+  .webshop-hero__text {
+    align-items: center;
+  }
+
+  .webshop-hero__bubbles {
+    top: 10%;
+    padding-inline: clamp(0.8rem, 4vw, 2rem);
+  }
+
+  .webshop-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .webshop-cart {
+    position: static;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .webshop-hero__bubbles {
+    top: 8%;
+    gap: 1rem;
+  }
+
+  .webshop-hero__bubble {
+    width: 150px;
+    height: 150px;
+  }
+}

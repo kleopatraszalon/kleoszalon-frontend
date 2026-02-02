@@ -1,0 +1,1234 @@
+/* === Reszponzív (tablet + mobil) === */
+
+/* Tablet: kicsit szellősebb, rugalmasabb magasság */
+@media (max-width: 1024px) {
+  .home-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .calendar-container {
+    padding: 0.75rem;
+  }
+
+  .rbc-calendar {
+    height: auto;
+    min-height: 480px;
+  }
+}
+
+/* Mobil: sidebar felül, tartalom alatta */
+@media (max-width: 768px) {
+  .home-container {
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #c4a65a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  .sidebar .logo {
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebar .logo img {
+    width: 120px;
+  }
+
+  .sidebar nav {
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+
+  .sidebar nav ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+
+  .sidebar nav li {
+    margin-bottom: 0;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .calendar-container {
+    padding: 0.75rem 0.75rem 1rem;
+    overflow: visible;
+  }
+
+  /* Dashboard stat kártyák: 1 oszlop mobilon */
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  /* A fő két oszlop (bal: employees, jobb: chart) egymás alá kerül */
+  .dashboard-main {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  /* Dolgozó lista kártya */
+  .employees-card {
+    padding: 0.75rem;
+  }
+
+  .employees-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .employees-filters {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .employees-filters input,
+  .employees-filters select {
+    flex: 1 1 120px;
+  }
+
+  /* Tábla ne essen szét, lehessen oldalra húzni */
+  .employees-table-wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .employees-table {
+    min-width: 640px;
+  }
+
+  /* Dolgozó részletei kártya (EmployeeDetails) */
+  .employee-details-card {
+    margin: 0.75rem 0.5rem 1rem;
+    padding: 1rem;
+    max-height: none;
+  }
+
+  .employee-details-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .employee-details-header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .employee-details-section-grid,
+  .employee-details-notes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-details-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+}
+
+/* === Layout alapok === */
+.home-container {
+  display: flex;
+  min-height: 100vh;   /* legyen minimum teljes képernyő */
+  height: auto;        /* de engedje nőni */
+  overflow: visible;   /* NE tiltsuk le a görgetést itt */
+  font-family: "Inter", sans-serif;
+}
+
+/* === Sidebar === */
+.sidebar {
+  width: 240px;
+  background-color: #d4b56a;
+  color: #222;
+  display: flex;
+  flex-direction: column;
+  border-right: 2px solid #c4a65a;
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+.sidebar .logo {
+  padding: 1.5rem;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-bottom: 2px solid #e6d5a8;
+}
+
+.sidebar .logo img {
+  width: 140px;
+  height: auto;
+  object-fit: contain;
+}
+
+/* Menülista */
+.sidebar nav {
+  flex: 1;
+  padding: 1rem;
+}
+
+.sidebar nav ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.sidebar nav li {
+  padding: 0.7rem 1rem;
+  margin-bottom: 0.4rem;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  font-weight: 500;
+}
+
+.sidebar nav li:hover {
+  background-color: #b89950;
+  color: white;
+}
+
+/* === Calendar fő rész === */
+.calendar-container {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 1rem;
+  overflow: hidden;
+}
+
+.rbc-calendar {
+  height: 100%;
+  border-radius: 12px;
+  background-color: white;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Nagy naptár események */
+.rbc-event {
+  border: none;
+  border-radius: 6px;
+  color: white;
+  font-size: 0.85rem;
+  padding: 2px 6px;
+}
+
+/* Naptár rács */
+.rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #eee;
+}
+
+.rbc-header {
+  background: #f4f1e1;
+  font-weight: 600;
+  padding: 0.5rem;
+  border-bottom: 2px solid #e6d5a8;
+}
+
+/* === Modal (react-modal) === */
+.ReactModal__Overlay {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+  z-index: 1000 !important;
+}
+
+.ReactModal__Content {
+  position: relative;
+  width: 400px;
+  max-width: 90vw;
+  margin: auto;
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.3);
+  inset: 0 !important;
+}
+
+.ReactModal__Content h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #444;
+}
+
+.ReactModal__Content p {
+  margin-bottom: 0.6rem;
+  color: #333;
+  font-size: 0.95rem;
+}
+
+.ReactModal__Content button {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.6rem 1rem;
+  background-color: #d4b56a;
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.ReactModal__Content button:hover {
+  background-color: #b89950;
+  color: white;
+}
+/* Dashboard stat kártyák */
+
+.stat-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.25rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+}
+
+.stat-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.stat-value {
+  margin-top: 0.4rem;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+/* Dashboard kártyák */
+
+.chart-card,
+.warnings-card {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+  margin-bottom: 1.5rem;
+}
+
+.chart-title {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+/* === Employees (munkatársak) oldal === */
+
+.employees-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.employees-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+}
+
+.employees-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 0.35rem;
+}
+
+.employees-error {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #b91c1c;
+}
+
+.employees-header-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.employees-primary-btn {
+  background-color: #d4b56a;
+  color: #222;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+.employees-primary-btn:hover {
+  background-color: #b89950;
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+.employees-secondary-btn {
+  background-color: #fff;
+  color: #444;
+  border: 1px solid #e0d1a3;
+  border-radius: 8px;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.employees-secondary-btn--active {
+  background-color: #f1e0b0;
+  border-color: #d4b56a;
+  color: #333;
+}
+
+.employees-filters {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.employees-filters-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.employees-filters-row:last-child {
+  margin-bottom: 0;
+}
+
+.employees-filter-field {
+  min-width: 180px;
+  flex: 1 1 0;
+}
+
+.employees-filter-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.employees-filter-input {
+  width: 100%;
+  border: 1px solid #ddd0aa;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.85rem;
+}
+
+.employees-filter-input:focus {
+  outline: none;
+  border-color: #d4b56a;
+  box-shadow: 0 0 0 2px rgba(212, 181, 106, 0.35);
+}
+
+.employees-filter-summary {
+  align-self: flex-end;
+  font-size: 0.8rem;
+  color: #777;
+}
+
+/* Lista / tábla */
+
+.employees-list-card {
+  background-color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.08);
+  padding: 0.5rem 0.75rem;
+  height: calc(100% - 7rem);
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+}
+
+.employees-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.employees-table th {
+  background: #f4f1e1;
+  color: #444;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 2px solid #e6d5a8;
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.employees-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #f0e4c5;
+  color: #333;
+}
+
+.employees-row {
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.employees-row:hover {
+  background-color: #fdf6e8;
+}
+
+.employees-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+}
+
+.employees-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid #e0d1a3;
+}
+
+.employees-name-link {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+.employees-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+}
+
+.employees-badge--active {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.employees-badge--inactive {
+  background-color: #fee2e2;
+  color: #b91c1c;
+}
+
+.employees-loading {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+/* === Munkatárs részletei (EmployeeDetails) === */
+
+.employee-details-card {
+  background-color: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.08);
+  padding: 1rem 1.2rem 0.9rem;
+  max-height: 80vh;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  font-size: 0.9rem;
+}
+
+.employee-details-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  border-bottom: 1px solid #f0e4c5;
+  padding-bottom: 0.7rem;
+}
+
+.employee-details-header-left {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.employee-details-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #e0d1a3;
+}
+
+.employee-details-name {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.employee-details-mainline {
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.employee-details-subline {
+  font-size: 0.8rem;
+  color: #777;
+}
+
+.employee-details-created {
+  font-size: 0.7rem;
+  color: #999;
+  margin-top: 0.15rem;
+}
+
+.employee-details-header-right {
+  display: flex;
+  align-items: flex-start;
+}
+
+.employee-details-edit-btn {
+  background-color: #333;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease,
+    box-shadow 0.2s ease;
+}
+
+.employee-details-edit-btn:hover {
+  background-color: #000;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Törzs */
+
+.employee-details-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.employee-details-section {
+  background-color: #fdfaf2;
+  border-radius: 10px;
+  border: 1px solid #efe0b7;
+  padding: 0.7rem 0.8rem;
+}
+
+.employee-details-section-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.4rem;
+}
+
+.employee-details-section-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr);
+  gap: 0.25rem 1rem;
+}
+
+@media (max-width: 768px) {
+  /* EDDIG: .sidebar { ... } */
+  .sidebar,
+  .kleo-sidebar {
+    width: 100%;
+    min-width: 0;
+    border-right: none;
+    border-bottom: 2px solid #c4a65a;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  }
+
+  /* ha vannak további .sidebar-hoz kötött szabályok,
+     duplikáld őket is így: */
+  .sidebar .logo,
+  .kleo-sidebar .logo {
+    padding: 0.75rem 1rem;
+  }
+
+  .sidebar .logo img,
+  .kleo-sidebar .logo img {
+    width: 120px;
+  }
+.employee-details-field {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.employee-details-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888;
+  margin-bottom: 0.05rem;
+}
+
+/* Megjegyzések / bio */
+
+.employee-details-subsection {
+  margin-top: 0.5rem;
+}
+
+.employee-details-subtitle {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.25rem;
+}
+
+.employee-details-note-box {
+  background-color: #fff;
+  border-radius: 8px;
+  border: 1px solid #ebdfbc;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.85rem;
+  color: #444;
+  white-space: pre-line;
+  min-height: 60px;
+}
+
+.employee-details-notes-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.6rem;
+}
+
+@media (max-width: 768px) {
+  .employee-details-notes-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.employee-details-note-column {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+/* Tulajdonságok */
+
+.employee-details-traits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.employee-details-trait-pill {
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background-color: #f4f1e1;
+  border: 1px solid #e0d1a3;
+  font-size: 0.75rem;
+  color: #444;
+}
+
+.employee-details-empty {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* Láb, hiba, betöltés */
+
+.employee-details-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.2rem;
+}
+
+.employee-details-back {
+  background: none;
+  border: none;
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.employee-details-error {
+  background-color: #fef2f2;
+  border-radius: 10px;
+  border: 1px solid #fecaca;
+  padding: 0.8rem;
+  text-align: center;
+  color: #b91c1c;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.employee-details-loading {
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+}}
+
+/* === MOBIL LAYOUT – sidebar felül, görgethető tartalom === */
+@media (max-width: 768px) {
+  .home-container {
+    display: flex;
+    flex-direction: column;   /* sidebar felül, tartalom alatta */
+    height: auto;             /* ne legyen fix 100vh */
+    min-height: 100vh;        /* de legalább kitöltse a képernyőt */
+    overflow: visible;        /* engedjük a görgetést */
+  }
+
+  /* A bal oldali (asztali) sidebar mobilon teljes szélességben felül legyen */
+  .kleo-sidebar {
+    width: 100%;
+    min-height: auto;
+    border-right: none;
+    border-bottom: 1px solid #e3c49a;
+  }
+
+  /* A fő tartalom (naptár / dashboard) töltse ki a maradék helyet és legyen görgethető */
+.calendar-container {
+  flex: 1;
+  background-color: #f8f8f8;
+  padding: 1rem;
+  overflow: auto;     /* itt engedjük a görgetést */
+  max-height: none;   /* ne vágja le a magasságot */
+}
+
+  /* A nagy naptár ne legyen kényszerítve fix magasságra */
+  .rbc-calendar {
+    height: auto;
+    min-height: 60vh;
+  }
+}
+/* === Napi munkaidő-beosztás (DailyScheduleBoard) === */
+
+.kleo-daily-wrapper {
+  margin-top: 1.5rem;
+  background: #fefdfb;
+  border-radius: 1rem;
+  padding: 1.2rem 1.4rem;
+  border: 1px solid #f3e4c6;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+}
+
+.kleo-daily-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+
+.kleo-daily-title-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.kleo-daily-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1f2937;
+}
+
+.kleo-daily-subtitle {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.kleo-daily-status {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.75rem;
+  font-size: 0.85rem;
+}
+
+.kleo-daily-status--loading {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.kleo-daily-status--error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.kleo-daily-status--empty {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.kleo-daily-location-card {
+  margin-top: 1rem;
+  border-radius: 1rem;
+  border: 1px solid #ede9fe;
+  background: #f9fafb;
+  overflow: hidden;
+}
+
+.kleo-daily-location-header {
+  padding: 0.6rem 0.9rem;
+  background: linear-gradient(90deg, #fefce8, #fef9c3);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.kleo-daily-location-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.kleo-daily-location-count {
+  font-size: 0.78rem;
+  color: #6b7280;
+}
+
+.kleo-daily-grid-wrapper {
+  overflow-x: auto;
+  padding: 0.5rem 0.2rem 0.7rem;
+}
+
+.kleo-daily-grid-row {
+  display: grid;
+  grid-template-columns: 180px repeat(13, minmax(60px, 1fr));
+  /* 13 oszlop: 8–20 óra => ha mást választasz, igazítsd */
+}
+
+.kleo-daily-grid-row--header {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.kleo-daily-grid-row--body:nth-child(odd) .kleo-daily-cell--slot {
+  background: #f9fafb;
+}
+
+.kleo-daily-grid-row--body:nth-child(even) .kleo-daily-cell--slot {
+  background: #f3f4f6;
+}
+
+.kleo-daily-cell {
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #e5e7eb;
+  padding: 0.3rem 0.4rem;
+  min-height: 42px;
+  box-sizing: border-box;
+}
+
+.kleo-daily-cell--employee-header {
+  background: #f3f4f6;
+  border-top-left-radius: 0.6rem;
+}
+
+.kleo-daily-cell--hour-header {
+  text-align: center;
+  background: #f3f4f6;
+}
+
+.kleo-daily-cell--employee {
+  background: #f9fafb;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.kleo-daily-employee-name {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #111827;
+}
+
+.kleo-daily-employee-count {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.kleo-daily-cell--slot {
+  position: relative;
+  font-size: 0.75rem;
+}
+
+.kleo-daily-event {
+  position: relative;
+  border-radius: 0.45rem;
+  padding: 0.2rem 0.25rem;
+  margin-bottom: 0.15rem;
+  font-size: 0.72rem;
+  line-height: 1.1;
+  color: #111827;
+  background: #bfdbfe;
+  border: 1px solid #93c5fd;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Színezés státusz alapján – később lehet finomítani */
+.kleo-daily-event--status-default {
+  background: #bfdbfe;
+  border-color: #93c5fd;
+}
+
+.kleo-daily-event--status-booked,
+.kleo-daily-event--status-foglalt {
+  background: #fecaca;
+  border-color: #fca5a5;
+}
+
+.kleo-daily-event--status-done,
+.kleo-daily-event--status-completed {
+  background: #bbf7d0;
+  border-color: #86efac;
+}
+
+.kleo-daily-event--status-cancelled,
+.kleo-daily-event--status-canceled {
+  background: #fee2e2;
+  border-color: #fecaca;
+  text-decoration: line-through;
+}
+
+.kleo-daily-event-title {
+  font-weight: 500;
+}
+
+.kleo-daily-event-client {
+  font-size: 0.7rem;
+  color: #4b5563;
+}
+
+/* Mobilbarát: a tábla horizontálisan scrollozható marad */
+
+@media (max-width: 768px) {
+  .kleo-daily-wrapper {
+    margin-top: 1rem;
+    padding: 0.8rem 0.8rem 1rem;
+    border-radius: 0.9rem;
+  }
+
+  .kleo-daily-grid-row {
+    grid-template-columns: 140px repeat(13, minmax(56px, 1fr));
+  }
+
+  .kleo-daily-employee-name {
+    font-size: 0.8rem;
+  }
+
+  .kleo-daily-employee-count {
+    font-size: 0.68rem;
+  }
+
+  .kleo-daily-event {
+    font-size: 0.68rem;
+  }
+}
+/* ==== Appointments weekly calendar ==== */
+
+.appointments-page {
+  padding: 1rem;
+}
+
+.appointments-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.appointments-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.appointments-header-left,
+.appointments-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.appointments-week-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.appointments-button {
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.35rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  color: #111827;
+  transition: background 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.appointments-button:hover {
+  background: #f9fafb;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.08);
+}
+
+.appointments-button--primary {
+  background: linear-gradient(135deg, #f97316, #facc15);
+  border-color: #ea580c;
+  color: #111827;
+}
+
+.appointments-button--primary:hover {
+  background: linear-gradient(135deg, #ea580c, #eab308);
+}
+
+.appointments-circle-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.appointments-circle-button:hover {
+  background: #f9fafb;
+}
+
+.appointments-date-input {
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.appointments-info-row {
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  color: #4b5563;
+}
+
+.appointments-info-row--error {
+  color: #b91c1c;
+  background: #fef2f2;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.6rem;
+}
+
+.appointments-grid-wrapper {
+  margin-top: 0.5rem;
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+}
+
+.appointments-grid {
+  min-width: 960px;
+  border-top: 1px solid #e5e7eb;
+  border-left: 1px solid #e5e7eb;
+  font-size: 0.75rem;
+}
+
+.appointments-grid-header-cell,
+.appointments-grid-time-cell,
+.appointments-grid-cell {
+  border-right: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.3rem 0.45rem;
+  box-sizing: border-box;
+}
+
+.appointments-grid-header-cell {
+  background: #fefce8;
+  font-weight: 600;
+  text-align: center;
+}
+
+.appointments-grid-header-time {
+  text-align: left;
+}
+
+.appointments-grid-header-date {
+  font-size: 0.7rem;
+  color: #6b7280;
+}
+
+.appointments-grid-time-cell {
+  background: #f9fafb;
+  font-weight: 600;
+  color: #4b5563;
+  width: 80px;
+}
+
+.appointments-grid-cell {
+  min-height: 44px;
+  vertical-align: top;
+}
+
+.appointments-event {
+  font-size: 0.7rem;
+  line-height: 1.25;
+}
+
+.appointments-event-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appointments-event-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appointments-event-line--secondary {
+  opacity: 0.8;
+}
+
+/* Kis kijelzőkön */
+@media (max-width: 1024px) {
+  .appointments-card {
+    padding: 0.75rem 0.85rem 0.85rem;
+  }
+
+  .appointments-grid-wrapper {
+    max-height: none;
+  }
+}

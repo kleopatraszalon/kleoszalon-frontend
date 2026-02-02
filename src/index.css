@@ -1,0 +1,278 @@
+import React, { useEffect, useMemo, useState } from "react";
+import AdminEventModal, {
+  Employee,
+  Client,
+  Service,
+  CalendarEvent,
+} from "./AdminEventModal";
+import "./Home.css"; // ha nincs, nyugodtan vedd ki
+
+type RawEvent = {
+  id: string;
+  title?: string | null;
+  start_time: string;
+  end_time: string;
+  employee_id?: string | null;
+  client_id?: string | null;
+  service_ids?: string[];
+  service_id?: string | null;
+  status?: string | null;
+  price?: number | null;
+  payment_method?: string | null;
+  notes?: string | null;
+};
+
+const HOURS = Array.from({ length: 15 }, (_, i) => 6 + i); // 06–20
+const DAYS = ["Hétfő", "Kedd", "Szerda", "Csütörtök", "Péntek", "Szombat"];
+
+function getMonday(d: Date): Date {
+  const day = d.getDay(); // 0=vasárnap
+  const diff = (day === 0 ? -6 : 1) - day;
+  const res = new Date(d);
+  res.setDate(d.getDate() + diff);
+  res.setHours(0, 0, 0, 0);
+  return res;
+}
+
+function addDays(d: Date, n: number): Date {
+  const r = new Date(d);
+  r.setDate(d.getDate() + n);
+  return r;
+}
+
+const fmtShort = (d: Date) =>
+  `${(d.getMonth() + 1).toString().padStart(2, "0")}.${d
+    .getDate()
+    .toString()
+    .padStart(2, "0")}.`;
+
+const fmtHead = (start: Date, end: Date) =>
+  `${start.getFullYear()}.${(start.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}.${start
+    .getDate()
+    .toString()
+    .padStart(2, "0")}. – ${end.getFullYear()}.${(end.getMonth() + 1)
+    .toString()
+    .padStart(2, "0")}.${end.getDate().toString().padStart(2, "0")}.`;
+
+const CalendarPage: React.FC = () => {
+  const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
+  const weekEnd = addDays(weekStart, 5);
+
+  const [events, setEvents] = useState<RawEvent[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+
+  const [selectedSlot, setSelectedSlot] = useState<{
+    start: Date;
+    end: Date;
+  } | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [reloadToken, setReloadToken] = useState(0);
+
+  // ---- Adatok betöltése ----
+  useEffect(() => {
+    const token =
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("token") ||
+          sessionStorage.getItem("token"))) ||
+      null;
+
+    const baseInit: RequestInit = token
+      ? { headers: { Authorization: `Bearer ${token}` } }
+      : {};
+
+    Promise.all([
+      fetch("http://localhost:5000/api/events", baseInit)
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("http://localhost:5000/api/employees", baseInit)
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("http://localhost:5000/api/clients", baseInit)
+        .then((r) => r.json())
+        .catch(() => []),
+      fetch("http://localhost:5000/api/services", baseInit)
+        .then((r) => r.json())
+        .catch(() => []),
+    ]).then(([evs, emps, cls, svs]) => {
+      setEvents(Array.isArray(evs) ? evs : []);
+      setEmployees(Array.isArray(emps) ? emps : []);
+      setClients(Array.isArray(cls) ? cls : []);
+      setServices(Array.isArray(svs) ? svs : []);
+    });
+  }, [reloadToken]);
+
+  // ---- Események csoportosítása cellákra (nap+óra) ----
+  const eventsByCell = useMemo(() => {
+    const map = new Map<string, RawEvent[]>();
+    for (const ev of events) {
+      const d = new Date(ev.start_time);
+      const key = `${d.toDateString()}-${d.getHours()}`;
+      const arr = map.get(key) || [];
+      arr.push(ev);
+      map.set(key, arr);
+    }
+    return map;
+  }, [events]);
+
+  // ---- Cellakattintás -> modal ----
+  const openNewAt = (dayIndex: number, hour: number) => {
+    const start = new Date(weekStart);
+    start.setDate(weekStart.getDate() + dayIndex);
+    start.setHours(hour, 0, 0, 0);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + 30);
+
+    setSelectedSlot({ start, end });
+    setIsModalOpen(true);
+  };
+
+  const handleSaved = async (data: CalendarEvent) => {
+    // új esemény mentése /api/events-hez
+    const token =
+      (typeof window !== "undefined" &&
+        (localStorage.getItem("token") ||
+          sessionStorage.getItem("token"))) ||
+      null;
+
+    const payload: any = {
+      ...data,
+      service_id: data.service_ids && data.service_ids[0],
+    };
+
+    const resp = await fetch("http://localhost:5000/api/events", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!resp.ok) {
+      const t = await resp.text().catch(() => "");
+      alert(`Hiba a mentésnél: ${resp.status}\n${t}`);
+      return;
+    }
+
+    setIsModalOpen(false);
+    setSelectedSlot(null);
+    setReloadToken((x) => x + 1);
+  };
+
+  // ---- UI ----
+  return (
+    <div className="calendar-page">
+      <div className="calendar-header">
+        <div className="left">
+          <button
+            className="btn"
+            onClick={() => setWeekStart(getMonday(new Date()))}
+          >
+            Mai nap
+          </button>
+          <button
+            className="btn"
+            onClick={() => setWeekStart(addDays(weekStart, -7))}
+          >
+            &lt;
+          </button>
+          <button
+            className="btn"
+            onClick={() => setWeekStart(addDays(weekStart, +7))}
+          >
+            &gt;
+          </button>
+          <span className="range-label">
+            {fmtHead(weekStart, weekEnd)}
+          </span>
+        </div>
+        <div className="right">
+          <button
+            className="btn primary"
+            onClick={() => openNewAt(0, 9)} // random default: hétfő 09:00
+          >
+            Új időpont
+          </button>
+        </div>
+      </div>
+
+      {/* Heti rács */}
+      <div className="week-grid">
+        {/* Fejléc sor */}
+        <div className="time-col header-cell">Idő</div>
+        {DAYS.map((label, idx) => {
+          const d = addDays(weekStart, idx);
+          return (
+            <div key={label} className="day-header">
+              <div>{label}</div>
+              <div className="day-sub">{fmtShort(d)}</div>
+            </div>
+          );
+        })}
+
+        {/* Idősorok */}
+        {HOURS.map((h) => (
+          <React.Fragment key={h}>
+            {/* Idő oszlop */}
+            <div className="time-col">{`${h
+              .toString()
+              .padStart(2, "0")}:00`}</div>
+
+            {/* Napok oszlopai */}
+            {DAYS.map((_, dayIndex) => {
+              const cellDate = addDays(weekStart, dayIndex);
+              const key = `${cellDate.toDateString()}-${h}`;
+              const cellEvents = eventsByCell.get(key) || [];
+
+              return (
+                <div
+                  key={key}
+                  className="grid-cell"
+                  onClick={() => openNewAt(dayIndex, h)}
+                >
+                  {cellEvents.map((ev) => {
+                    const emp = employees.find(
+                      (e) => e.id === ev.employee_id
+                    );
+                    return (
+                      <div key={ev.id} className="event-chip">
+                        <div className="event-title">
+                          {ev.title || "Időpont"}
+                        </div>
+                        <div className="event-sub">
+                          {emp?.full_name ?? emp?.name ?? ""}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}q
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Felugró modal */}
+      <AdminEventModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedSlot(null);
+        }}
+        onSaved={handleSaved}
+        slotStart={selectedSlot?.start || undefined}
+        slotEnd={selectedSlot?.end || undefined}
+        employees={employees}
+        clients={clients}
+        services={services}
+        event={null}
+      />
+    </div>
+  );
+};
+
+export default CalendarPage;

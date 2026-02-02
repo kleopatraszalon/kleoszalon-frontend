@@ -1,0 +1,126 @@
+/* AdminEventModal – Kleopátra arculatú popup */
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 12, 8, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.admin-modal {
+  width: min(720px, 95vw);
+  max-height: 90vh;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 20px;
+  border: 1px solid #d5c4a4;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  font-family: "Montserrat", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #120c08;
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid #e3d8c3;
+  background: linear-gradient(90deg, #fffaf5, #f9f0e4, #fffaf5);
+}
+
+.admin-modal-title {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.admin-modal-body {
+  padding: 16px 18px 18px;
+  overflow-y: auto;
+}
+
+.admin-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid #e3d8c3;
+  background: #fffdf9;
+}
+
+/* Buttons */
+.admin-btn-ghost {
+  padding: 6px 14px;
+  font-size: 0.78rem;
+  border-radius: 999px;
+  border: 1px solid #d5c4a4;
+  background: rgba(255, 255, 255, 0.9);
+  color: #5d5a55;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.admin-btn-ghost:hover {
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.admin-btn-primary {
+  padding: 6px 16px;
+  font-size: 0.8rem;
+  border-radius: 999px;
+  border: none;
+  background: linear-gradient(135deg, #b69861, #ec008c);
+  color: #ffffff;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.25);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+}
+
+.admin-btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.3);
+  filter: brightness(1.03);
+}
+
+.admin-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Form elements */
+.admin-modal-body label {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #5d5a55;
+  margin-bottom: 4px;
+}
+
+.admin-modal-body input,
+.admin-modal-body select,
+.admin-modal-body textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #e5e2da;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+}
+
+/* Scrollbar */
+.admin-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+.admin-modal-body::-webkit-scrollbar-thumb {
+  background: #d5c4a4;
+  border-radius: 999px;
+}
