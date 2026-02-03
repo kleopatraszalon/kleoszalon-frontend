@@ -1,5 +1,15 @@
 import api from "../api";
 
+export type SignageService = {
+  id: string;
+  name: string;
+  category: string;
+  duration_min: number | null;
+  price_text: string;
+  show: boolean;
+  priority: number;
+};
+
 export type Deal = {
   id: string;
   title: string;
@@ -8,6 +18,17 @@ export type Deal = {
   valid_from: string | null;
   valid_to: string | null;
   active: boolean;
+  priority: number;
+};
+
+export type Professional = {
+  id: string;
+  name: string;
+  title: string;
+  note: string;
+  photo_url: string;
+  show: boolean;
+  available: boolean;
   priority: number;
 };
 
@@ -20,91 +41,107 @@ export type Quote = {
   priority: number;
 };
 
-export type ServiceItem = {
+export type VideoItem = {
   id: string;
-  name: string;
-  category: string;
-  durationMin: number | null;
-  price_text: string;
+  youtube_id: string;
+  title: string;
   enabled: boolean;
   priority: number;
+  duration_sec: number;
 };
 
-export type Professional = {
-  id: string;
-  name: string;
-  title: string;
-  note: string;
-  photo_url: string;
-  available: boolean;
-  priority: number;
-};
+/**
+ * FONTOS:
+ * A projekt axios baseURL-je gyakran már tartalmazza az "/api" prefixet.
+ * Ezért itt NEM használunk "/api/..." kezdetű URL-eket, különben "/api/api/..." lesz belőle.
+ */
 
-type ServicesResp = { services: ServiceItem[] };
-type DealsResp = { deals: Deal[] };
-type DealResp = { deal: Deal };
-type QuotesResp = { quotes: Quote[] };
-type QuoteResp = { quote: Quote };
-type ProfessionalsResp = { professionals: Professional[] };
-type ProfessionalResp = { professional: Professional };
-type OkResp = { ok: boolean };
-
-export async function listServices(): Promise<ServiceItem[]> {
-  const res = await api.get<ServicesResp>("/api/admin/signage/services");
-  return res.data?.services ?? [];
+// Services
+export async function listSignageServices(): Promise<SignageService[]> {
+  const r = await api.get<{ services: SignageService[] }>("/admin/signage/services");
+  return r.data?.services ?? [];
 }
-export async function upsertServiceOverride(id: string, payload: { enabled?: boolean; price_text_override?: string | null; priority?: number }) {
-  const res = await api.put(`/api/admin/signage/services/${id}/override`, payload);
-  return res.data;
+export async function createSignageService(payload: Partial<SignageService>) {
+  const r = await api.post<{ service: SignageService }>("/admin/signage/services", payload);
+  return r.data?.service;
+}
+export async function updateSignageService(id: string, payload: Partial<SignageService>) {
+  const r = await api.put<{ service: SignageService }>(`/admin/signage/services/${id}`, payload);
+  return r.data?.service;
+}
+export async function deleteSignageService(id: string) {
+  const r = await api.delete<{ ok: boolean }>(`/admin/signage/services/${id}`);
+  return r.data?.ok;
 }
 
+// Deals
 export async function listDeals(): Promise<Deal[]> {
-  const res = await api.get<DealsResp>("/api/admin/signage/deals");
-  return res.data?.deals ?? [];
+  const r = await api.get<{ deals: Deal[] }>("/admin/signage/deals");
+  return r.data?.deals ?? [];
 }
 export async function createDeal(payload: Partial<Deal>) {
-  const res = await api.post<DealResp>("/api/admin/signage/deals", payload);
-  return res.data?.deal;
+  const r = await api.post<{ deal: Deal }>("/admin/signage/deals", payload);
+  return r.data?.deal;
 }
 export async function updateDeal(id: string, payload: Partial<Deal>) {
-  const res = await api.put<DealResp>(`/api/admin/signage/deals/${id}`, payload);
-  return res.data?.deal;
+  const r = await api.put<{ deal: Deal }>(`/admin/signage/deals/${id}`, payload);
+  return r.data?.deal;
 }
 export async function deleteDeal(id: string) {
-  const res = await api.delete<OkResp>(`/api/admin/signage/deals/${id}`);
-  return res.data?.ok;
+  const r = await api.delete<{ ok: boolean }>(`/admin/signage/deals/${id}`);
+  return r.data?.ok;
 }
 
-export async function listQuotes(): Promise<Quote[]> {
-  const res = await api.get<QuotesResp>("/api/admin/signage/quotes");
-  return res.data?.quotes ?? [];
-}
-export async function createQuote(payload: Partial<Quote>) {
-  const res = await api.post<QuoteResp>("/api/admin/signage/quotes", payload);
-  return res.data?.quote;
-}
-export async function updateQuote(id: string, payload: Partial<Quote>) {
-  const res = await api.put<QuoteResp>(`/api/admin/signage/quotes/${id}`, payload);
-  return res.data?.quote;
-}
-export async function deleteQuote(id: string) {
-  const res = await api.delete<OkResp>(`/api/admin/signage/quotes/${id}`);
-  return res.data?.ok;
-}
-
+// Professionals
 export async function listProfessionals(): Promise<Professional[]> {
-  const res = await api.get<ProfessionalsResp>("/api/admin/signage/professionals");
-  return res.data?.professionals ?? [];
+  const r = await api.get<{ professionals: Professional[] }>("/admin/signage/professionals");
+  return r.data?.professionals ?? [];
 }
 export async function createProfessional(payload: Partial<Professional>) {
-  const res = await api.post<ProfessionalResp>("/api/admin/signage/professionals", payload);
-  return res.data?.professional;
+  const r = await api.post<{ professional: Professional }>("/admin/signage/professionals", payload);
+  return r.data?.professional;
 }
 export async function updateProfessional(id: string, payload: Partial<Professional>) {
-  const res = await api.put<ProfessionalResp>(`/api/admin/signage/professionals/${id}`, payload);
-  return res.data?.professional;
+  const r = await api.put<{ professional: Professional }>(`/admin/signage/professionals/${id}`, payload);
+  return r.data?.professional;
 }
 export async function deleteProfessional(id: string) {
-  const res = await api.delete<OkResp>(`/api/admin/signage/professionals/${id}`);
-  return res.data?.ok;
+  const r = await api.delete<{ ok: boolean }>(`/admin/signage/professionals/${id}`);
+  return r.data?.ok;
+}
+
+// Quotes
+export async function listQuotes(): Promise<Quote[]> {
+  const r = await api.get<{ quotes: Quote[] }>("/admin/signage/quotes");
+  return r.data?.quotes ?? [];
+}
+export async function createQuote(payload: Partial<Quote>) {
+  const r = await api.post<{ quote: Quote }>("/admin/signage/quotes", payload);
+  return r.data?.quote;
+}
+export async function updateQuote(id: string, payload: Partial<Quote>) {
+  const r = await api.put<{ quote: Quote }>(`/admin/signage/quotes/${id}`, payload);
+  return r.data?.quote;
+}
+export async function deleteQuote(id: string) {
+  const r = await api.delete<{ ok: boolean }>(`/admin/signage/quotes/${id}`);
+  return r.data?.ok;
+}
+
+// Videos
+export async function listVideos(): Promise<VideoItem[]> {
+  const r = await api.get<{ videos: VideoItem[] }>("/admin/signage/videos");
+  return r.data?.videos ?? [];
+}
+export async function createVideo(payload: Partial<VideoItem>) {
+  const r = await api.post<{ video: VideoItem }>("/admin/signage/videos", payload);
+  return r.data?.video;
+}
+export async function updateVideo(id: string, payload: Partial<VideoItem>) {
+  const r = await api.put<{ video: VideoItem }>(`/admin/signage/videos/${id}`, payload);
+  return r.data?.video;
+}
+export async function deleteVideo(id: string) {
+  const r = await api.delete<{ ok: boolean }>(`/admin/signage/videos/${id}`);
+  return r.data?.ok;
 }

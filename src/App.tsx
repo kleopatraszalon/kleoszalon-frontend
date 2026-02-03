@@ -491,14 +491,6 @@ const router = createBrowserRouter(
       ),
     },
     {
-      path: "/admin/signage",
-      element: (
-        <Suspense fallback={<div />}>
-          <SignageAdmin />
-        </Suspense>
-      ),
-    },
-    {
       path: "/masters/services",
       element: (
         <RequireAuth>
@@ -913,10 +905,22 @@ const router = createBrowserRouter(
 
     // Fallback
     {
+  path: "/admin/signage",
+  element: (
+    <RequireAuth>
+      <SignageAdmin />
+    </RequireAuth>
+  ),
+},
+{
+  path: "/admin/signate",
+  element: <Navigate to="/admin/signage" replace />,
+},
+{
       path: "*",
       element: <FallbackRedirect />,
-    },
-  ],
+    }
+],
   {
     // 🔹 React Router v7 future flag-ek bekapcsolva – eltűnnek a warningok
     future: {

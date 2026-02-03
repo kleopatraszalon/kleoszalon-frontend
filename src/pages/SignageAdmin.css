@@ -1,31 +1,29 @@
-.sgadm{ padding: 18px 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+.sgadm{ padding: 18px 20px; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; font-size: 18px; }
 .sgadm__top{ display:flex; justify-content:space-between; align-items:flex-end; gap:16px; margin-bottom: 12px; }
-.sgadm__sub{ color:#666; margin-top:6px; }
-.sgadm__actions button{ padding:10px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#fff; cursor:pointer; font-weight:800; }
+.sgadm__brand{ display:flex; gap:16px; align-items:center; }
+.sgadm__logo{ height: 56px; width: auto; }
+.sgadm__sub{ color:#666; margin-top:6px; font-size: 20px; }
+.sgadm__actions button{ padding:10px 14px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#fff; cursor:pointer; font-weight:800; font-size:18px; }
+h1{ margin:0; font-size:44px; }
 .sgadm__err{ margin: 12px 0; padding: 10px 12px; border-radius: 12px; border:1px solid rgba(236,0,140,0.35); background: rgba(236,0,140,0.06); color:#ec008c; font-weight:900; }
-.sgadm__grid{ display:grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 14px; }
-@media (max-width: 1400px){ .sgadm__grid{ grid-template-columns: 1fr; } }
+.sgadm__gridWide{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 1400px){ .sgadm__gridWide{ grid-template-columns: 1fr; } }
 .card{ background:#fff; border:1px solid rgba(182,152,97,0.25); border-radius:14px; padding: 12px; }
-.card h2{ margin:0 0 6px 0; }
-.muted{ color:#666; font-size: 13px; }
-.row input{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); margin-top:10px; }
+.card h2{ margin:0 0 6px 0; font-size:30px; }
+.muted{ color:#666; font-size: 16px; }
 .form{ margin-top:10px; background:#fbfaf8; border:1px solid rgba(182,152,97,0.15); border-radius:12px; padding:10px; }
-label{ display:block; font-size:12px; color:#555; margin-top:8px; }
-input, textarea, select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#fff; }
-textarea{ resize: vertical; }
+label{ display:block; font-size:16px; color:#555; margin-top:8px; }
+input, textarea, select{ width:100%; padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#fff; font-size:18px; }
 .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-.grid3{ display:grid; grid-template-columns: 1fr 0.5fr 0.6fr; gap:10px; align-items:end; }
-.btncol button, .form button{ padding:10px 12px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); background:#ec008c; color:#fff; font-weight:900; cursor:pointer; }
-.secondary{ background:#fff !important; color:#120c08 !important; }
-.danger{ background:#fff !important; color:#ec008c !important; border-color: rgba(236,0,140,0.35) !important; }
-.chk{ display:flex; gap:10px; align-items:center; margin-top: 28px; }
-.chk input{ width:auto; }
+.grid3{ display:grid; grid-template-columns: 1fr 0.6fr 0.8fr; gap:10px; align-items:end; }
+.chk{ display:flex; gap:10px; align-items:center; margin-top: 28px; font-size:18px; }
+.chk input{ width:auto; transform: scale(1.2); }
+.chkSmall{ display:flex; gap:10px; align-items:center; font-size: 16px; color:#444; }
+.chkSmall input{ transform: scale(1.15); }
 .list{ margin-top:10px; display:flex; flex-direction:column; gap:10px; max-height: 520px; overflow:auto; }
 .item{ border:1px solid rgba(0,0,0,0.08); border-radius:12px; padding:10px; background:#fff; }
 .item__title{ display:flex; justify-content:space-between; gap:10px; align-items:center; }
-.badge{ font-size:11px; padding:4px 10px; border-radius:999px; border:1px solid rgba(0,0,0,0.12); color:#666; }
-.badge.ok{ color:#1c7c3a; border-color: rgba(28,124,58,0.35); }
-.badge.off{ color:#888; }
-.price{ font-weight:1000; color:#b69861; margin-top: 6px; }
+.price{ font-weight:1000; color:#b69861; margin-top: 6px; font-size:20px; }
 .btnrow{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
-.btnrow button{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); cursor:pointer; font-weight:900; background:#fff; }
+.btnrow button{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); cursor:pointer; font-weight:900; background:#fff; font-size:18px; }
+.danger{ background:#fff; color:#ec008c; border-color: rgba(236,0,140,0.35); }

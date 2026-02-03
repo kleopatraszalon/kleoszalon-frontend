@@ -4,7 +4,7 @@ import axios from "axios";
 const API_BASE =
   (import.meta as any).env?.VITE_API_URL ||
   (process.env as any).REACT_APP_API_URL ||
-  "http://localhost:5000";
+  "https://kleoszalon-api-jon.onrender.com";
 
 const api = axios.create({
   baseURL: API_BASE,
