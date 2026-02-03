@@ -74,10 +74,8 @@ async function fetchLocationsAsOptions(): Promise<LocationOpt[]> {
   // A 404 tipikusan azt jelenti, hogy rossz az endpoint neve.
   // Ezért több gyakori útvonalat is megpróbálunk.
   const pathCandidates = [
-    "locations",
-    "telephelyek",
     "locations/public",
-    "telephelyek/public",
+    "locations",
   ];
 
   // Ha a backend nem használ /api prefixet, akkor a base-ben szereplő /api-t elhagyva
