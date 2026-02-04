@@ -59,7 +59,7 @@ export const SignagePage: React.FC = () => {
   //
   // Megoldás: állíts be REACT_APP_API_ORIGIN-t (pl. http://localhost:5000),
   // és minden API hívás ehhez az originhez menjen. Productionben hagyhatod üresen.
-  // 1) Build-time beállítás (Render / local): REACT_APP_API_ORIGIN=https://kleoszalon-api-jon.onrender.com
+  // 1) Build-time beállítás (Render / local): REACT_APP_API_ORIGIN=https://kleoszalon-api-1.onrender.com
   // 2) Fallback: ha a kijelző oldal a frontend domainen fut (onrender), automatikusan a backend onrender domainre megy.
   const cleanOrigin = (v: any) =>
     String(v ?? "")
@@ -70,7 +70,7 @@ export const SignagePage: React.FC = () => {
   // Vite: csak a VITE_* változók látszanak a böngészőben
   // Példák:
   //   VITE_API_ORIGIN=http://localhost:5000
-  //   VITE_API_ORIGIN=https://kleoszalon-api-jon.onrender.com
+  //   VITE_API_ORIGIN=https://kleoszalon-api-1.onrender.com
   const ENV_API_ORIGIN = cleanOrigin(
     (import.meta as any).env?.VITE_API_ORIGIN ||
       (import.meta as any).env?.VITE_API_URL ||
@@ -82,7 +82,7 @@ export const SignagePage: React.FC = () => {
     try {
       const host = window.location.hostname;
       // Frontend static site → backend service
-      if (host === "kleoszalon-frontend.onrender.com") return "https://kleoszalon-api-jon.onrender.com";
+      if (host === "kleoszalon-frontend.onrender.com") return "https://kleoszalon-api-1.onrender.com";
       // Local dev: ha a frontend nem a :5000-on fut, de nincs env beállítva, próbáljuk a :5000-at
       if ((host === "localhost" || host === "127.0.0.1") && window.location.port !== "5000") {
         return "http://localhost:5000";

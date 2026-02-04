@@ -4,7 +4,7 @@ import axios from "axios";
  * Frontend Axios instance (CRA / webpack) – NO Node polyfills.
  *
  * Priority:
- *  1) REACT_APP_API_ORIGIN / REACT_APP_API_URL (e.g. https://kleoszalon-api-jon.onrender.com)
+ *  1) REACT_APP_API_ORIGIN / REACT_APP_API_URL (e.g. https://kleoszalon-api-1.onrender.com)
  *  2) Auto-detect by hostname (Render frontend -> Render API)
  *  3) Local dev -> http://localhost:5000
  *  4) Fallback -> window.location.origin
@@ -28,7 +28,7 @@ function detectApiOrigin(): string {
 
   // Render frontend -> Render backend
   if (host === "kleoszalon-frontend.onrender.com") {
-    return "https://kleoszalon-api-jon.onrender.com";
+    return "https://kleoszalon-api-1.onrender.com";
   }
 
   // Local dev default
