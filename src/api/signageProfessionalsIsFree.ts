@@ -3,11 +3,13 @@ import api from "../api";
 export type Professional = {
   id: string;
   name: string;
-  title: string;
-  note: string;
-  photo_url: string;
+  title?: string | null;
+  note?: string | null;
+
+  photo_url?: string | null;   // ✅ EZ HIÁNYZIK
+
   show: boolean;
-  is_free: boolean; // ✅ új pipa: Szabad
+  available: boolean;
   priority: number;
 };
 
