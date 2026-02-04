@@ -1,147 +1,208 @@
-import api from "../api";
+import api from "./api";
 
+/**
+ * Frontend (browser) API client for the Signage Admin module.
+ *
+ * IMPORTANT:
+ *  - This file MUST NOT import Node-only modules (express, crypto, fs, db, etc.)
+ *  - Only use HTTP calls to the backend.
+ */
+
+// -----------------------------
+// Types
+// -----------------------------
 export type SignageService = {
   id: string;
   name: string;
-  category: string;
-  duration_min: number | null;
-  price_text: string;
-  show: boolean;
-  priority: number;
+  category?: string | null;
+  duration_min?: number | null;
+  price_text?: string | null;
+  priority?: number | null;
+  show?: boolean | null; // whether to show on signage
+  // optional override fields if backend returns them
+  enabled?: boolean | null;
+  price_text_override?: string | null;
+  priority_override?: number | null;
 };
 
 export type Deal = {
   id: string;
   title: string;
-  subtitle: string;
-  price_text: string;
-  valid_from: string | null;
-  valid_to: string | null;
-  active: boolean;
-  priority: number;
+  subtitle?: string | null;
+  price_text?: string | null;
+  valid_from?: string | null; // YYYY-MM-DD
+  valid_to?: string | null;   // YYYY-MM-DD
+  priority?: number | null;
+  active?: boolean | null;
 };
 
 export type Professional = {
   id: string;
   name: string;
-  title: string;
-  note: string;
-  photo_url: string;
-  show: boolean;
-  available: boolean;
-  priority: number;
-};
-
-export type Quote = {
-  id: string;
-  category: "fitness" | "beauty" | "general";
-  text: string;
-  author: string;
-  active: boolean;
-  priority: number;
+  title?: string | null;
+  note?: string | null;
+  priority?: number | null;
+  available?: boolean | null; // show on signage
 };
 
 export type VideoItem = {
   id: string;
   youtube_id: string;
-  title: string;
-  enabled: boolean;
-  priority: number;
-  duration_sec: number;
+  title?: string | null;
+  duration_sec?: number | null;
+  enabled?: boolean | null;
 };
 
-/**
- * FONTOS:
- * A projekt axios baseURL-je gyakran már tartalmazza az "/api" prefixet.
- * Ezért itt NEM használunk "/api/..." kezdetű URL-eket, különben "/api/api/..." lesz belőle.
- */
+export type QuoteCategory = "fitness" | "beauty" | "general";
 
+export type Quote = {
+  id: string;
+  category: QuoteCategory;
+  text: string;
+  author?: string | null;
+  priority?: number | null;
+  active?: boolean | null;
+};
+
+// -----------------------------
+// Helpers
+// -----------------------------
+function pickArray<T>(data: any, keys: string[]): T[] {
+  for (const k of keys) {
+    const v = data?.[k];
+    if (Array.isArray(v)) return v as T[];
+  }
+  return [];
+}
+
+function pickOne<T>(data: any, keys: string[]): T | null {
+  for (const k of keys) {
+    const v = data?.[k];
+    if (v) return v as T;
+  }
+  return null;
+}
+
+// -----------------------------
 // Services
+// -----------------------------
 export async function listSignageServices(): Promise<SignageService[]> {
-  const r = await api.get<{ services: SignageService[] }>("/admin/signage/services");
-  return r.data?.services ?? [];
+  const res = await api.get("/admin/signage/services");
+  return pickArray<SignageService>(res.data, ["services", "items", "rows"]);
 }
+
 export async function createSignageService(payload: Partial<SignageService>) {
-  const r = await api.post<{ service: SignageService }>("/admin/signage/services", payload);
-  return r.data?.service;
+  const res = await api.post("/admin/signage/services", payload);
+  return pickOne<SignageService>(res.data, ["service", "item", "row"]) ?? res.data;
 }
+
 export async function updateSignageService(id: string, payload: Partial<SignageService>) {
-  const r = await api.put<{ service: SignageService }>(`/admin/signage/services/${id}`, payload);
-  return r.data?.service;
+  const res = await api.put(`/admin/signage/services/${encodeURIComponent(id)}`, payload);
+  return pickOne<SignageService>(res.data, ["service", "item", "row"]) ?? res.data;
 }
+
 export async function deleteSignageService(id: string) {
-  const r = await api.delete<{ ok: boolean }>(`/admin/signage/services/${id}`);
-  return r.data?.ok;
+  const res = await api.delete(`/admin/signage/services/${encodeURIComponent(id)}`);
+  return res.data?.ok ?? true;
 }
 
+// Optional: override endpoint (if used by your UI)
+export async function upsertServiceOverride(
+  id: string,
+  payload: { enabled?: boolean; price_text_override?: string | null; priority?: number | null }
+) {
+  const res = await api.put(`/admin/signage/services/${encodeURIComponent(id)}/override`, payload);
+  return res.data;
+}
+
+// -----------------------------
 // Deals
+// -----------------------------
 export async function listDeals(): Promise<Deal[]> {
-  const r = await api.get<{ deals: Deal[] }>("/admin/signage/deals");
-  return r.data?.deals ?? [];
+  const res = await api.get("/admin/signage/deals");
+  return pickArray<Deal>(res.data, ["deals", "items", "rows"]);
 }
+
 export async function createDeal(payload: Partial<Deal>) {
-  const r = await api.post<{ deal: Deal }>("/admin/signage/deals", payload);
-  return r.data?.deal;
+  const res = await api.post("/admin/signage/deals", payload);
+  return pickOne<Deal>(res.data, ["deal", "item", "row"]) ?? res.data;
 }
+
 export async function updateDeal(id: string, payload: Partial<Deal>) {
-  const r = await api.put<{ deal: Deal }>(`/admin/signage/deals/${id}`, payload);
-  return r.data?.deal;
+  const res = await api.put(`/admin/signage/deals/${encodeURIComponent(id)}`, payload);
+  return pickOne<Deal>(res.data, ["deal", "item", "row"]) ?? res.data;
 }
+
 export async function deleteDeal(id: string) {
-  const r = await api.delete<{ ok: boolean }>(`/admin/signage/deals/${id}`);
-  return r.data?.ok;
+  const res = await api.delete(`/admin/signage/deals/${encodeURIComponent(id)}`);
+  return res.data?.ok ?? true;
 }
 
+// -----------------------------
 // Professionals
+// -----------------------------
 export async function listProfessionals(): Promise<Professional[]> {
-  const r = await api.get<{ professionals: Professional[] }>("/admin/signage/professionals");
-  return r.data?.professionals ?? [];
+  const res = await api.get("/admin/signage/professionals");
+  return pickArray<Professional>(res.data, ["professionals", "items", "rows"]);
 }
+
 export async function createProfessional(payload: Partial<Professional>) {
-  const r = await api.post<{ professional: Professional }>("/admin/signage/professionals", payload);
-  return r.data?.professional;
+  const res = await api.post("/admin/signage/professionals", payload);
+  return pickOne<Professional>(res.data, ["professional", "item", "row"]) ?? res.data;
 }
+
 export async function updateProfessional(id: string, payload: Partial<Professional>) {
-  const r = await api.put<{ professional: Professional }>(`/admin/signage/professionals/${id}`, payload);
-  return r.data?.professional;
+  const res = await api.put(`/admin/signage/professionals/${encodeURIComponent(id)}`, payload);
+  return pickOne<Professional>(res.data, ["professional", "item", "row"]) ?? res.data;
 }
+
 export async function deleteProfessional(id: string) {
-  const r = await api.delete<{ ok: boolean }>(`/admin/signage/professionals/${id}`);
-  return r.data?.ok;
+  const res = await api.delete(`/admin/signage/professionals/${encodeURIComponent(id)}`);
+  return res.data?.ok ?? true;
 }
 
-// Quotes
-export async function listQuotes(): Promise<Quote[]> {
-  const r = await api.get<{ quotes: Quote[] }>("/admin/signage/quotes");
-  return r.data?.quotes ?? [];
-}
-export async function createQuote(payload: Partial<Quote>) {
-  const r = await api.post<{ quote: Quote }>("/admin/signage/quotes", payload);
-  return r.data?.quote;
-}
-export async function updateQuote(id: string, payload: Partial<Quote>) {
-  const r = await api.put<{ quote: Quote }>(`/admin/signage/quotes/${id}`, payload);
-  return r.data?.quote;
-}
-export async function deleteQuote(id: string) {
-  const r = await api.delete<{ ok: boolean }>(`/admin/signage/quotes/${id}`);
-  return r.data?.ok;
-}
-
+// -----------------------------
 // Videos
+// -----------------------------
 export async function listVideos(): Promise<VideoItem[]> {
-  const r = await api.get<{ videos: VideoItem[] }>("/admin/signage/videos");
-  return r.data?.videos ?? [];
+  const res = await api.get("/admin/signage/videos");
+  return pickArray<VideoItem>(res.data, ["videos", "items", "rows"]);
 }
+
 export async function createVideo(payload: Partial<VideoItem>) {
-  const r = await api.post<{ video: VideoItem }>("/admin/signage/videos", payload);
-  return r.data?.video;
+  const res = await api.post("/admin/signage/videos", payload);
+  return pickOne<VideoItem>(res.data, ["video", "item", "row"]) ?? res.data;
 }
+
 export async function updateVideo(id: string, payload: Partial<VideoItem>) {
-  const r = await api.put<{ video: VideoItem }>(`/admin/signage/videos/${id}`, payload);
-  return r.data?.video;
+  const res = await api.put(`/admin/signage/videos/${encodeURIComponent(id)}`, payload);
+  return pickOne<VideoItem>(res.data, ["video", "item", "row"]) ?? res.data;
 }
+
 export async function deleteVideo(id: string) {
-  const r = await api.delete<{ ok: boolean }>(`/admin/signage/videos/${id}`);
-  return r.data?.ok;
+  const res = await api.delete(`/admin/signage/videos/${encodeURIComponent(id)}`);
+  return res.data?.ok ?? true;
+}
+
+// -----------------------------
+// Quotes
+// -----------------------------
+export async function listQuotes(): Promise<Quote[]> {
+  const res = await api.get("/admin/signage/quotes");
+  return pickArray<Quote>(res.data, ["quotes", "items", "rows"]);
+}
+
+export async function createQuote(payload: Partial<Quote>) {
+  const res = await api.post("/admin/signage/quotes", payload);
+  return pickOne<Quote>(res.data, ["quote", "item", "row"]) ?? res.data;
+}
+
+export async function updateQuote(id: string, payload: Partial<Quote>) {
+  const res = await api.put(`/admin/signage/quotes/${encodeURIComponent(id)}`, payload);
+  return pickOne<Quote>(res.data, ["quote", "item", "row"]) ?? res.data;
+}
+
+export async function deleteQuote(id: string) {
+  const res = await api.delete(`/admin/signage/quotes/${encodeURIComponent(id)}`);
+  return res.data?.ok ?? true;
 }
