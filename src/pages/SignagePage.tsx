@@ -4,26 +4,9 @@ import "./signageDeals.css";
 import "./signagePros.css";
 import "./signageLayout.css";
 
-// Backendek között előfordulhat snake_case és camelCase is – ezért toleráns típus.
-type ServiceItem = {
-  id: string;
-  name: string;
-  category?: string | null;
-  durationMin?: number | null;  // camelCase (régi UI)
-  duration_min?: number | null; // snake_case (tipikus backend)
-  price_text?: string | null;
-  priority?: number | null;
-};
+type ServiceItem = { id: string; name: string; category: string; durationMin: number | null; price_text: string; priority: number; };
 type Deal = { id: string; title: string; subtitle: string; price_text: string; valid_from: string | null; valid_to: string | null; active?: boolean; priority?: number; };
-type Professional = {
-  id: string;
-  name: string;
-  title?: string | null;
-  note?: string | null;
-  priority?: number | null;
-  is_free?: boolean | null;
-  available?: boolean | null;
-};
+type Professional = { id: string; name: string; title: string; note: string; priority: number; is_free?: boolean; available?: boolean; };
 type VideoItem = { id: string; youtube_id: string; title: string; duration_sec: number; priority: number; };
 
 function huDate(d: Date) {
@@ -78,7 +61,23 @@ export const SignagePage: React.FC = () => {
   // és minden API hívás ehhez az originhez menjen. Productionben hagyhatod üresen.
   // 1) Build-time beállítás (Render / local): REACT_APP_API_ORIGIN=https://kleoszalon-api-jon.onrender.com
   // 2) Fallback: ha a kijelző oldal a frontend domainen fut (onrender), automatikusan a backend onrender domainre megy.
-  const ENV_API_ORIGIN = (process.env.REACT_APP_API_ORIGIN ?? "").replace(/\/$/, "");
+  const cleanOrigin = (v: any) =>
+    String(v ?? "")
+      .trim()
+      .replace(/\/+$/, "")
+      .replace(/\/api\/?$/, ""); // ha véletlenül ".../api" van env-ben
+
+  // Vite: csak a VITE_* változók látszanak a böngészőben
+  // Példák:
+  //   VITE_API_ORIGIN=http://localhost:5000
+  //   VITE_API_ORIGIN=https://kleoszalon-api-jon.onrender.com
+  const ENV_API_ORIGIN = cleanOrigin(
+    (import.meta as any).env?.VITE_API_ORIGIN ||
+      (import.meta as any).env?.VITE_API_URL ||
+      (import.meta as any).env?.VITE_BACKEND_URL ||
+      ""
+  );
+
   const AUTO_API_ORIGIN = (() => {
     try {
       const host = window.location.hostname;
@@ -237,11 +236,7 @@ export const SignagePage: React.FC = () => {
                   <div className="sgSvcName">{s.name}</div>
                   <div className="sgSvcMeta">
                     <span className="sgChip">{s.category || ""}</span>
-                    {(
-                      (s.durationMin ?? s.duration_min)
-                        ? <span className="sgChipLite">{(s.durationMin ?? s.duration_min)} perc</span>
-                        : null
-                    )}
+                    {s.durationMin ? <span className="sgChipLite">{s.durationMin} perc</span> : null}
                   </div>
                   <div className="sgSvcPrice">{s.price_text || ""}</div>
                 </div>

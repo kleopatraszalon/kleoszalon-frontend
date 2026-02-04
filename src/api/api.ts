@@ -10,7 +10,11 @@ import axios from "axios";
  *  4) Fallback -> window.location.origin
  */
 function norm(v?: string) {
-  return (v ?? "").trim().replace(/\/+$/, "");
+  // normalize: remove trailing slashes AND a trailing "/api" if the user accidentally includes it
+  return (v ?? "")
+    .trim()
+    .replace(/\/+$/, "")
+    .replace(/\/api\/?$/, "");
 }
 
 function detectApiOrigin(): string {

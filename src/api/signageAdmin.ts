@@ -41,13 +41,12 @@ export type Professional = {
   name: string;
   title?: string | null;
   note?: string | null;
-  // UI gyakran ezeket is használja:
   photo_url?: string | null;
   show?: boolean | null;
+  /** optional: "szabad" pipa (egyes UI-k ezt használják) */
   is_free?: boolean | null;
-
   priority?: number | null;
-  // régi fallback / kompatibilitás
+  /** legacy / fallback (ha a backend ezt adja) */
   available?: boolean | null;
 };
 
@@ -109,9 +108,7 @@ export async function updateSignageService(id: string, payload: Partial<SignageS
 }
 
 export async function deleteSignageService(id: string) {
-  const res = await api.delete<{ ok?: boolean }>(
-    `/admin/signage/services/${encodeURIComponent(id)}`
-  );
+  const res = await api.delete<{ ok?: boolean }>(`/admin/signage/services/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
 }
 
@@ -143,9 +140,7 @@ export async function updateDeal(id: string, payload: Partial<Deal>) {
 }
 
 export async function deleteDeal(id: string) {
-  const res = await api.delete<{ ok?: boolean }>(
-    `/admin/signage/deals/${encodeURIComponent(id)}`
-  );
+  const res = await api.delete<{ ok?: boolean }>(`/admin/signage/deals/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
 }
 
@@ -168,9 +163,7 @@ export async function updateProfessional(id: string, payload: Partial<Profession
 }
 
 export async function deleteProfessional(id: string) {
-  const res = await api.delete<{ ok?: boolean }>(
-    `/admin/signage/professionals/${encodeURIComponent(id)}`
-  );
+  const res = await api.delete<{ ok?: boolean }>(`/admin/signage/professionals/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
 }
 
@@ -193,9 +186,7 @@ export async function updateVideo(id: string, payload: Partial<VideoItem>) {
 }
 
 export async function deleteVideo(id: string) {
-  const res = await api.delete<{ ok?: boolean }>(
-    `/admin/signage/videos/${encodeURIComponent(id)}`
-  );
+  const res = await api.delete<{ ok?: boolean }>(`/admin/signage/videos/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
 }
 
@@ -218,8 +209,6 @@ export async function updateQuote(id: string, payload: Partial<Quote>) {
 }
 
 export async function deleteQuote(id: string) {
-  const res = await api.delete<{ ok?: boolean }>(
-    `/admin/signage/quotes/${encodeURIComponent(id)}`
-  );
+  const res = await api.delete<{ ok?: boolean }>(`/admin/signage/quotes/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
 }
