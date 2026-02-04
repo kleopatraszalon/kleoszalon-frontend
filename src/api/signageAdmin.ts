@@ -41,13 +41,16 @@ export type Professional = {
   name: string;
   title?: string | null;
   note?: string | null;
+
+  // UI mezők (admin + kijelző)
   photo_url?: string | null;
   show?: boolean | null;
-  /** optional: "szabad" pipa (egyes UI-k ezt használják) */
+
+  // „szabad” állapot (régi: available, új: is_free)
   is_free?: boolean | null;
-  priority?: number | null;
-  /** legacy / fallback (ha a backend ezt adja) */
   available?: boolean | null;
+
+  priority?: number | null;
 };
 
 export type VideoItem = {
@@ -55,6 +58,7 @@ export type VideoItem = {
   youtube_id: string;
   title?: string | null;
   duration_sec?: number | null;
+
   enabled?: boolean | null;
   priority?: number | null;
 };
