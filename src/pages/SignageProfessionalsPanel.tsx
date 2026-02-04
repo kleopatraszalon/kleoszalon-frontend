@@ -32,12 +32,12 @@ export default function SignageProfessionalsPanel() {
       <div style={{marginTop:14}}>
         {pros.map(p=>(
           <div key={p.id} style={{display:"flex", alignItems:"center", gap:12, padding:"10px 0", borderTop:"1px solid rgba(0,0,0,0.06)"}}>
-            <span style={{width:14,height:14,borderRadius:999,background: p.is_free ? "#2ecc71" : "#e74c3c"}} />
+            <span style={{width:14,height:14,borderRadius:999,background: Boolean(p.is_free) ? "#2ecc71" : "#e74c3c"}} />
             <b style={{minWidth:180}}>{p.name}</b>
             <span style={{color:"#666"}}>{p.title}</span>
 
-            <label style={{marginLeft:"auto"}}><input type="checkbox" checked={p.show} onChange={async (e)=>{ await updateProfessional(p.id, { show: e.target.checked }); refresh(); }} /> Megjelenjen</label>
-            <label><input type="checkbox" checked={p.is_free} onChange={async (e)=>{ await updateProfessional(p.id, { is_free: e.target.checked }); refresh(); }} /> Szabad</label>
+            <label style={{marginLeft:"auto"}}><input type="checkbox" checked={Boolean(p.show)} onChange={async (e)=>{ await updateProfessional(p.id, { show: e.target.checked }); refresh(); }} /> Megjelenjen</label>
+            <label><input type="checkbox" checked={Boolean(p.is_free)} onChange={async (e)=>{ await updateProfessional(p.id, { is_free: e.target.checked }); refresh(); }} /> Szabad</label>
             <button onClick={async ()=>{ if(!window.confirm("Törlöd?")) return; await deleteProfessional(p.id); refresh(); }}>Törlés</button>
           </div>
         ))}

@@ -25,9 +25,9 @@ export default function ProfessionalsIsFreeAdmin() {
 
       {pros.map(p=>(
         <div key={p.id} style={{display:"flex", gap:12, alignItems:"center", marginTop:10}}>
-          <span style={{width:14,height:14,borderRadius:999,background:p.is_free?"#2ecc71":"#e74c3c"}}/>
+          <span style={{width:14,height:14,borderRadius:999,background:Boolean(p.is_free)?"#2ecc71":"#e74c3c"}}/>
           <b>{p.name}</b>
-          <label><input type="checkbox" checked={p.is_free} onChange={async (e)=>{ await updateProfessional(p.id, { is_free: e.target.checked }); refresh(); }}/> Szabad</label>
+        <label><input type="checkbox" checked={Boolean(p.is_free)} onChange={async (e)=>{ await updateProfessional(p.id, { is_free: e.target.checked }); refresh(); }}/> Szabad</label>
         </div>
       ))}
     </div>

@@ -4,9 +4,26 @@ import "./signageDeals.css";
 import "./signagePros.css";
 import "./signageLayout.css";
 
-type ServiceItem = { id: string; name: string; category: string; durationMin: number | null; price_text: string; priority: number; };
+// Backendek között előfordulhat snake_case és camelCase is – ezért toleráns típus.
+type ServiceItem = {
+  id: string;
+  name: string;
+  category?: string | null;
+  durationMin?: number | null;  // camelCase (régi UI)
+  duration_min?: number | null; // snake_case (tipikus backend)
+  price_text?: string | null;
+  priority?: number | null;
+};
 type Deal = { id: string; title: string; subtitle: string; price_text: string; valid_from: string | null; valid_to: string | null; active?: boolean; priority?: number; };
-type Professional = { id: string; name: string; title: string; note: string; priority: number; is_free?: boolean; available?: boolean; };
+type Professional = {
+  id: string;
+  name: string;
+  title?: string | null;
+  note?: string | null;
+  priority?: number | null;
+  is_free?: boolean | null;
+  available?: boolean | null;
+};
 type VideoItem = { id: string; youtube_id: string; title: string; duration_sec: number; priority: number; };
 
 function huDate(d: Date) {
@@ -220,7 +237,11 @@ export const SignagePage: React.FC = () => {
                   <div className="sgSvcName">{s.name}</div>
                   <div className="sgSvcMeta">
                     <span className="sgChip">{s.category || ""}</span>
-                    {s.durationMin ? <span className="sgChipLite">{s.durationMin} perc</span> : null}
+                    {(
+                      (s.durationMin ?? s.duration_min)
+                        ? <span className="sgChipLite">{(s.durationMin ?? s.duration_min)} perc</span>
+                        : null
+                    )}
                   </div>
                   <div className="sgSvcPrice">{s.price_text || ""}</div>
                 </div>
