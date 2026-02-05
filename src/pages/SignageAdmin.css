@@ -27,3 +27,32 @@ input, textarea, select{ width:100%; padding:10px 12px; border-radius:10px; bord
 .btnrow{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap; }
 .btnrow button{ padding:8px 10px; border-radius:10px; border:1px solid rgba(0,0,0,0.12); cursor:pointer; font-weight:900; background:#fff; font-size:18px; }
 .danger{ background:#fff; color:#ec008c; border-color: rgba(236,0,140,0.35); }
+
+.inlineToggles{ display:flex; gap:12px; align-items:center; }
+
+.sgadm__proRow{ display:flex; gap:14px; align-items:flex-start; margin-top:10px; }
+.sgadm__proPhoto{
+  width: 88px;
+  height: 88px;
+  border-radius: 14px;
+  object-fit: cover;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+}
+.sgadm__proPhoto--ph{
+  background: linear-gradient(135deg, rgba(182,152,97,0.18), rgba(236,0,140,0.08));
+}
+.sgadm__proUpload{ display:flex; flex-direction:column; gap:6px; flex:1; }
+.sgadm__fileBtn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  cursor:pointer;
+  font-weight: 900;
+  width: fit-content;
+}
+.sgadm__fileBtn input{ display:none; }

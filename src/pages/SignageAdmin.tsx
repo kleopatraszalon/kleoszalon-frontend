@@ -18,6 +18,7 @@ import {
   createProfessional,
   updateProfessional,
   deleteProfessional,
+  uploadProfessionalPhoto,
   listVideos,
   createVideo,
   updateVideo,
@@ -41,6 +42,20 @@ function extractYoutubeId(input: string) {
   return m ? m[1] : raw;
 }
 
+function normOrigin(v?: string) {
+  return String(v || "").trim().replace(/\/+$/, "").replace(/\/api\/?$/, "");
+}
+
+function resolveUploadsBase(): string {
+  const env = normOrigin(process.env.REACT_APP_API_ORIGIN) || normOrigin(process.env.REACT_APP_API_URL);
+  if (env) return env;
+
+  const host = window.location.hostname;
+  if (host === "kleoszalon-frontend.onrender.com") return "https://kleoszalon-api-1.onrender.com";
+  if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5000";
+  return normOrigin(window.location.origin) || "";
+}
+
 export default function SignageAdmin() {
   const [err, setErr] = useState<string>("");
   const [loading, setLoading] = useState(false);
@@ -56,6 +71,8 @@ export default function SignageAdmin() {
   const [proDraft, setProDraft] = useState<Partial<Professional>>({ ...emptyPro });
   const [videoDraft, setVideoDraft] = useState<Partial<VideoItem>>({ ...emptyVideo });
   const [quoteDraft, setQuoteDraft] = useState<Partial<Quote>>({ ...emptyQuote });
+
+  const uploadsBase = resolveUploadsBase();
 
   async function refresh() {
     setLoading(true);
@@ -289,6 +306,39 @@ export default function SignageAdmin() {
                   </div>
                 </div>
                 <div className="muted">{p.title}</div>
+                <div className="sgadm__proRow">
+                  {p.photo_url ? (
+                    <img
+                      className="sgadm__proPhoto"
+                      src={String(p.photo_url).startsWith("http") ? (p.photo_url as any) : `${uploadsBase}${p.photo_url}`}
+                      alt={p.name}
+                    />
+                  ) : (
+                    <div className="sgadm__proPhoto sgadm__proPhoto--ph" />
+                  )}
+                  <div className="sgadm__proUpload">
+                    <label className="sgadm__fileBtn">
+                      Fénykép feltöltése
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            await uploadProfessionalPhoto(p.id, file);
+                            // hogy újra lehessen ugyanazt választani
+                            e.currentTarget.value = "";
+                            await refresh();
+                          } catch (err: any) {
+                            setErr(String(err?.message || err));
+                          }
+                        }}
+                      />
+                    </label>
+                    {p.photo_url ? <div className="muted" style={{ wordBreak: "break-all" }}>{p.photo_url}</div> : null}
+                  </div>
+                </div>
                 <div className="btnrow">
                   <button className="danger" onClick={async ()=>{ if(!window.confirm("Törlöd?")) return; await deleteProfessional(p.id); refresh(); }}>Törlés</button>
                 </div>

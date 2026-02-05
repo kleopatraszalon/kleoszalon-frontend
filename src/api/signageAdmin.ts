@@ -171,6 +171,16 @@ export async function deleteProfessional(id: string) {
   return res.data?.ok ?? true;
 }
 
+// Kép feltöltés szakemberhez (backend: /api/admin/signage/professionals/:id/photo)
+export async function uploadProfessionalPhoto(id: string, file: File) {
+  const fd = new FormData();
+  fd.append("file", file);
+  const res = await api.post(`/admin/signage/professionals/${encodeURIComponent(id)}/photo`, fd, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+}
+
 // -----------------------------
 // Videos
 // -----------------------------
