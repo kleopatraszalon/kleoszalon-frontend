@@ -56,3 +56,35 @@ input, textarea, select{ width:100%; padding:10px 12px; border-radius:10px; bord
   width: fit-content;
 }
 .sgadm__fileBtn input{ display:none; }
+
+
+/* --- extra UI polish --- */
+.sgadm__titleBig{
+  font-size: 22px;
+  font-weight: 1000;
+}
+
+.sgadm__textarea{
+  min-height: 88px;
+  resize: vertical;
+}
+
+.sgadm__topbarGrid{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-top: 12px;
+}
+@media (max-width: 1400px){
+  .sgadm__topbarGrid{ grid-template-columns: 1fr; }
+}
+.sgadm__subcard{
+  border: 1px dashed rgba(182,152,97,0.35);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgba(182,152,97,0.06);
+}
+.sgadm__subcard h3{
+  margin: 0 0 6px 0;
+  font-size: 24px;
+}

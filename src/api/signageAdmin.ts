@@ -63,6 +63,19 @@ export type VideoItem = {
   priority?: number | null;
 };
 
+
+export type FlashPromo = {
+      id: string;
+      title: string;
+      body: string;
+      start_at?: string | null;
+      end_at?: string | null;
+      enabled?: boolean;
+      priority?: number;
+      created_at?: string;
+      updated_at?: string;
+    };
+
 export type QuoteCategory = "fitness" | "beauty" | "general";
 
 export type Quote = {
@@ -225,4 +238,41 @@ export async function updateQuote(id: string, payload: Partial<Quote>) {
 export async function deleteQuote(id: string) {
   const res = await api.delete<{ ok?: boolean }>(`/admin/signage/quotes/${encodeURIComponent(id)}`);
   return res.data?.ok ?? true;
+}
+
+
+// ----------------------------
+// Villám akciók (admin)
+// ----------------------------
+export async function listFlashPromos(): Promise<FlashPromo[]> {
+  const res = await api.get<{ flashPromos: FlashPromo[] }>("/admin/signage/flash-promos");
+  return res.data?.flashPromos ?? [];
+}
+
+export async function createFlashPromo(payload: Partial<FlashPromo>) {
+  const res = await api.post<{ flashPromo: FlashPromo }>("/admin/signage/flash-promos", payload);
+  return res.data?.flashPromo;
+}
+
+export async function updateFlashPromo(id: string, payload: Partial<FlashPromo>) {
+  const res = await api.put<{ flashPromo: FlashPromo }>(`/admin/signage/flash-promos/${id}`, payload);
+  return res.data?.flashPromo;
+}
+
+export async function deleteFlashPromo(id: string) {
+  const res = await api.delete<{ ok: boolean }>(`/admin/signage/flash-promos/${id}`);
+  return !!res.data?.ok;
+}
+
+// ----------------------------
+// Névnap üzenet sablon (admin)
+// ----------------------------
+export async function getNamedayTemplate(): Promise<string> {
+  const res = await api.get<{ template: string }>("/admin/signage/nameday-template");
+  return res.data?.template ?? "";
+}
+
+export async function setNamedayTemplate(template: string) {
+  const res = await api.put<{ ok: boolean; template: string }>("/admin/signage/nameday-template", { template });
+  return res.data;
 }

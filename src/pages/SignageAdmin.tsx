@@ -6,6 +6,7 @@ import {
   Professional,
   VideoItem,
   Quote,
+  FlashPromo,
   listSignageServices,
   createSignageService,
   updateSignageService,
@@ -27,6 +28,12 @@ import {
   createQuote,
   updateQuote,
   deleteQuote,
+  listFlashPromos,
+  createFlashPromo,
+  updateFlashPromo,
+  deleteFlashPromo,
+  getNamedayTemplate,
+  setNamedayTemplate,
 } from "../api/signageAdmin";
 import "./SignageAdmin.css";
 
@@ -35,6 +42,7 @@ const emptyDeal: Partial<Deal> = { title: "", subtitle: "", price_text: "", vali
 const emptyPro: Partial<Professional> = { name: "", title: "", note: "", photo_url: "", show: true, available: true, priority: 0 };
 const emptyVideo: Partial<VideoItem> = { youtube_id: "", title: "", enabled: true, priority: 0, duration_sec: 60 };
 const emptyQuote: Partial<Quote> = { category: "fitness", text: "", author: "", active: true, priority: 0 };
+const emptyFlash: Partial<FlashPromo> = { title: "", body: "", enabled: true, start_at: null, end_at: null, priority: 0 };
 
 function extractYoutubeId(input: string) {
   const raw = String(input || "").trim();
@@ -47,7 +55,10 @@ function normOrigin(v?: string) {
 }
 
 function resolveUploadsBase(): string {
-  const env = normOrigin(process.env.REACT_APP_API_ORIGIN) || normOrigin(process.env.REACT_APP_API_URL);
+  const envRaw = normOrigin(process.env.REACT_APP_API_ORIGIN) || normOrigin(process.env.REACT_APP_API_URL);
+  const env = envRaw.includes("kleoszalon-api-jon.onrender.com")
+    ? "https://kleoszalon-api-1.onrender.com"
+    : envRaw;
   if (env) return env;
 
   const host = window.location.hostname;
@@ -66,6 +77,10 @@ export default function SignageAdmin() {
   const [videos, setVideos] = useState<VideoItem[]>([]);
   const [quotes, setQuotes] = useState<Quote[]>([]);
 
+  const [flashPromos, setFlashPromos] = useState<FlashPromo[]>([]);
+  const [flashDraft, setFlashDraft] = useState<Partial<FlashPromo>>({ ...emptyFlash });
+  const [namedayTemplate, setNamedayTemplateState] = useState<string>("");
+
   const [serviceDraft, setServiceDraft] = useState<Partial<SignageService>>({ ...emptyService });
   const [dealDraft, setDealDraft] = useState<Partial<Deal>>({ ...emptyDeal });
   const [proDraft, setProDraft] = useState<Partial<Professional>>({ ...emptyPro });
@@ -78,18 +93,22 @@ export default function SignageAdmin() {
     setLoading(true);
     setErr("");
     try {
-      const [s, d, p, v, q] = await Promise.all([
+      const [s, d, p, v, q, fpList, ndTpl] = await Promise.all([
         listSignageServices(),
         listDeals(),
         listProfessionals(),
         listVideos(),
         listQuotes(),
+        listFlashPromos(),
+        getNamedayTemplate(),
       ]);
       setServices(s);
       setDeals(d);
       setPros(p);
       setVideos(v);
       setQuotes(q);
+      setFlashPromos(fpList);
+      setNamedayTemplateState(ndTpl);
     } catch (e: any) {
       setErr(String(e?.message || e));
     } finally {
@@ -105,10 +124,8 @@ export default function SignageAdmin() {
         <div className="sgadm__brand">
           <img className="sgadm__logo" src={logo} alt="KLEO" />
           <div>
-            <h1>Kijelző admin</h1>
-            <div className="sgadm__sub">
-              404 javítva: nem lesz több <b>/api/api/...</b> • Most már van Napi akciók + Szakemberek + Idézetek admin is.
-            </div>
+            <h1>Kijelző adminisztrácios felület</h1>
+            
           </div>
         </div>
         <div className="sgadm__actions">
@@ -119,15 +136,114 @@ export default function SignageAdmin() {
       {err && <div className="sgadm__err">Hiba: {err}</div>}
 
       <div className="sgadm__gridWide">
+        
+{/* TOP BAR EXTRAS */}
+<section className="card">
+  <h2>Felső sáv extrák</h2>
+  <div className="muted">Villám akció (bal oldal) + Névnap üzenet (jobb oldal)</div>
+
+  <div className="sgadm__topbarGrid">
+    <div className="sgadm__subcard">
+      <h3>⚡ Villám akció</h3>
+
+      <div className="form">
+        <div><label>Cím</label><input value={flashDraft.title || ""} onChange={(e)=>setFlashDraft(f=>({...f, title:e.target.value}))} /></div>
+        <div><label>Szöveg</label><textarea className="sgadm__textarea" rows={4} value={flashDraft.body || ""} onChange={(e)=>setFlashDraft(f=>({...f, body:e.target.value}))} /></div>
+
+        <div className="grid2">
+          <div>
+            <label>Kezdete</label>
+            <input
+              type="datetime-local"
+              value={(flashDraft.start_at as any) || ""}
+              onChange={(e)=>setFlashDraft(f=>({...f, start_at: e.target.value || null}))}
+            />
+          </div>
+          <div>
+            <label>Vége</label>
+            <input
+              type="datetime-local"
+              value={(flashDraft.end_at as any) || ""}
+              onChange={(e)=>setFlashDraft(f=>({...f, end_at: e.target.value || null}))}
+            />
+          </div>
+        </div>
+
+        <div className="grid3">
+          <label className="chk">
+            <input type="checkbox" checked={Boolean(flashDraft.enabled)} onChange={(e)=>setFlashDraft(f=>({...f, enabled:e.target.checked}))} />
+            Aktív
+          </label>
+          <div><label>Prioritás</label><input type="number" value={flashDraft.priority ?? 0} onChange={(e)=>setFlashDraft(f=>({...f, priority:Number(e.target.value)}))} /></div>
+          <button onClick={async ()=>{
+            try{
+              if(!flashDraft.title) return alert("Cím kötelező.");
+              await createFlashPromo(flashDraft);
+              setFlashDraft({ ...emptyFlash });
+              await refresh();
+            } catch(e:any){ setErr(String(e?.message||e)); }
+          }}>Hozzáadás</button>
+        </div>
+      </div>
+
+      <div className="list">
+        {flashPromos.map(fp=>(
+          <div className="item" key={fp.id}>
+            <div className="item__title">
+              <span className="sgadm__titleBig">{fp.title}</span>
+              <label className="chkSmall">
+                <input type="checkbox" checked={!!fp.enabled} onChange={async (e)=>{ await updateFlashPromo(fp.id, { enabled: e.target.checked }); refresh(); }} />
+                Aktív
+              </label>
+            </div>
+            <div className="muted">{fp.body}</div>
+            <div className="muted">
+              {fp.start_at ? `Kezd: ${String(fp.start_at).replace("T"," ").slice(0,16)}` : "Kezd: —"}
+              {"  •  "}
+              {fp.end_at ? `Vég: ${String(fp.end_at).replace("T"," ").slice(0,16)}` : "Vég: —"}
+            </div>
+            <div className="btnrow">
+              <button className="danger" onClick={async ()=>{ if(!window.confirm("Törlöd?")) return; await deleteFlashPromo(fp.id); refresh(); }}>Törlés</button>
+            </div>
+          </div>
+        ))}
+        {!flashPromos.length && <div className="muted">Nincs villám akció.</div>}
+      </div>
+    </div>
+
+    <div className="sgadm__subcard">
+      <h3>🎉 Névnap üzenet</h3>
+      <div className="muted">A {`{names}`} helyére automatikusan bekerül a mai névnap(ok) listája.</div>
+
+      <div className="form">
+        <div>
+          <label>Szerkeszthető szöveg</label>
+          <textarea className="sgadm__textarea" rows={5} value={namedayTemplate} onChange={(e)=>setNamedayTemplateState(e.target.value)} />
+        </div>
+
+        <div className="grid2">
+          <div className="muted">Példa: Ma a {`{names}`} nevű vendégeink 20% kedvezményben részesülnek!!!</div>
+          <button onClick={async ()=>{
+            try{
+              await setNamedayTemplate(namedayTemplate);
+              await refresh();
+            } catch(e:any){ setErr(String(e?.message||e)); }
+          }}>Mentés</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
         {/* SERVICES */}
         <section className="card">
-          <h2>Szolgáltatások</h2>
-          <div className="muted">Lista + pipa (Megjelenjen) + törlés</div>
+          <h2>Heti akciók</h2>
+          <div className="muted">Lista + pipa (Megjelenjen) + törlés- Ide Másold be a Heti akciót</div>
 
           <div className="form">
             <div className="grid2">
-              <div><label>Név</label><input value={serviceDraft.name || ""} onChange={(e)=>setServiceDraft(s=>({...s, name:e.target.value}))} /></div>
-              <div><label>Kategória</label><input value={serviceDraft.category || ""} onChange={(e)=>setServiceDraft(s=>({...s, category:e.target.value}))} /></div>
+              <div><label>Cím</label><input value={serviceDraft.name || ""} onChange={(e)=>setServiceDraft(s=>({...s, name:e.target.value}))} /></div>
+              <div><label>Leírás</label><textarea className="sgadm__textarea" rows={4} value={serviceDraft.category || ""} onChange={(e)=>setServiceDraft(s=>({...s, category:e.target.value}))} /></div>
             </div>
             <div className="grid3">
               <div><label>Idő (perc)</label><input type="number" value={(serviceDraft.duration_min ?? "") as any} onChange={(e)=>setServiceDraft(s=>({...s, duration_min: e.target.value==="" ? null : Number(e.target.value)}))} /></div>
@@ -151,7 +267,7 @@ export default function SignageAdmin() {
             {services.map(s=>(
               <div className="item" key={s.id}>
                 <div className="item__title">
-                  <b>{s.name}</b>
+                  <span className="sgadm__titleBig">{s.name}</span>
                   <label className="chkSmall">
                     <input type="checkbox" checked={!!s.show} onChange={async (e)=>{ await updateSignageService(s.id, { show: e.target.checked }); refresh(); }} />
                     Megjelenjen
@@ -226,8 +342,8 @@ export default function SignageAdmin() {
             </div>
             <div><label>Alcím</label><input value={dealDraft.subtitle || ""} onChange={(e)=>setDealDraft(d=>({...d, subtitle:e.target.value}))} /></div>
             <div className="grid3">
-              <div><label>Érvényes -tól</label><input value={dealDraft.valid_from || ""} onChange={(e)=>setDealDraft(d=>({...d, valid_from: e.target.value || null}))} placeholder="YYYY-MM-DD" /></div>
-              <div><label>Érvényes -ig</label><input value={dealDraft.valid_to || ""} onChange={(e)=>setDealDraft(d=>({...d, valid_to: e.target.value || null}))} placeholder="YYYY-MM-DD" /></div>
+              <div><label>Érvényes -tól</label><input type="date" value={dealDraft.valid_from || ""} onChange={(e)=>setDealDraft(d=>({...d, valid_from: e.target.value || null}))} /></div>
+              <div><label>Érvényes -ig</label><input type="date" value={dealDraft.valid_to || ""} onChange={(e)=>setDealDraft(d=>({...d, valid_to: e.target.value || null}))} /></div>
               <div><label>Prioritás</label><input type="number" value={dealDraft.priority ?? 0} onChange={(e)=>setDealDraft(d=>({...d, priority:Number(e.target.value)}))} /></div>
             </div>
             <div className="grid2">
@@ -271,7 +387,7 @@ export default function SignageAdmin() {
 
           <div className="form">
             <div className="grid2">
-              <div><label>Név</label><input value={proDraft.name || ""} onChange={(e)=>setProDraft(p=>({...p, name:e.target.value}))} /></div>
+              <div><label>Cím</label><input value={proDraft.name || ""} onChange={(e)=>setProDraft(p=>({...p, name:e.target.value}))} /></div>
               <div><label>Titulus</label><input value={proDraft.title || ""} onChange={(e)=>setProDraft(p=>({...p, title:e.target.value}))} /></div>
             </div>
             <div><label>Megjegyzés</label><input value={proDraft.note || ""} onChange={(e)=>setProDraft(p=>({...p, note:e.target.value}))} /></div>
