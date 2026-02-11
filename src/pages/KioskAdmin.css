@@ -1,0 +1,75 @@
+.kadm{
+  padding:16px;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+}
+.kadm__top{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:12px;
+}
+.kadm__row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+.kadm__input{
+  min-width:360px;
+  padding:10px 12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+}
+.kadm button{
+  padding:10px 12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  background:#fff;
+  cursor:pointer;
+}
+.kadm button:disabled{ opacity: .6; cursor:not-allowed; }
+.kadm__err{
+  padding:10px 12px;
+  border:1px solid #f5c2c7;
+  background:#f8d7da;
+  border-radius:10px;
+  margin-bottom:12px;
+}
+.kadm__grid{
+  display:grid;
+  grid-template-columns: 420px 1fr;
+  gap:12px;
+}
+.card{
+  border:1px solid #eee;
+  border-radius:14px;
+  padding:12px;
+  background:#fff;
+  box-shadow: 0 1px 10px rgba(0,0,0,.04);
+}
+.muted{ color:#666; font-size: 13px; }
+.form label{ display:block; font-size:12px; color:#666; margin-bottom:4px; }
+.form input{
+  width:100%;
+  padding:10px 12px;
+  border:1px solid #ddd;
+  border-radius:10px;
+}
+.grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+.kadm__list{ display:flex; flex-direction:column; gap:12px; }
+.kadm__groupTitle{ font-weight:800; margin-bottom:8px; }
+.kadm__gridList{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
+.kadm__svc{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  border:1px solid #eee;
+  border-radius:12px;
+  padding:10px;
+  cursor:pointer;
+}
+.kadm__svc input{ margin-right:8px; }
+.kadm__svcName{ font-weight:700; }
+.kadm__svcMeta{ color:#666; font-size:12px; }
+.kadm__svc.on{ border-color:#cfe9d4; background:#f3fbf5; }
+.kadm__svc.off{ border-color:#eee; background:#fafafa; }

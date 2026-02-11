@@ -27,6 +27,7 @@ const WorkOrderNew = lazy(() => import("./pages/WorkOrderNew"));
 const EmployeesList = lazy(() => import("./pages/EmployeesList"));
 const ServicesList = lazy(() => import("./pages/ServicesList"));
 const SignageAdmin = lazy(() => import("./pages/SignageAdmin"));
+const KioskAdmin = lazy(() => import("./pages/KioskAdmin"));
 
 const HOME_PATH = "/";
 
@@ -909,6 +910,15 @@ const router = createBrowserRouter(
   element: (
     <RequireAuth>
       <SignageAdmin />
+    </RequireAuth>
+  ),
+},
+
+{
+  path: "/admin/kiosk",
+  element: (
+    <RequireAuth>
+      <KioskAdmin />
     </RequireAuth>
   ),
 },
