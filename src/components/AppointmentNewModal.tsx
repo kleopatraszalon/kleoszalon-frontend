@@ -106,7 +106,7 @@ export function AppointmentNewModal({ onSaved, onClose }: Props) {
   const [date, setDate] = useState<string>(todayISO());
   const [startHM, setStartHM] = useState<string>(nowHM());
   const [endHM, setEndHM] = useState<string>(addMinutesHM(nowHM(), 30));
-  const [note, setNote] = useState<string>("");
+  const [note] = useState<string>("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

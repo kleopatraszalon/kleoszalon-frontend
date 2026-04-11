@@ -1,0 +1,305 @@
+.altegio-page-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  background: #f5f6fa;
+}
+
+.altegio-page-shell .kleo-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 280px;
+  overflow-y: auto;
+  background: #080910;
+  color: #fff;
+  padding: 10px 0 14px;
+  box-shadow: inset -1px 0 0 rgba(255,255,255,0.05);
+  gap: 10px;
+}
+
+.altegio-page-shell .kleo-sidebar-hero-card {
+  max-width: none;
+  margin: 0 12px 8px;
+  background: #12131d;
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow: none;
+}
+
+.altegio-page-shell .kleo-sidebar-title,
+.altegio-page-shell .kleo-sidebar-subtitle {
+  color: #fff;
+}
+
+.altegio-page-shell .kleo-sidebar-nav {
+  margin-top: 0;
+  padding: 0 8px;
+  border-top: 0;
+}
+
+.altegio-page-shell .kleo-sidebar-menu-button {
+  border-radius: 10px;
+  color: #eef0ff;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.altegio-page-shell .kleo-sidebar-menu-button:hover,
+.altegio-page-shell .kleo-sidebar-menu-item--open > .kleo-sidebar-menu-button {
+  background: #1b1d29;
+}
+
+.altegio-page-shell .kleo-sidebar-menu-label-wrap,
+.altegio-page-shell .kleo-sidebar-submenu-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kleo-sidebar-menu-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #f7d53b;
+  display: inline-block;
+}
+
+.altegio-page-shell .kleo-sidebar-submenu {
+  padding-left: 6px;
+}
+
+.altegio-page-shell .kleo-sidebar-submenu-item {
+  display: flex;
+  align-items: center;
+  color: #cfd4ff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.altegio-page-shell .kleo-sidebar-submenu-item.active {
+  background: #f7d53b;
+  color: #0a0c14;
+  font-weight: 700;
+}
+
+.altegio-main {
+  padding: 18px 24px 40px;
+}
+
+.altegio-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.altegio-header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.altegio-breadcrumb {
+  color: #9aa0b5;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.altegio-header__actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.altegio-tab {
+  background: #fff;
+  border: 1px solid #e4e7f0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #3d4358;
+}
+
+.altegio-tab.is-active {
+  background: #10131d;
+  color: #fff;
+  border-color: #10131d;
+}
+
+.altegio-filterbar {
+  display: flex;
+  gap: 12px;
+  align-items: end;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.altegio-filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.altegio-filter-field label {
+  font-size: 12px;
+  color: #8087a1;
+}
+
+.altegio-date-range,
+.altegio-filter-field select {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.altegio-filter-field input,
+.altegio-filter-field select {
+  height: 40px;
+  border: 1px solid #dfe4ef;
+  border-radius: 10px;
+  background: #fff;
+  padding: 0 12px;
+}
+
+.altegio-section-card {
+  background: #fff;
+  border: 1px solid #eaedf4;
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 16px;
+  max-width: 760px;
+}
+
+.altegio-section-card h2 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+
+.altegio-metrics-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.altegio-metrics-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.altegio-metric-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e8ebf2;
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-height: 88px;
+}
+
+.altegio-metric-card__title {
+  font-size: 12px;
+  color: #858ba0;
+  margin-bottom: 6px;
+}
+
+.altegio-metric-card__value {
+  font-size: 31px;
+  line-height: 1;
+  font-weight: 800;
+  color: #1a2031;
+}
+
+.altegio-metric-card__sub {
+  color: #8c93a7;
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+.altegio-metric-card__delta {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.altegio-metric-card__delta.is-positive {
+  color: #16824d;
+  background: #eaf8ef;
+}
+
+.altegio-metric-card__delta.is-negative {
+  color: #d73c42;
+  background: #fff1f2;
+}
+
+.altegio-chart-wrap {
+  margin: 14px 0;
+  border-top: 1px solid #f1f3f8;
+  border-bottom: 1px solid #f1f3f8;
+  padding: 12px 0;
+}
+
+.altegio-loading,
+.altegio-error {
+  max-width: 760px;
+  margin-bottom: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+}
+
+.altegio-loading { background: #fff; border: 1px solid #eaedf4; }
+.altegio-error { background: #fff1f2; color: #b42318; border: 1px solid #fecdd3; }
+
+@media (max-width: 1100px) {
+  .altegio-page-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .altegio-page-shell .kleo-sidebar {
+    position: relative;
+    height: auto;
+  }
+
+  .altegio-metrics-grid--3 {
+    grid-template-columns: 1fr;
+  }
+
+  .altegio-section-card {
+    max-width: 100%;
+  }
+}
+
+.altegio-page-shell .page-content {
+  min-width: 0;
+}
+
+.altegio-page-shell .sidebar-calendar {
+  display: block;
+}
+
+.altegio-page-shell .sidebar-calendar {
+  background: #181b27;
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.altegio-page-shell .sidebar-calendar-month {
+  color: #f7d53b;
+}
+
+.altegio-page-shell .sidebar-calendar-day--selected {
+  color: #0a0c14;
+}
+
+.altegio-page-shell .altegio-metrics-grid--3 {
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+}
+
+@media (max-width: 900px) {
+  .altegio-page-shell .altegio-metrics-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}

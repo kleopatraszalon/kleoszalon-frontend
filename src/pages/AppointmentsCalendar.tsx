@@ -114,13 +114,23 @@ const AppointmentsCalendarPage: React.FC = () => {
 
     (async () => {
       try {
-        const from = `${day} 00:00`;
-        const to = `${day} 23:59`;
-        const qs = `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+        const qs = (() => {
+          const parts: string[] = [];
+          parts.push(`from=${encodeURIComponent(day)}`);
+          parts.push(`to=${encodeURIComponent(day)}`);
+          if (user?.location_id && typeof user.location_id === "string") {
+            parts.push(`location_id=${encodeURIComponent(user.location_id)}`);
+          }
+          return `?${parts.join("&")}`;
+        })();
 
-        const raw = await apiFetch<any>(`/api/appointments${qs}`);
+        const raw = await apiFetch<any>(`/api/timetable${qs}`);
         if (!cancelled) {
-          setAppointments(toArray<Appt>(raw));
+          const emps = toArray<Employee>(raw?.employees);
+          const appts = toArray<Appt>(raw?.appointments);
+          // Ha employees effect is fut, nem gond, de itt garantáltan lesz szinkron a naptárhoz.
+          if (emps.length) setEmployees(emps);
+          setAppointments(appts);
         }
       } catch (err) {
         console.error("Appointments load error", err);
@@ -145,7 +155,7 @@ const AppointmentsCalendarPage: React.FC = () => {
     return out;
   }, []);
 
-  const employeesById = useMemo(() => {
+  const _employeesById = useMemo(() => {
     const map = new Map<string, Employee>();
     for (const e of employees) {
       if (e.id) map.set(e.id, e);

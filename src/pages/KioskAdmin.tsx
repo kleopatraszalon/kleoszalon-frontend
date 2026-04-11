@@ -101,10 +101,8 @@ export default function KioskAdmin() {
     if (!locationId) return setErr("locationId kötelező.");
     setLoading(true);
     try {
-      // initKioskMenu() a frontend API-ban string-et ad vissza (menuId), nem objektumot
-        const r = await initKioskMenu(locationId);
-        const menuId = typeof r === "string" ? r : (r as any)?.menuId;
-        setMenuId(menuId);
+      const r = await initKioskMenu(locationId);
+      setMenuId(r.menuId);
       await load();
     } catch (e: any) {
       setErr(String(e?.message || e));

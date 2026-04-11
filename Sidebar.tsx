@@ -1,7 +1,6 @@
-// src/components/Sidebar.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate, NavLink, useLocation } from "react-router-dom";
+import { useNavigate, NavLink } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
@@ -41,7 +40,7 @@ function normalizeRoute(r?: string): string {
   if (!r) return "#";
   let s = r.trim();
   if (!s.startsWith("/")) s = "/" + s;
-  s = s.replace(/\/{2,}/g, "/"); // dupla perjelek kiszedése
+  s = s.replace(/\/{2,}/g, "/");
   return s;
 }
 
@@ -77,7 +76,6 @@ export function Menu({
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [openIds, setOpenIds] = useState<number[]>([]);
@@ -87,8 +85,12 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     const token =
       localStorage.getItem("token") || localStorage.getItem("kleo_token");
 
+    // Régebbi Axios verzióhoz CancelToken kell, nem signal
+    const source = axios.CancelToken.source();
+
     axios
       .get(`${API_BASE}/menus`, {
+        cancelToken: source.token,
         withCredentials: true,
         headers: token
           ? {
@@ -102,7 +104,14 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         const built = buildMenuTree(data, role);
         setMenus(built);
       })
-      .catch((err) => console.error("❌ Menü betöltési hiba:", err));
+      .catch((err) => {
+        if (axios.isCancel(err) || err?.message === "Request aborted") return;
+        console.error("❌ Menü betöltési hiba:", err);
+      });
+
+    return () => {
+      source.cancel("Sidebar request canceled");
+    };
   }, [user]);
 
   const isExpanded = (id: number) => openIds.includes(id);
@@ -113,33 +122,12 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     );
   };
 
-  useEffect(() => {
-    const activeParents: number[] = [];
-
-    function walk(items: MenuItem[], parentIds: number[] = []) {
-      for (const item of items) {
-        const nextParents = [...parentIds, item.id];
-        if (item.route && normalizeRoute(item.route) === location.pathname) {
-          activeParents.push(...parentIds);
-        }
-        if (item.children.length) walk(item.children, nextParents);
-      }
-    }
-
-    walk(menus);
-    if (activeParents.length) {
-      setOpenIds((prev) => Array.from(new Set([...prev, ...activeParents])));
-    }
-  }, [menus, location.pathname]);
-
   // Mini naptár: később a napi beosztást erre a dátumra fogjuk betölteni
   const handleDateSelect = (date: Date) => {
-    const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
+    const iso = date.toISOString().slice(0, 10);
 
-    // elmentjük, hogy a Home / naptár oldal el tudja olvasni
     localStorage.setItem("kleo.selectedDate", iso);
 
-    // custom event – tetszőleges komponens fel tud iratkozni rá
     window.dispatchEvent(
       new CustomEvent("kleo:selectedDate", {
         detail: { date: iso },
@@ -149,7 +137,6 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   return (
     <aside className="kleo-sidebar app-sidebar">
-      {/* Hero kártya: logó + mini naptár */}
       <div className="kleo-sidebar-hero-card">
         <div className="kleo-sidebar-header">
           <div className="kleo-sidebar-logo-wrap">
@@ -168,33 +155,32 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         <SidebarCalendar onSelectDate={handleDateSelect} />
       </div>
 
-      {/* MENÜLISTA */}
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
             const hasChildren = menu.children.length > 0;
             const expanded = isExpanded(menu.id);
 
-            const to = normalizeRoute(menu.route);
-            const isLeafActive = !hasChildren && to !== "#" && location.pathname === to;
-
             return (
               <li
                 key={menu.id}
                 className={
                   "kleo-sidebar-menu-item" +
-                  (expanded ? " kleo-sidebar-menu-item--open" : "") +
-                  (isLeafActive ? " kleo-sidebar-menu-item--active" : "")
+                  (expanded ? " kleo-sidebar-menu-item--open" : "")
                 }
               >
-                {hasChildren ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(menu.id)}
-                    className="kleo-sidebar-menu-button"
-                  >
-                    <span className="kleo-sidebar-menu-label">{menu.name}</span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    menu.children && menu.children.length
+                      ? toggleExpanded(menu.id)
+                      : navigate(normalizeRoute(menu.route))
+                  }
+                  className="kleo-sidebar-menu-button"
+                >
+                  <span className="kleo-sidebar-menu-label">{menu.name}</span>
 
+                  {hasChildren && (
                     <span className="kleo-sidebar-menu-chevron">
                       {expanded ? (
                         <ChevronDown size={16} />
@@ -202,20 +188,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                         <ChevronRight size={16} />
                       )}
                     </span>
-                  </button>
-                ) : (
-                  <NavLink
-                    to={to}
-                    className={({ isActive }) =>
-                      "kleo-sidebar-menu-button kleo-sidebar-menu-link" +
-                      (isActive ? " active" : "") +
-                      (to === "#" ? " pointer-events-none opacity-50" : "")
-                    }
-                    aria-disabled={to === "#"}
-                  >
-                    <span className="kleo-sidebar-menu-label">{menu.name}</span>
-                  </NavLink>
-                )}
+                  )}
+                </button>
 
                 {hasChildren && expanded && (
                   <ul className="kleo-sidebar-submenu">
@@ -272,10 +246,8 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return req === r;
   }
 
-  // role alapú szűrés – 'all' és '*' bárki, admin mindent lát
   const filtered = raw.filter((item) => canSee(item.required_role, role));
 
-  // Ha már hierarchikus (submenus)
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
     const sortFn = (a: RawMenuItem, b: RawMenuItem) =>
       (a.order_index ?? 9999) - (b.order_index ?? 9999);
@@ -291,7 +263,6 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     return filtered.sort(sortFn).map(normalize);
   }
 
-  // Lapos lista parent_id-vel
   const orderIndex: Record<number, number> = {};
   filtered.forEach((item) => {
     orderIndex[item.id] = item.order_index ?? 9999;
@@ -336,59 +307,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
       .map((child) => normalizeNode(child as InternalNode)),
   });
 
-  const builtRoots = roots.sort(sortFnNode).map(normalizeNode);
-  return withRequiredEntries(builtRoots);
-}
-
-function withRequiredEntries(items: MenuItem[]): MenuItem[] {
-  const clone = items.map((item) => ({
-    ...item,
-    children: item.children.map((child) => ({ ...child, children: [...child.children] })),
-  }));
-
-  const hasRoute = (route: string) => {
-    const stack = [...clone];
-    while (stack.length) {
-      const current = stack.pop()!;
-      if ((current.route || "").toLowerCase() === route.toLowerCase()) return true;
-      stack.push(...current.children);
-    }
-    return false;
-  };
-
-  if (!hasRoute('/appointments/calendar')) {
-    const insertAt = Math.min(1, clone.length);
-    clone.splice(insertAt, 0, {
-      id: 900001,
-      name: 'Naptár',
-      route: '/appointments/calendar',
-      children: [],
-    });
-  }
-
-  let reportsRoot = clone.find((item) => (item.name || '').trim().toLowerCase() === 'kimutatások');
-  if (!reportsRoot) {
-    reportsRoot = {
-      id: 900100,
-      name: 'Kimutatások',
-      route: undefined,
-      children: [],
-    };
-    clone.push(reportsRoot);
-  }
-
-  const ensureChild = (id: number, name: string, route: string) => {
-    if (!reportsRoot!.children.some((child) => (child.route || '').toLowerCase() === route.toLowerCase())) {
-      reportsRoot!.children.push({ id, name, route, children: [] });
-    }
-  };
-
-  ensureChild(900101, 'Legfőbb mutatók', '/reports/top-metrics');
-  ensureChild(900102, 'VIR Dashboard', '/admin/vir');
-
-  reportsRoot.children.sort((a, b) => a.id - b.id);
-  clone.sort((a, b) => a.id - b.id);
-  return clone;
+  return roots.sort(sortFnNode).map(normalizeNode);
 }
 
 export default Sidebar;

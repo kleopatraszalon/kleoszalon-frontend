@@ -1,9 +1,7 @@
 // src/pages/Home.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import DailyScheduleBoard from "../components/DailyScheduleBoard";
-
 import {
   BarChart,
   Bar,
@@ -62,7 +60,7 @@ const Dashboard: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [__selectedDate, _setSelectedDate] = useState<Date>(new Date());
 
   // dátum kiválasztás (napi beosztáshoz – most csak eltároljuk)
   useEffect(() => {
@@ -70,14 +68,14 @@ const Dashboard: React.FC = () => {
       const custom = e as CustomEvent<{ date?: string }>;
       const iso = custom.detail?.date;
       if (!iso) return;
-      setSelectedDate(new Date(iso));
+      _setSelectedDate(new Date(iso));
       // itt hívhatod majd a napi beosztás lekérését:
       // loadDailySchedule(iso);
     };
 
-    window.addEventListener("kleo:selectedDate", handler as EventListener);
+    window.addEventListener("kleo:_selectedDate", handler as EventListener);
     return () =>
-      window.removeEventListener("kleo:selectedDate", handler as EventListener);
+      window.removeEventListener("kleo:_selectedDate", handler as EventListener);
   }, []);
 
   // ⛔ KILÉPÉS

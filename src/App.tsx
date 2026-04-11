@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { Suspense, lazy, type ReactElement } from "react";
 import {
   createBrowserRouter,
@@ -9,6 +8,7 @@ import EmployeeDetailsPage from "./pages/EmployeeDetails";
 import ProductsList from "./pages/ProductsList";
 import WebshopAdmin from "./pages/WebshopAdmin";
 import "./styles/kleo-theme.css";
+import AppLayout from "./layouts/AppLayout";
 
 const AppointmentsCalendar = lazy(
   () => import("./pages/AppointmentsCalendar")
@@ -28,6 +28,13 @@ const EmployeesList = lazy(() => import("./pages/EmployeesList"));
 const ServicesList = lazy(() => import("./pages/ServicesList"));
 const SignageAdmin = lazy(() => import("./pages/SignageAdmin"));
 const KioskAdmin = lazy(() => import("./pages/KioskAdmin"));
+const TimetableUpdatePage = lazy(() => import("./pages/TimetableUpdatePage"));
+
+const VirDashboardPage = lazy(() => import("./pages/VirDashboardPage"));
+const VirStaffDetailPage = lazy(() => import("./pages/VirStaffDetailPage"));
+const VirServiceDetailPage = lazy(() => import("./pages/VirServiceDetailPage"));
+const VirReportsAdminPage = lazy(() => import("./pages/VirReportsAdminPage"));
+const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
 
 const HOME_PATH = "/";
 
@@ -45,7 +52,7 @@ type GuardProps = { children: ReactElement };
 
 function RequireAuth({ children }: GuardProps) {
   const t = getToken();
-  return t ? children : <Navigate to="/login" replace />;
+  return t ? <AppLayout>{children}</AppLayout> : <Navigate to="/login" replace />;
 }
 
 function PublicOnly({ children }: GuardProps) {
@@ -132,7 +139,7 @@ const router = createBrowserRouter(
       ),
     },
 
-    // Modulok – régi útvonalak (bejelentkezések, munkalapok, stb.)
+    // Modulok – régi útvonalak
     {
       path: "/bejelentkezesek",
       element: (
@@ -211,9 +218,37 @@ const router = createBrowserRouter(
     },
     {
       path: "/reports",
+      element: <Navigate to="/reports/top-metrics" replace />,
+    },
+    {
+      path: "/reports/top-metrics",
       element: (
         <RequireAuth>
-          <div>Kimutatások és jelentések – fejlesztés alatt</div>
+          <VirTopMetricsPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/reports/appointments",
+      element: (
+        <RequireAuth>
+          <div style={{ padding: "2rem" }}>Bejegyzések kimutatás – fejlesztés alatt</div>
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/reports/events",
+      element: (
+        <RequireAuth>
+          <div style={{ padding: "2rem" }}>Események kimutatás – fejlesztés alatt</div>
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/reports/all",
+      element: (
+        <RequireAuth>
+          <div style={{ padding: "2rem" }}>Összes kimutatás – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -709,10 +744,7 @@ const router = createBrowserRouter(
       path: "/reports/expected-revenue",
       element: (
         <RequireAuth>
-          <div>
-            Elvárt bevételek (napi, óránkénti, üzletenkénti) – fejlesztés
-            alatt
-          </div>
+          <div>Elvárt bevételek (napi, óránkénti, üzletenkénti) – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -730,9 +762,7 @@ const router = createBrowserRouter(
       path: "/settings/roles",
       element: (
         <RequireAuth>
-          <div>
-            Jogosultságok és hozzáférési szintek – fejlesztés alatt
-          </div>
+          <div>Jogosultságok és hozzáférési szintek – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -780,9 +810,7 @@ const router = createBrowserRouter(
       path: "/settings/security",
       element: (
         <RequireAuth>
-          <div>
-            Biztonsági és teljesítmény beállítások – fejlesztés alatt
-          </div>
+          <div>Biztonsági és teljesítmény beállítások – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -792,9 +820,7 @@ const router = createBrowserRouter(
       path: "/extra/documents",
       element: (
         <RequireAuth>
-          <div>
-            Elektronikus dokumentum nyilvántartás – fejlesztés alatt
-          </div>
+          <div>Elektronikus dokumentum nyilvántartás – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -818,10 +844,7 @@ const router = createBrowserRouter(
       path: "/extra/corporate-dashboard",
       element: (
         <RequireAuth>
-          <div>
-            Cégműszerfal (vezetői dashboard, döntéstámogatás) – fejlesztés
-            alatt
-          </div>
+          <div>Cégműszerfal (vezetői dashboard, döntéstámogatás) – fejlesztés alatt</div>
         </RequireAuth>
       ),
     },
@@ -852,7 +875,7 @@ const router = createBrowserRouter(
       ),
     },
 
-    // 🔹 WEBSHOP ADMIN
+    // WEBSHOP ADMIN
     {
       path: "/webshop-admin",
       element: (
@@ -903,38 +926,79 @@ const router = createBrowserRouter(
         </RequireAuth>
       ),
     },
+    {
+      path: "/appointments/timetable-update",
+      element: (
+        <RequireAuth>
+          <TimetableUpdatePage />
+        </RequireAuth>
+      ),
+    },
+
+    // Admin oldalak
+    {
+      path: "/admin/signage",
+      element: (
+        <RequireAuth>
+          <SignageAdmin />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/kiosk",
+      element: (
+        <RequireAuth>
+          <KioskAdmin />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/signate",
+      element: <Navigate to="/admin/signage" replace />,
+    },
+
+    // VIR oldalak
+    {
+      path: "/admin/vir",
+      element: (
+        <RequireAuth>
+          <VirDashboardPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/vir/staff/:staffId",
+      element: (
+        <RequireAuth>
+          <VirStaffDetailPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/vir/service/:serviceId",
+      element: (
+        <RequireAuth>
+          <VirServiceDetailPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/vir-reports",
+      element: (
+        <RequireAuth>
+          <VirReportsAdminPage />
+        </RequireAuth>
+      ),
+    },
 
     // Fallback
     {
-  path: "/admin/signage",
-  element: (
-    <RequireAuth>
-      <SignageAdmin />
-    </RequireAuth>
-  ),
-},
-
-{
-  path: "/admin/kiosk",
-  element: (
-    <RequireAuth>
-      <KioskAdmin />
-    </RequireAuth>
-  ),
-},
-{
-  path: "/admin/signate",
-  element: <Navigate to="/admin/signage" replace />,
-},
-{
       path: "*",
       element: <FallbackRedirect />,
-    }
-],
+    },
+  ],
   {
-    // 🔹 React Router v7 future flag-ek bekapcsolva – eltűnnek a warningok
     future: {
-      
       v7_relativeSplatPath: true,
     },
   }
