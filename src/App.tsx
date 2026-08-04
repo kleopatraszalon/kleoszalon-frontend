@@ -108,6 +108,22 @@ const router = createBrowserRouter(
       ),
     },
     {
+      path: "/modules/team/payroll",
+      element: (
+        <RequireAuth>
+          <EmployeesList />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/hr/positions",
+      element: (
+        <RequireAuth>
+          <EmployeesList />
+        </RequireAuth>
+      ),
+    },
+    {
       path: "/modules/:moduleKey/*",
       element: (
         <RequireAuth>
@@ -653,14 +669,6 @@ const router = createBrowserRouter(
     },
 
     // HR aloldalak
-    {
-      path: "/hr/positions",
-      element: (
-        <RequireAuth>
-          <div>Pozíciók és álláshirdetések – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
-    },
     {
       path: "/hr/applications",
       element: (
