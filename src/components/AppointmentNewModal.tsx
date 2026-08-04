@@ -1,354 +1,116 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { CalendarDays, Check, ChevronRight, Clock3, MapPin, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import { fetchArray, fetchJSON, apiFetch } from "../utils/fetch";
+import "./AppointmentNewModal.css";
 
 type PickerItem = {
-  id: string;
-  name?: string | null;
-  full_name?: string | null;
-  title?: string | null;
-  color?: string | null;
+  id: string; name?: string | null; full_name?: string | null; title?: string | null;
+  phone?: string | null; color?: string | null; location_id?: string | null;
+  duration_minutes?: number | string | null; base_price?: number | string | null;
+  list_price?: number | string | null; promo_price?: number | string | null;
+  service_type_name?: string | null;
 };
+type Props = { onSaved: () => void; onClose: () => void; initialEmployeeId?: string; initialDate?: string; initialStartMinutes?: number; initialDurationMinutes?: number };
 
-type Props = {
-  onSaved: () => void;
-  onClose: () => void;
+const pad2 = (value: number) => String(value).padStart(2, "0");
+const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; };
+const minutesToHM = (value: number) => `${pad2(Math.floor(value / 60) % 24)}:${pad2(value % 60)}`;
+const hmToMinutes = (value: string) => { const [hours, minutes] = value.split(":").map(Number); return hours * 60 + minutes; };
+const addMinutesHM = (value: string, duration: number) => minutesToHM(hmToMinutes(value) + duration);
+const displayName = (item: PickerItem) => item.full_name || item.name || item.title || item.id;
+const serviceDuration = (item: PickerItem) => Math.max(Number(item.duration_minutes || 30), 5);
+const servicePrice = (item: PickerItem) => Number(item.promo_price ?? item.list_price ?? item.base_price ?? 0);
+const combineISO = (date: string, time: string) => new Date(`${date}T${time}:00`).toISOString();
 
-  /** Napi nézetben kattintott munkatárs id-ja (előválasztás) */
-  initialEmployeeId?: string;
-
-  /** Kiválasztott nap: 'YYYY-MM-DD' */
-  initialDate?: string;
-
-  /** Kattintott slot kezdete percben 0–1440 között (pl. 9:30 -> 570) */
-  initialStartMinutes?: number;
-
-  /** Alapértelmezett időtartam percben (pl. 30) */
-  initialDurationMinutes?: number;
-};
-
-// ======== Segédfüggvények ========
-function pad2(n: number) { return String(n).padStart(2, "0"); }
-
-function todayISO(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
-}
-
-function nowHM(): string {
-  const d = new Date();
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-
-function addMinutesHM(hm: string, mins: number): string {
-  const [h, m] = hm.split(":").map(Number);
-  const d = new Date(2000, 0, 1, h, m || 0, 0, 0);
-  d.setMinutes(d.getMinutes() + mins);
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-}
-
-function displayName(x: PickerItem) { return x.full_name ?? x.name ?? x.title ?? x.id; }
-
-// 15 perces rácsra igazítás
-function snapToGrid(hm: string, stepMinutes = 15, direction: "nearest" | "up" | "down" = "nearest"): string {
-  const [h, m] = hm.split(":").map(Number);
-  let total = h * 60 + (m || 0);
-  const mod = total % stepMinutes;
-
-  if (direction === "nearest") {
-    if (mod === 0) return hm;
-    const down = total - mod;
-    const up = total + (stepMinutes - mod);
-    total = (total - down) < (up - total) ? down : up;
-  } else if (direction === "up") {
-    if (mod !== 0) total += (stepMinutes - mod);
-  } else {
-    total -= mod;
-  }
-
-  const hh = Math.floor(total / 60);
-  const mm = total % 60;
-  return `${pad2(((hh % 24) + 24) % 24)}:${pad2(((mm % 60) + 60) % 60)}`;
-}
-
-// ISO egyesítő
-function combineISO(dateISO: string, hm: string): string {
-  return `${dateISO} ${hm}`;
-}
-
-// Alap időintervallum validáció (kliense oldalon)
-function validateIntervalLocal(dateISO: string, startHM: string, endHM: string): string | null {
-  if (!dateISO || !startHM || !endHM) return "Hiányzó időadatok.";
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateISO)) return "Érvénytelen dátum.";
-  if (!/^\d{2}:\d{2}$/.test(startHM) || !/^\d{2}:\d{2}$/.test(endHM)) return "Érvénytelen időformátum.";
-  const [sh, sm] = startHM.split(":").map(Number);
-  const [eh, em] = endHM.split(":").map(Number);
-  const sMin = sh * 60 + sm;
-  const eMin = eh * 60 + em;
-  if (eMin <= sMin) return "A befejezésnek a kezdés után kell lennie.";
-  if (eMin - sMin < 5) return "Túl rövid intervallum (min. 5 perc).";
-  return null;
-}
-
-// ======== Komponens ========
-export function AppointmentNewModal({ onSaved, onClose }: Props) {
-  // pickerek
+export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initialDate, initialStartMinutes, initialDurationMinutes = 30 }: Props) {
+  const initialTime = initialStartMinutes == null ? minutesToHM(Math.ceil((new Date().getHours() * 60 + new Date().getMinutes()) / 15) * 15) : minutesToHM(initialStartMinutes);
   const [locations, setLocations] = useState<PickerItem[]>([]);
   const [employees, setEmployees] = useState<PickerItem[]>([]);
   const [clients, setClients] = useState<PickerItem[]>([]);
   const [services, setServices] = useState<PickerItem[]>([]);
-
-  // űrlap state
-  const [locationId, setLocationId] = useState<string>("");
-  const [employeeId, setEmployeeId] = useState<string>("");
-  const [clientId, setClientId] = useState<string>("");
-  const [serviceId, setServiceId] = useState<string>("");
-
-  const [date, setDate] = useState<string>(todayISO());
-  const [startHM, setStartHM] = useState<string>(nowHM());
-  const [endHM, setEndHM] = useState<string>(addMinutesHM(nowHM(), 30));
-  const [note] = useState<string>("");
-
+  const [locationId, setLocationId] = useState("");
+  const [employeeId, setEmployeeId] = useState(initialEmployeeId || "");
+  const [clientId, setClientId] = useState("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [date, setDate] = useState(initialDate || todayISO());
+  const [startHM, setStartHM] = useState(initialTime);
+  const [note, setNote] = useState("");
+  const [clientQuery, setClientQuery] = useState("");
+  const [serviceQuery, setServiceQuery] = useState("");
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [checking, setChecking] = useState(false);
+  const [conflicts, setConflicts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // szerver oldali ütközés infó
-  const [conflicts, setConflicts] = useState<any[]>([]);
-  const [checking, setChecking] = useState(false);
+  useEffect(() => {
+    let active = true;
+    Promise.all([
+      fetchArray<PickerItem>("/api/locations"), fetchArray<PickerItem>("/api/employees"),
+      fetchArray<PickerItem>("/api/clients"), fetchArray<PickerItem>("/api/services"),
+    ]).then(([locs, emps, cls, svs]) => {
+      if (!active) return;
+      setLocations(locs); setEmployees(emps); setClients(cls); setServices(svs);
+      setLocationId((current) => current || locs[0]?.id || "");
+      setEmployeeId((current) => current || emps[0]?.id || "");
+    }).catch(() => setError("A foglaláshoz szükséges adatok betöltése sikertelen.")).finally(() => active && setLoading(false));
+    return () => { active = false; };
+  }, []);
 
-  // pickerek betöltése – fetchArray mindig tömböt ad
-  const loadPickers = useCallback(async () => {
-    try {
-      const [locs, emps, cls, svs] = await Promise.all([
-        fetchArray<PickerItem>("/api/locations"),
-        fetchArray<PickerItem>("/api/employees"),
-        fetchArray<PickerItem>("/api/clients"),
-        fetchArray<PickerItem>("/api/services"),
-      ]);
-      setLocations(locs);
-      setEmployees(emps);
-      setClients(cls);
-      setServices(svs);
+  const selectedServices = useMemo(() => selectedServiceIds.map((id) => services.find((service) => service.id === id)).filter(Boolean) as PickerItem[], [selectedServiceIds, services]);
+  const totalDuration = useMemo(() => selectedServices.reduce((sum, service) => sum + serviceDuration(service), 0) || initialDurationMinutes, [selectedServices, initialDurationMinutes]);
+  const totalPrice = useMemo(() => selectedServices.reduce((sum, service) => sum + servicePrice(service), 0), [selectedServices]);
+  const endHM = useMemo(() => addMinutesHM(startHM, totalDuration), [startHM, totalDuration]);
+  const visibleClients = useMemo(() => clients.filter((client) => `${displayName(client)} ${client.phone || ""}`.toLocaleLowerCase("hu-HU").includes(clientQuery.toLocaleLowerCase("hu-HU"))).slice(0, 8), [clients, clientQuery]);
+  const visibleServices = useMemo(() => services.filter((service) => !selectedServiceIds.includes(service.id) && `${displayName(service)} ${service.service_type_name || ""}`.toLocaleLowerCase("hu-HU").includes(serviceQuery.toLocaleLowerCase("hu-HU"))).slice(0, 12), [services, serviceQuery, selectedServiceIds]);
+  const filteredEmployees = useMemo(() => employees.filter((employee) => !locationId || !employee.location_id || employee.location_id === locationId), [employees, locationId]);
 
-      // alapértelmezések
-      if (!locationId && locs[0]?.id) setLocationId(locs[0].id);
-      if (!employeeId && emps[0]?.id) setEmployeeId(emps[0].id);
-      if (!clientId && cls[0]?.id) setClientId(cls[0].id);
-      if (!serviceId && svs[0]?.id) setServiceId(svs[0].id);
-    } catch (e) {
-      console.error("picker load failed:", e);
-      setError("A választólisták betöltése sikertelen.");
-      setLocations([]); setEmployees([]); setClients([]); setServices([]);
-    }
-  }, [clientId, employeeId, locationId, serviceId]);
-
-  useEffect(() => { loadPickers(); }, [loadPickers]);
-
-  // 15 perces rácsra húzás blur-kor
-  const onStartBlur = useCallback(() => setStartHM(snapToGrid(startHM, 15, "nearest")), [startHM]);
-  const onEndBlur   = useCallback(() => setEndHM(snapToGrid(endHM, 15, "nearest")), [endHM]);
-
-  // Szerver oldali ütközés-ellenőrzés (alkalmazott + hely + idő)
   const checkConflicts = useCallback(async () => {
+    if (!employeeId || !locationId || !date || !startHM) return;
     setChecking(true);
-    setError(null);
     try {
-      const localErr = validateIntervalLocal(date, startHM, endHM);
-      if (localErr) { setConflicts([]); setError(localErr); return; }
+      const query = new URLSearchParams({ employee_id: employeeId, location_id: locationId, start: combineISO(date, startHM), end: combineISO(date, endHM) });
+      const result = await fetchJSON<any>(`/api/appointments/conflicts?${query}`, undefined, []);
+      setConflicts(Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : []);
+    } catch { setConflicts([]); }
+    finally { setChecking(false); }
+  }, [employeeId, locationId, date, startHM, endHM]);
 
-      const startIso = combineISO(date, startHM);
-      const endIso   = combineISO(date, endHM);
+  useEffect(() => { const timer = window.setTimeout(() => void checkConflicts(), 350); return () => window.clearTimeout(timer); }, [checkConflicts]);
 
-      // GET: /api/appointments/conflicts?employee_id=&location_id=&start=&end=
-      // A válasz lehet: [] (nincs ütközés), tömb (ütköző tételek), vagy boolean (true=ütközés).
-      const q = new URLSearchParams({
-        employee_id: employeeId || "",
-        location_id: locationId || "",
-        start: startIso,
-        end: endIso,
-      }).toString();
+  const addService = (service: PickerItem) => { setSelectedServiceIds((current) => [...current, service.id]); setServiceQuery(""); setError(null); };
+  const removeService = (id: string) => setSelectedServiceIds((current) => current.filter((serviceId) => serviceId !== id));
+  const canSubmit = Boolean(locationId && employeeId && clientId && selectedServiceIds.length && date && startHM && !conflicts.length && !checking && !saving);
 
-      // Tömbösítve kérjük el a választ, boolean esetén []/[*] lesz
-      const raw = await fetchJSON<any>(`/api/appointments/conflicts?${q}`, undefined, []);
-      let list: any[] = [];
-
-      if (Array.isArray(raw)) list = raw;
-      else if (raw === true)  list = [{ id: "_conflict_", title: "Ütközés" }];
-      else if (raw && typeof raw === "object") {
-        // gyakori szerkezetek
-        if (Array.isArray((raw as any).items)) list = (raw as any).items;
-        else if (Array.isArray((raw as any).data)) list = (raw as any).data;
-        else list = Object.values(raw).every(v => typeof v === "object") ? Object.values(raw) : [];
-      }
-
-      setConflicts(list);
-      if (list.length > 0) {
-        setError(`Ütköző foglalás található (${list.length} db). Kérem válassz másik időpontot.`);
-      }
-    } catch (e) {
-      console.error("conflict check failed:", e);
-      setError("Az ütközésellenőrzés sikertelen.");
-      setConflicts([]);
-    } finally {
-      setChecking(false);
-    }
-  }, [date, startHM, endHM, employeeId, locationId]);
-
-  // Űrlap változásakor újra ellenőrizhetünk (debounce-olható, most egyszerűsítve)
-  useEffect(() => { if (employeeId && locationId) { void checkConflicts(); } }, [employeeId, locationId, date, startHM, endHM, checkConflicts]);
-
-  const canSubmit = useMemo(() => {
-    const hasBasics = locationId && employeeId && clientId && serviceId && date && startHM && endHM;
-    const localErr = validateIntervalLocal(date, startHM, endHM);
-    return !!(hasBasics && !localErr && conflicts.length === 0 && !checking);
-  }, [locationId, employeeId, clientId, serviceId, date, startHM, endHM, conflicts.length, checking]);
-
-  // Mentés
-  const submit = useCallback(async () => {
-    setSaving(true);
-    setError(null);
+  const submit = async () => {
+    if (!canSubmit) { setError(conflicts.length ? "A kiválasztott munkatársnak ekkor már van foglalása." : "Töltse ki a kötelező mezőket és adjon hozzá legalább egy szolgáltatást."); return; }
+    setSaving(true); setError(null);
     try {
-      // lokális check
-      const localErr = validateIntervalLocal(date, startHM, endHM);
-      if (localErr) throw new Error(localErr);
-
-      if (conflicts.length > 0) {
-        throw new Error("Ütköző foglalás van erre az időpontra. Válassz másik időablakot.");
-      }
-
-      const startIso = combineISO(date, snapToGrid(startHM, 15, "nearest"));
-      const endIso   = combineISO(date, snapToGrid(endHM, 15, "nearest"));
-
-      const payload = {
-        location_id: locationId,
-        employee_id: employeeId,
-        client_id: clientId,
-        service_id: serviceId,
-        start_time: startIso,
-        end_time: endIso,
-        note: note || null,
-        status: "booked",
-      };
-
-      const res = await apiFetch("/api/appointments", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      if (!res.ok) {
-        const txt = await res.text();
-        throw new Error(txt || `HTTP ${res.status}`);
-      }
-
+      await apiFetch("/api/appointments", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({
+        location_id: locationId, employee_id: employeeId, client_id: clientId,
+        start_time: combineISO(date, startHM), end_time: combineISO(date, endHM), notes: note,
+        services: selectedServices.map((service) => ({ service_id: service.id })),
+      }) });
       onSaved();
-    } catch (e: any) {
-      console.error("create appointment failed:", e);
-      setError(e?.message || "A mentés sikertelen.");
-    } finally {
-      setSaving(false);
-    }
-  }, [locationId, employeeId, clientId, serviceId, date, startHM, endHM, note, conflicts.length, onSaved]);
+    } catch (reason: any) { setError(reason?.message || "Az időpont mentése sikertelen."); }
+    finally { setSaving(false); }
+  };
 
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-4 md:p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg md:text-xl font-semibold">Új időpont</h2>
-          <button onClick={onClose} className="px-3 py-1 rounded border hover:bg-gray-50">Bezár</button>
+  return <div className="booking-modal-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+    <section className="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
+      <header className="booking-modal-header"><div><span>Új foglalás</span><h2 id="booking-modal-title">Időpont létrehozása</h2></div><button onClick={onClose} aria-label="Bezárás"><X size={20}/></button></header>
+      {loading ? <div className="booking-modal-loading">Foglalási adatok betöltése…</div> : <div className="booking-modal-body">
+        <div className="booking-modal-form">
+          {error && <div className="booking-error">{error}</div>}
+          <div className="booking-section"><div className="booking-section-title"><MapPin size={17}/><div><h3>Hely és munkatárs</h3><p>Hol és kinél történjen a szolgáltatás?</p></div></div><div className="booking-two-columns"><label>Telephely<select value={locationId} onChange={(event) => setLocationId(event.target.value)}><option value="">Válasszon telephelyet</option>{locations.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label><label>Munkatárs<select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Válasszon munkatársat</option>{filteredEmployees.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label></div></div>
+          <div className="booking-section"><div className="booking-section-title"><UserRound size={17}/><div><h3>Vendég</h3><p>Keresés név vagy telefonszám alapján</p></div></div><label className="booking-search"><Search size={16}/><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Vendég keresése..."/></label><div className="booking-picker-list">{visibleClients.map((client) => <button key={client.id} className={clientId === client.id ? "selected" : ""} onClick={() => setClientId(client.id)}><span className="booking-avatar">{displayName(client).charAt(0)}</span><span><b>{displayName(client)}</b><small>{client.phone || "Nincs telefonszám"}</small></span>{clientId === client.id && <Check size={17}/>}</button>)}</div></div>
+          <div className="booking-section"><div className="booking-section-title"><Plus size={17}/><div><h3>Szolgáltatások</h3><p>Több szolgáltatás is hozzáadható egy foglaláshoz</p></div></div>{selectedServices.length > 0 && <div className="selected-services">{selectedServices.map((service, index) => <article key={service.id}><span>{index + 1}</span><div><b>{displayName(service)}</b><small>{serviceDuration(service)} perc · {servicePrice(service).toLocaleString("hu-HU")} Ft</small></div><button onClick={() => removeService(service.id)} aria-label="Szolgáltatás eltávolítása"><Trash2 size={16}/></button></article>)}</div>}<label className="booking-search"><Search size={16}/><input value={serviceQuery} onChange={(event) => setServiceQuery(event.target.value)} placeholder="Szolgáltatás hozzáadása..."/></label><div className="service-picker-grid">{visibleServices.map((service) => <button key={service.id} onClick={() => addService(service)}><span><b>{displayName(service)}</b><small>{service.service_type_name || "Szolgáltatás"}</small></span><span><b>{servicePrice(service).toLocaleString("hu-HU")} Ft</b><small>{serviceDuration(service)} perc</small></span><Plus size={16}/></button>)}</div></div>
+          <div className="booking-section"><div className="booking-section-title"><CalendarDays size={17}/><div><h3>Időzítés</h3><p>A befejezést a szolgáltatások alapján számítjuk</p></div></div><div className="booking-three-columns"><label>Dátum<input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label><label>Kezdés<input type="time" step={900} value={startHM} onChange={(event) => setStartHM(event.target.value)}/></label><label>Befejezés<input type="time" value={endHM} readOnly/></label></div>{checking && <p className="booking-checking">Ütközés ellenőrzése…</p>}{conflicts.length > 0 && <div className="booking-conflict">Ez az időpont foglalt. Válasszon másik kezdési időt.</div>}</div>
+          <div className="booking-section"><label>Megjegyzés<textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Belső megjegyzés a foglaláshoz..."/></label></div>
         </div>
-
-        {error && (
-          <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-2">
-            {error}
-            {checking && <span className="ml-2 opacity-70">(ellenőrzés…)</span>}
-          </div>
-        )}
-
-        {/* Választók */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm mb-1">Telephely</label>
-            <select className="w-full border rounded px-2 py-1" value={locationId} onChange={(e) => setLocationId(e.target.value)}>
-              {locations.map((x) => <option key={x.id} value={x.id}>{displayName(x)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Munkatárs</label>
-            <select className="w-full border rounded px-2 py-1" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-              {employees.map((x) => <option key={x.id} value={x.id}>{displayName(x)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Ügyfél</label>
-            <select className="w-full border rounded px-2 py-1" value={clientId} onChange={(e) => setClientId(e.target.value)}>
-              {clients.map((x) => <option key={x.id} value={x.id}>{displayName(x)}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Szolgáltatás</label>
-            <select className="w-full border rounded px-2 py-1" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-              {services.map((x) => <option key={x.id} value={x.id}>{displayName(x)}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Időzítés + rácsra igazítás blur-kor */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          <div>
-            <label className="block text-sm mb-1">Dátum</label>
-            <input type="date" className="w-full border rounded px-2 py-1" value={date} onChange={(e) => setDate(e.target.value)} />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Kezdés</label>
-            <input
-              type="time"
-              className="w-full border rounded px-2 py-1"
-              value={startHM}
-              onChange={(e) => setStartHM(e.target.value)}
-              onBlur={onStartBlur}
-              step={900} // 15 perc
-            />
-          </div>
-          <div>
-            <label className="block text-sm mb-1">Befejezés</label>
-            <input
-              type="time"
-              className="w-full border rounded px-2 py-1"
-              value={endHM}
-              onChange={(e) => setEndHM(e.target.value)}
-              onBlur={onEndBlur}
-              step={900}
-            />
-          </div>
-        </div>
-
-        {/* Konfliktus lista (ha van) */}
-        {conflicts.length > 0 && (
-          <div className="text-sm bg-amber-50 border border-amber-200 rounded p-2">
-            <div className="font-medium mb-1">Ütközések:</div>
-            <ul className="list-disc ml-5 space-y-1">
-              {conflicts.map((c: any, i: number) => (
-                <li key={c?.id ?? i}>
-                  {c?.title ?? c?.service_name ?? "Foglalás"} — {c?.start_time} → {c?.end_time}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Akciók */}
-        <div className="flex justify-end gap-2 pt-2">
-          <button onClick={onClose} className="px-3 py-1 rounded border hover:bg-gray-50" disabled={saving}>Mégse</button>
-          <button
-            onClick={submit}
-            className="px-3 py-1 rounded bg-black text-white disabled:opacity-60"
-            disabled={!canSubmit || saving}
-            title={!canSubmit ? "Ellenőrizd az időpontot és az ütközéseket." : "Mentés"}
-          >
-            {saving ? "Mentés…" : "Létrehozás"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
+        <aside className="booking-summary"><span className="booking-summary-icon"><CalendarDays/></span><h3>Foglalás összesítése</h3><dl><div><dt>Vendég</dt><dd>{displayName(clients.find((client) => client.id === clientId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Munkatárs</dt><dd>{displayName(employees.find((employee) => employee.id === employeeId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Időpont</dt><dd>{date}<br/>{startHM}–{endHM}</dd></div><div><dt>Szolgáltatások</dt><dd>{selectedServices.length} db</dd></div></dl><div className="booking-total"><span><Clock3 size={16}/>{totalDuration} perc</span><strong>{totalPrice.toLocaleString("hu-HU")} Ft</strong></div><div className={`booking-availability ${conflicts.length ? "busy" : "free"}`}>{conflicts.length ? <X size={16}/> : <Check size={16}/>} {checking ? "Ellenőrzés…" : conflicts.length ? "Az időpont foglalt" : "Az időpont elérhető"}</div></aside>
+      </div>}
+      <footer className="booking-modal-footer"><button onClick={onClose}>Mégse</button><button className="booking-save" disabled={!canSubmit} onClick={submit}>{saving ? "Mentés…" : <>Időpont létrehozása <ChevronRight size={17}/></>}</button></footer>
+    </section>
+  </div>;
 }

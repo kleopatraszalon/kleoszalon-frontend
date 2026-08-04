@@ -67,14 +67,10 @@ export const SignagePage: React.FC = () => {
       .replace(/\/+$/, "")
       .replace(/\/api\/?$/, ""); // ha véletlenül ".../api" van env-ben
 
-  // Vite: csak a VITE_* változók látszanak a böngészőben
-  // Példák:
-  //   VITE_API_ORIGIN=http://localhost:5000
-  //   VITE_API_ORIGIN=https://kleoszalon-api-1.onrender.com
+  // Create React App build-time beállítás.
   const ENV_API_ORIGIN = cleanOrigin(
-    (import.meta as any).env?.VITE_API_ORIGIN ||
-      (import.meta as any).env?.VITE_API_URL ||
-      (import.meta as any).env?.VITE_BACKEND_URL ||
+    process.env.REACT_APP_API_ORIGIN ||
+      process.env.REACT_APP_API_URL ||
       ""
   );
 

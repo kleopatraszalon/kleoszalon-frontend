@@ -35,6 +35,8 @@ const VirStaffDetailPage = lazy(() => import("./pages/VirStaffDetailPage"));
 const VirServiceDetailPage = lazy(() => import("./pages/VirServiceDetailPage"));
 const VirReportsAdminPage = lazy(() => import("./pages/VirReportsAdminPage"));
 const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
+const ModulePlaceholderPage = lazy(() => import("./pages/ModulePlaceholderPage"));
+const AppointmentsModulePage = lazy(() => import("./pages/AppointmentsModulePage"));
 
 const HOME_PATH = "/";
 
@@ -52,7 +54,18 @@ type GuardProps = { children: ReactElement };
 
 function RequireAuth({ children }: GuardProps) {
   const t = getToken();
-  return t ? <AppLayout>{children}</AppLayout> : <Navigate to="/login" replace />;
+  if (!t) return <Navigate to="/login" replace />;
+
+  // A korábbi egyszerű „fejlesztés alatt” blokkok helyett egységes,
+  // használható VIR moduloldalt jelenítünk meg.
+  const isLegacyPlaceholder =
+    React.isValidElement(children) && children.type === "div";
+
+  return (
+    <AppLayout>
+      {isLegacyPlaceholder ? <ModulePlaceholderPage /> : children}
+    </AppLayout>
+  );
 }
 
 function PublicOnly({ children }: GuardProps) {
@@ -84,6 +97,22 @@ const router = createBrowserRouter(
         <PublicOnly>
           <Register />
         </PublicOnly>
+      ),
+    },
+    {
+      path: "/modules/appointments/:view",
+      element: (
+        <RequireAuth>
+          <AppointmentsModulePage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/modules/:moduleKey/*",
+      element: (
+        <RequireAuth>
+          <ModulePlaceholderPage />
+        </RequireAuth>
       ),
     },
 
@@ -884,6 +913,14 @@ const router = createBrowserRouter(
         </RequireAuth>
       ),
     },
+    {
+      path: "/admin/webshop",
+      element: (
+        <RequireAuth>
+          <WebshopAdmin />
+        </RequireAuth>
+      ),
+    },
 
     // Appointments
     {
@@ -928,6 +965,14 @@ const router = createBrowserRouter(
     },
     {
       path: "/appointments/timetable-update",
+      element: (
+        <RequireAuth>
+          <TimetableUpdatePage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/timetable/update",
       element: (
         <RequireAuth>
           <TimetableUpdatePage />

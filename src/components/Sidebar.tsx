@@ -1,7 +1,7 @@
 // src/components/Sidebar.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { useNavigate, NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
@@ -20,6 +20,9 @@ interface RawMenuItem {
   route?: string | null;
   parent_id?: number | null;
   required_role?: string | null;
+  role?: string | null;
+  code?: string | null;
+  feature_key?: string | null;
   order_index?: number | null;
   submenus?: RawMenuItem[];
 }
@@ -76,7 +79,6 @@ export function Menu({
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
-  const navigate = useNavigate();
   const location = useLocation();
 
   const [menus, setMenus] = useState<MenuItem[]>([]);
@@ -337,58 +339,7 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   });
 
   const builtRoots = roots.sort(sortFnNode).map(normalizeNode);
-  return withRequiredEntries(builtRoots);
-}
-
-function withRequiredEntries(items: MenuItem[]): MenuItem[] {
-  const clone = items.map((item) => ({
-    ...item,
-    children: item.children.map((child) => ({ ...child, children: [...child.children] })),
-  }));
-
-  const hasRoute = (route: string) => {
-    const stack = [...clone];
-    while (stack.length) {
-      const current = stack.pop()!;
-      if ((current.route || "").toLowerCase() === route.toLowerCase()) return true;
-      stack.push(...current.children);
-    }
-    return false;
-  };
-
-  if (!hasRoute('/appointments/calendar')) {
-    const insertAt = Math.min(1, clone.length);
-    clone.splice(insertAt, 0, {
-      id: 900001,
-      name: 'Naptár',
-      route: '/appointments/calendar',
-      children: [],
-    });
-  }
-
-  let reportsRoot = clone.find((item) => (item.name || '').trim().toLowerCase() === 'kimutatások');
-  if (!reportsRoot) {
-    reportsRoot = {
-      id: 900100,
-      name: 'Kimutatások',
-      route: undefined,
-      children: [],
-    };
-    clone.push(reportsRoot);
-  }
-
-  const ensureChild = (id: number, name: string, route: string) => {
-    if (!reportsRoot!.children.some((child) => (child.route || '').toLowerCase() === route.toLowerCase())) {
-      reportsRoot!.children.push({ id, name, route, children: [] });
-    }
-  };
-
-  ensureChild(900101, 'Legfőbb mutatók', '/reports/top-metrics');
-  ensureChild(900102, 'VIR Dashboard', '/admin/vir');
-
-  reportsRoot.children.sort((a, b) => a.id - b.id);
-  clone.sort((a, b) => a.id - b.id);
-  return clone;
+  return builtRoots;
 }
 
 export default Sidebar;

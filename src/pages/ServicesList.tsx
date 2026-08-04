@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
 import ServiceNewModal from "../components/ServiceNewModal";
 
-Modal.setAppElement("#root");
+const servicesAppElement = document.getElementById("root");
+if (servicesAppElement) Modal.setAppElement(servicesAppElement);
 
 type UUID = string;
 
@@ -240,8 +240,6 @@ const ServicesList: React.FC = () => {
   /* ---------- Render ---------- */
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
-
       <main className="calendar-container">
         {/* Fejléc */}
         <div className="employees-header">

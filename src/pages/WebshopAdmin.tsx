@@ -1,14 +1,16 @@
 // src/pages/WebshopAdmin.tsx
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "../components/Sidebar";
 
 /* =================================================================== */
 /*                      API ALAP + SEGÉDFÜGGVÉNYEK                     */
 /* =================================================================== */
 
 const rawBase =
-  (import.meta as any).env?.VITE_API_BASE?.replace(/\/$/, "") ||
-  "http://localhost:5000/api";
+  (process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE || "")
+    .replace(/\/$/, "") ||
+  (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+    ? "http://localhost:5000/api"
+    : "https://kleoszalon-api-1.onrender.com/api");
 
 // Gondoskodunk róla, hogy mindig /api végződés legyen
 const API_BASE = rawBase.endsWith("/api") ? rawBase : `${rawBase}/api`;
@@ -527,7 +529,6 @@ const WebshopAdmin: React.FC = () => {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
       <main className="calendar-container">
         {/* 95% szélesség */}
         <div className="page" style={{ maxWidth: "95vw" }}>

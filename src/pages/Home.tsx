@@ -1,7 +1,6 @@
 // src/pages/Home.tsx
 import React, { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import {
   BarChart,
   Bar,
@@ -15,7 +14,8 @@ import {
 import { useCurrentUser } from "../hooks/useCurrentUser";
 
 import Modal from "react-modal";
-Modal.setAppElement("#root");
+const homeAppElement = document.getElementById("root");
+if (homeAppElement) Modal.setAppElement(homeAppElement);
 
 // 🔹 Ugyanaz mint Login.tsx-ben
 const API_BASE =
@@ -60,7 +60,7 @@ const Dashboard: React.FC = () => {
   const [loadingStats, setLoadingStats] = useState(true);
   const [chartData, setChartData] = useState<any[]>([]);
 
-  const [__selectedDate, _setSelectedDate] = useState<Date>(new Date());
+  const [, setSelectedDate] = useState<Date>(new Date());
 
   // dátum kiválasztás (napi beosztáshoz – most csak eltároljuk)
   useEffect(() => {
@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
       const custom = e as CustomEvent<{ date?: string }>;
       const iso = custom.detail?.date;
       if (!iso) return;
-      _setSelectedDate(new Date(iso));
+      setSelectedDate(new Date(iso));
       // itt hívhatod majd a napi beosztás lekérését:
       // loadDailySchedule(iso);
     };
@@ -79,7 +79,7 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // ⛔ KILÉPÉS
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("kleo_token");
     localStorage.removeItem("kleo_role");
@@ -90,7 +90,7 @@ const Dashboard: React.FC = () => {
     localStorage.removeItem("userId");
 
     navigate("/login");
-  };
+  }, [navigate]);
 
   // ha nincs jogosult user → logout
   useEffect(() => {
@@ -99,7 +99,7 @@ const Dashboard: React.FC = () => {
         handleLogout();
       }
     }
-  }, [userLoading, authError, user]);
+  }, [userLoading, authError, user, handleLogout]);
 
   // statisztikák lekérése, ha már van user
   useEffect(() => {
@@ -146,7 +146,7 @@ const Dashboard: React.FC = () => {
       .finally(() => {
         setLoadingStats(false);
       });
-  }, [user, authError]);
+  }, [user, authError, handleLogout]);
 
   // Betöltés közben – itt még nincs user, ezért nem hívjuk a Sidebart
   if (userLoading || loadingStats) {
@@ -163,7 +163,6 @@ const Dashboard: React.FC = () => {
   if (!user || !stats) {
     return (
       <div className="home-container app-shell app-shell--collapsed">
-        <Sidebar user={user} />
         <main className="calendar-container">
           <div
             style={{
@@ -215,11 +214,9 @@ const Dashboard: React.FC = () => {
     },
   ];
 
-  // NORMÁL RENDER – Sidebar jogosultsággal + Home.css layout
+  // A Sidebart kizárólag az AppLayout rajzolja ki.
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar user={user} />
-
       <main className="calendar-container">
         {/* Fejléc */}
         <div

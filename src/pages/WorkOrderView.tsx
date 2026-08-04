@@ -3,9 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import { apiFetch } from "../utils/api";
-import { useCurrentUser } from "../hooks/useCurrentUser";
 
 type WorkOrder = {
   id: string;
@@ -18,7 +16,6 @@ type WorkOrder = {
 
 const WorkOrderView: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const { user } = useCurrentUser();
   const [workOrder, setWorkOrder] = useState<WorkOrder | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +60,6 @@ const WorkOrderView: React.FC = () => {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar user={user} />
       <main className="calendar-container">
         <div
           style={{

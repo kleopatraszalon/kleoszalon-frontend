@@ -1,14 +1,9 @@
 // src/pages/Calendar.tsx
 import React from "react";
-import Sidebar from "../components/Sidebar";
-import { useCurrentUser } from "../hooks/useCurrentUser";
 
 const CalendarPage: React.FC = () => {
-  const { user } = useCurrentUser();
-
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar user={user} />
       <main className="calendar-container">
         <h2
           style={{

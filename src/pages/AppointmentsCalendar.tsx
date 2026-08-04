@@ -2,10 +2,23 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { apiFetch } from "../utils/api";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
+import {
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  Clock3,
+  Filter,
+  LayoutGrid,
+  Plus,
+  Search,
+  SlidersHorizontal,
+  Sparkles,
+  Users,
+} from "lucide-react";
+import "./AppointmentsCalendar.css";
 type Employee = {
   id: string;
   full_name?: string | null;
@@ -70,6 +83,8 @@ const AppointmentsCalendarPage: React.FC = () => {
   const [appointments, setAppointments] = useState<Appt[]>([]);
   const [loadingEmployees, setLoadingEmployees] = useState(false);
   const [loadingAppts, setLoadingAppts] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
   const [showModal, setShowModal] = useState(false);
   const [modalEmployeeId, setModalEmployeeId] = useState<string | undefined>();
@@ -143,7 +158,7 @@ const AppointmentsCalendarPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [day, user]);
+  }, [day, user, reloadKey]);
 
   // --- derived: id -> employee, slots, appointments per cell -------
 
@@ -154,14 +169,6 @@ const AppointmentsCalendarPage: React.FC = () => {
     }
     return out;
   }, []);
-
-  const _employeesById = useMemo(() => {
-    const map = new Map<string, Employee>();
-    for (const e of employees) {
-      if (e.id) map.set(e.id, e);
-    }
-    return map;
-  }, [employees]);
 
   const apptsByCell = useMemo(() => {
     const map = new Map<string, Appt[]>();
@@ -182,6 +189,31 @@ const AppointmentsCalendarPage: React.FC = () => {
     return map;
   }, [appointments]);
 
+  const visibleEmployees = useMemo(() => {
+    const needle = employeeSearch.trim().toLocaleLowerCase("hu-HU");
+    if (!needle) return employees;
+    return employees.filter((employee) =>
+      [employee.short_name, employee.full_name, employee.first_name, employee.last_name]
+        .filter(Boolean)
+        .join(" ")
+        .toLocaleLowerCase("hu-HU")
+        .includes(needle)
+    );
+  }, [employees, employeeSearch]);
+
+  const activeEmployeeCount = useMemo(
+    () => new Set(appointments.map((appointment) => appointment.employee_id).filter(Boolean)).size,
+    [appointments]
+  );
+
+  const plannedMinutes = useMemo(
+    () => appointments.reduce((total, appointment) => {
+      const duration = minutesSinceMidnight(appointment.end_time) - minutesSinceMidnight(appointment.start_time);
+      return total + Math.max(duration, 0);
+    }, 0),
+    [appointments]
+  );
+
   // --- actions ------------------------------------------------------
 
   const changeDay = (delta: number) => {
@@ -201,12 +233,7 @@ const AppointmentsCalendarPage: React.FC = () => {
 
   const handleSaved = () => {
     setShowModal(false);
-    const from = `${day} 00:00`;
-    const to = `${day} 23:59`;
-    const qs = `?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-    apiFetch<any>(`/api/appointments${qs}`)
-      .then((raw) => setAppointments(toArray<Appt>(raw)))
-      .catch((err) => console.error("Reload appointments error", err));
+    setReloadKey((current) => current + 1);
   };
 
   // --- render helpers -----------------------------------------------
@@ -236,11 +263,6 @@ const AppointmentsCalendarPage: React.FC = () => {
             Array.isArray(a.service_names) && a.service_names.length > 0
               ? a.service_names.join(", ")
               : "";
-          const label =
-            labelClient && labelService
-              ? `${labelClient} – ${labelService}`
-              : labelClient || labelService || "Időpont";
-
           return (
             <div
               key={a.id}
@@ -249,11 +271,12 @@ const AppointmentsCalendarPage: React.FC = () => {
                 minHeight: `${(dur / SLOT_MIN) * 24}px`,
               }}
             >
-              <div className="appt-pill-title">{label}</div>
               <div className="appt-pill-time">
                 {timeLabelFromMinutes(startMinutes)} –{" "}
                 {timeLabelFromMinutes(startMinutes + dur)}
               </div>
+              <div className="appt-pill-title">{labelClient || "Vendég"}</div>
+              {labelService && <div className="appt-pill-service">{labelService}</div>}
             </div>
           );
         })}
@@ -266,7 +289,6 @@ const AppointmentsCalendarPage: React.FC = () => {
   if (userLoading) {
     return (
       <div className="home-container app-shell app-shell--collapsed">
-        <Sidebar />
         <main className="calendar-container">
           <div className="calendar-loading">Betöltés...</div>
         </main>
@@ -280,64 +302,61 @@ const AppointmentsCalendarPage: React.FC = () => {
   }
 
   return (
-    <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar user={user} />
-
-      <main className="calendar-container">
-        {/* Fejléc + gombsor */}
-        <header className="calendar-header">
-          <div className="calendar-header-left">
-            <button
-              className="btn btn-sm"
-              onClick={() => changeDay(-1)}
-            >
-              ◀ Előző nap
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => setDay(todayISODate())}
-            >
-              Mai nap
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => changeDay(1)}
-            >
-              Következő nap ▶
-            </button>
-            <input
-              type="date"
-              value={day}
-              onChange={(e) => setDay(e.target.value)}
-              className="calendar-date-input"
-            />
+    <div className="modern-calendar-page">
+      <main className="modern-calendar-main">
+        <header className="modern-calendar-hero">
+          <div className="modern-calendar-heading">
+            <span className="modern-calendar-kicker"><Sparkles size={14}/> Intelligens időbeosztás</span>
+            <h1>Naptár és digitális beosztás</h1>
+            <p>Foglalások, munkatársak és szabad kapacitások valós időben.</p>
           </div>
-
-          <div className="calendar-header-center">
-            <h1 className="calendar-title">{formatDayLabel()}</h1>
-            {(loadingEmployees || loadingAppts) && (
-              <span className="calendar-subtitle">Betöltés...</span>
-            )}
-          </div>
-
-          <div className="calendar-header-right">
-            <button className="btn btn-sm btn-outline">Napi nézet</button>
-            <button className="btn btn-sm btn-outline" disabled>
-              Heti nézet
-            </button>
-            <button className="btn btn-sm btn-outline" disabled>
-              Havi nézet
-            </button>
-          </div>
+          <button className="modern-primary-button" onClick={() => { setModalEmployeeId(undefined); setModalStartMinutes(undefined); setShowModal(true); }}>
+            <Plus size={18}/> Új időpont
+          </button>
         </header>
+
+        <section className="modern-calendar-summary">
+          <article><span><CalendarDays size={18}/></span><div><strong>{appointments.length}</strong><small>Napi foglalás</small></div></article>
+          <article><span><Users size={18}/></span><div><strong>{activeEmployeeCount}/{employees.length}</strong><small>Foglalt munkatárs</small></div></article>
+          <article><span><Clock3 size={18}/></span><div><strong>{plannedMinutes} perc</strong><small>Tervezett idő</small></div></article>
+        </section>
+
+        <section className="modern-calendar-board">
+          <header className="modern-calendar-toolbar">
+            <div className="modern-date-controls">
+              <button onClick={() => changeDay(-1)} aria-label="Előző nap"><ChevronLeft size={19}/></button>
+              <button className="modern-today-button" onClick={() => setDay(todayISODate())}>Ma</button>
+              <button onClick={() => changeDay(1)} aria-label="Következő nap"><ChevronRight size={19}/></button>
+              <label className="modern-date-picker"><CalendarDays size={16}/><input type="date" value={day} onChange={(e) => setDay(e.target.value)}/></label>
+            </div>
+
+            <div className="modern-current-date">
+              <strong>{formatDayLabel()}</strong>
+              {(loadingEmployees || loadingAppts) && <span>Adatok frissítése…</span>}
+            </div>
+
+            <div className="modern-view-switcher">
+              <button className="active"><LayoutGrid size={15}/> Nap</button>
+              <button onClick={() => navigate("/modules/appointments/list")}>Lista</button>
+              <button disabled>Hét</button>
+              <button disabled>Hónap</button>
+            </div>
+          </header>
+
+          <div className="modern-calendar-filters">
+            <label><Search size={16}/><input value={employeeSearch} onChange={(event) => setEmployeeSearch(event.target.value)} placeholder="Munkatárs keresése..."/></label>
+            <button><Filter size={16}/> Szűrés</button>
+            <button><SlidersHorizontal size={16}/> Megjelenítés</button>
+            <span>{visibleEmployees.length} munkatárs látható</span>
+          </div>
 
         {/* Tábla */}
         <div className="calendar-grid-wrapper">
-          <table className="appointments-table">
+          <table className="appointments-table modern-appointments-table" style={{ minWidth: `${84 + Math.max(visibleEmployees.length, 1) * 184}px` }}>
             <thead>
               <tr>
                 <th className="time-col">Idő</th>
-                {employees.map((e) => {
+                {visibleEmployees.map((e) => {
                   const name =
                     e.short_name ||
                     e.full_name ||
@@ -346,16 +365,17 @@ const AppointmentsCalendarPage: React.FC = () => {
                   return (
                     <th key={e.id} className="employee-col">
                       <div className="employee-header">
-                        {e.photo_url && (
+                        {e.photo_url ? (
                           <div
                             className="employee-avatar"
                             style={{
                               backgroundImage: `url(${e.photo_url})`,
                             }}
                           />
-                        )}
+                        ) : <div className="employee-avatar employee-avatar-fallback" style={{ background: e.color || undefined }}>{name.split(/\s+/).slice(0, 2).map(part => part[0]).join("")}</div>}
                         <div className="employee-info">
                           <div className="employee-name">{name}</div>
+                          <div className="employee-state"><i/> Elérhető</div>
                         </div>
                       </div>
                     </th>
@@ -364,25 +384,30 @@ const AppointmentsCalendarPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {slots.map((m) => (
-                <tr key={m}>
+              {slots.map((m) => {
+                const now = new Date();
+                const isCurrentSlot = day === todayISODate() && minutesSinceMidnight(now) >= m && minutesSinceMidnight(now) < m + SLOT_MIN;
+                return (
+                <tr key={m} className={isCurrentSlot ? "current-time-row" : ""}>
                   <td className="time-col">
                     <span>{timeLabelFromMinutes(m)}</span>
                   </td>
-                  {employees.map((e) => (
+                  {visibleEmployees.map((e) => (
                     <td
                       key={e.id + "|" + m}
                       className="calendar-cell"
                       onClick={() => openCell(e.id, m)}
                     >
                       {renderAppointmentCell(e.id, m)}
+                      <span className="cell-add"><Plus size={14}/></span>
                     </td>
                   ))}
                 </tr>
-              ))}
+              )})}
             </tbody>
           </table>
         </div>
+        </section>
 
         {/* Új időpont modal */}
         {showModal && (

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -15,7 +15,6 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import Sidebar from "../components/Sidebar";
 import { getLocations, LocationRow } from "../api/locations";
 import { getVirTargets } from "../api/virTargets";
 import { getKpiColor } from "../utils/getKpiColor";
@@ -169,7 +168,7 @@ export default function VirDashboardPage() {
     getLocations().then(setLocations).catch(() => setLocations([]));
   }, []);
 
-  async function loadAll(userOverride?: CurrentUser | null) {
+  const loadAll = useCallback(async (userOverride?: CurrentUser | null) => {
     setLoading(true);
     setError("");
     try {
@@ -214,12 +213,12 @@ export default function VirDashboardPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [currentUser, from, locationId, to]);
 
   useEffect(() => {
     if (!currentUser) return;
     loadAll(currentUser);
-  }, [currentUser]);
+  }, [currentUser, loadAll]);
 
   const revenueChart = useMemo(() => revenueSeries.map((r) => ({ day: r.day.slice(5), revenue: Number(r.revenue_total || 0), paid: Number(r.paid_total || 0), appointments: Number(r.appointments_count || 0) })), [revenueSeries]);
   const sourceChart = useMemo(() => sourceRows.map((r) => ({ name: r.source_channel || "unknown", value: Number(r.revenue_total || 0) })), [sourceRows]);
@@ -251,7 +250,6 @@ export default function VirDashboardPage() {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
       <div className="page-content">
         <div style={{ padding: 24, background: "#f6f7fb", minHeight: "100vh" }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 16, marginBottom: 18, flexWrap: "wrap" }}>

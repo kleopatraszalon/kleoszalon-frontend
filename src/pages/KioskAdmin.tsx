@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./KioskAdmin.css";
 import {
   getKioskAdminMenu,
@@ -37,7 +37,7 @@ export default function KioskAdmin() {
 
   const grouped = useMemo(() => groupServices(services), [services]);
 
-  async function load() {
+  const load = useCallback(async () => {
     setErr("");
     if (!locationId) return setErr("Adj meg egy telephely (locationId) UUID-t.");
     setLoading(true);
@@ -62,9 +62,9 @@ export default function KioskAdmin() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [locationId]);
 
-  useEffect(() => { if (locationId) load(); }, []);
+  useEffect(() => { if (locationId) load(); }, [load, locationId]);
 
   const enabledByServiceId = useMemo(() => {
     const m = new Map<string, { sectionId: string; enabled: boolean; order: number }>();

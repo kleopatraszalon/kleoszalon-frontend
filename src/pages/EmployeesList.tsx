@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import EmployeeNewModal from "../components/EmployeeNewModal";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
 // A kártya komponens NÉV SZERINTI exportja ugyanebből a mappából
 import { EmployeeDetailsCard } from "./EmployeeDetails";
 
-Modal.setAppElement("#root");
+const employeesAppElement = document.getElementById("root");
+if (employeesAppElement) Modal.setAppElement(employeesAppElement);
 
 type Employee = {
   id: string | number;
@@ -176,8 +176,6 @@ const EmployeesList: React.FC = () => {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
-
       <main className="calendar-container">
         {/* Fejléc + gombok */}
         <div className="employees-header">

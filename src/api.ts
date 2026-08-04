@@ -2,7 +2,6 @@
 import axios from "axios";
 
 const API_BASE =
-  (import.meta as any).env?.VITE_API_URL ||
   (process.env as any).REACT_APP_API_URL ||
   "https://kleoszalon-api-1.onrender.com";
 

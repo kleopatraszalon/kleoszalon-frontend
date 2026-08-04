@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
 import "./timetableUpdate.css";
-import Sidebar from "../components/Sidebar";
 import AppointmentDrawer from "../components/AppointmentDrawer";
 
 type TimetableEmployee = {
@@ -82,7 +81,6 @@ export default function TimetableUpdatePage() {
   const from = useMemo(() => toISODate(week[0]), [week]);
   const to = useMemo(() => toISODate(week[6]), [week]);
 
-  const [employees, setEmployees] = useState<TimetableEmployee[]>([]);
   const [appointments, setAppointments] = useState<TimetableAppointment[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -90,8 +88,6 @@ export default function TimetableUpdatePage() {
   // Drawer state
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerMode, setDrawerMode] = useState<"create"|"edit">("edit");
-  const [drawerInitial, setDrawerInitial] = useState<{employee_id?:string; start_time?:string; end_time?:string} | undefined>(undefined);
-
   const [activeAppointmentId, setActiveAppointmentId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,7 +100,6 @@ export default function TimetableUpdatePage() {
           `/api/timetable?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
         );
         if (!mounted) return;
-        setEmployees(data.employees || []);
         setAppointments(data.appointments || []);
       } catch (e: any) {
         if (!mounted) return;
@@ -142,13 +137,11 @@ export default function TimetableUpdatePage() {
 
   function openAppointment(id: string) {
     setActiveAppointmentId(id);
-    setDrawerMode("edit"); setDrawerInitial(undefined); setDrawerOpen(true);
+    setDrawerMode("edit"); setDrawerOpen(true);
   }
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
-
       <div className="page-content">
         <div className="tt-page">
           <div className="tt-topbar">

@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Sidebar from "../components/Sidebar";
 import { apiFetch } from "../utils/api";
-import { useCurrentUser } from "../hooks/useCurrentUser";
 
 type WorkOrderStatus = "waiting" | "arrived" | "no_show" | "confirmed";
 
@@ -44,7 +42,6 @@ type WorkOrderPayload = {
 
 const WorkOrderNew: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useCurrentUser();
 
   const [form, setForm] = useState({
     title: "",
@@ -213,7 +210,6 @@ const WorkOrderNew: React.FC = () => {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar user={user} />
       <main className="calendar-container">
         <div style={{ padding: 20, background: "#f5f6fa", minHeight: "100vh" }}>
           <form onSubmit={handleSubmit}>

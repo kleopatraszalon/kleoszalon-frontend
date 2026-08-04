@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
-import Sidebar from "../components/Sidebar";
 import withBase from "../utils/apiBase";
 import Modal from "react-modal";
 import ProductNewModal from "../components/ProductNewModal";
 
-Modal.setAppElement("#root");
+const productsAppElement = document.getElementById("root");
+if (productsAppElement) Modal.setAppElement(productsAppElement);
 
 type UUID = string;
 
@@ -638,8 +638,6 @@ const ProductsList: React.FC = () => {
 
   return (
     <div className="home-container app-shell app-shell--collapsed">
-      <Sidebar />
-
       <main className="calendar-container">
         {/* Fejléc */}
         <div className="employees-header">
