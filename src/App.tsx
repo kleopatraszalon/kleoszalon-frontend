@@ -40,6 +40,7 @@ const VirReportsAdminPage = lazy(() => import("./pages/VirReportsAdminPage"));
 const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
 const ModulePlaceholderPage = lazy(() => import("./pages/ModulePlaceholderPage"));
 const AppointmentsModulePage = lazy(() => import("./pages/AppointmentsModulePage"));
+const ClientsCRMPage = lazy(() => import("./pages/ClientsCRMPage"));
 
 const HOME_PATH = "/";
 
@@ -139,6 +140,14 @@ const router = createBrowserRouter(
       element: (
         <RequireAuth>
           <EmployeesList />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/modules/customers/:view",
+      element: (
+        <RequireAuth>
+          <ClientsCRMPage />
         </RequireAuth>
       ),
     },
