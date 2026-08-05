@@ -3,9 +3,10 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   BellRing, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert,
   Clock3, Copy, ExternalLink, Filter, Link2, ListFilter, MessageSquareText,
-  MoreHorizontal, Plus, RefreshCw, Search, Settings2, Users, X,
+  LayoutGrid, List, MoreHorizontal, Plus, RefreshCw, Search, Settings2, Users, X,
 } from "lucide-react";
 import "./AppointmentsModulePage.css";
+import "./AppointmentsListCalendarToggle.css";
 
 const API_BASE =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -86,6 +87,7 @@ export default function AppointmentsModulePage() {
 
   const toolbar = (
     <div className="ap-toolbar">
+      <div className="ap-list-view-switch"><button className="active"><List size={16}/> Lista</button><button onClick={() => navigate("/appointments/calendar")}><LayoutGrid size={16}/> Naptár</button></div>
       <div className="ap-date-nav">
         <button onClick={() => setDate(addDays(date, -1))} aria-label="Előző nap"><ChevronLeft size={18}/></button>
         <button className="ap-today" onClick={() => setDate(isoDate(new Date()))}>Ma</button>
