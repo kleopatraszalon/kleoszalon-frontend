@@ -41,6 +41,7 @@ const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
 const ModulePlaceholderPage = lazy(() => import("./pages/ModulePlaceholderPage"));
 const AppointmentsModulePage = lazy(() => import("./pages/AppointmentsModulePage"));
 const ClientsCRMPage = lazy(() => import("./pages/ClientsCRMPage"));
+const StaffImportPage = lazy(() => import("./pages/StaffImportPage"));
 
 const HOME_PATH = "/";
 
@@ -140,6 +141,14 @@ const router = createBrowserRouter(
       element: (
         <RequireAuth>
           <EmployeesList />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/modules/team/import",
+      element: (
+        <RequireAuth>
+          <StaffImportPage />
         </RequireAuth>
       ),
     },
