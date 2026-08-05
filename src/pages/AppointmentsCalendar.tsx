@@ -14,6 +14,7 @@ import AppointmentDrawer from "../components/AppointmentDrawer";
 import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
+import "./EmployeeCalendarHeader.css";
 
 type Employee = {
   id: string;
@@ -232,6 +233,7 @@ export default function AppointmentsCalendarPage() {
           slotMinTime="07:00:00"
           slotMaxTime="21:00:00"
           scrollTime="08:00:00"
+          dayMinWidth={168}
           allDaySlot={false}
           nowIndicator
           height="auto"
