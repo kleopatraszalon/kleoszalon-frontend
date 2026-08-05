@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { Bell, Building2, ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { Bell, Building2, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -13,19 +13,47 @@ const pageNames: Record<string, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
+  const [mobileOpen, setMobileOpen] = useState(false);
   const currentPage = pageNames[location.pathname] || location.pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ") || "Irányítópult";
   const fullName = localStorage.getItem("kleo_full_name") || "Adminisztrátor";
   const salon = localStorage.getItem("kleo_location_name") || "Minden telephely";
   const today = new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date());
 
+  useEffect(() => {
+    localStorage.setItem("kleo.sidebar.collapsed", String(collapsed));
+  }, [collapsed]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [mobileOpen]);
+
+  const toggleSidebar = () => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      setMobileOpen(value => !value);
+    } else {
+      setCollapsed(value => !value);
+    }
+  };
+
   return (
-    <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""}`}>
+    <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""} ${mobileOpen ? "is-mobile-sidebar-open" : ""}`}>
       <Sidebar user={user} />
+      <button className="sidebar-backdrop" type="button" aria-label="Menü bezárása" onClick={() => setMobileOpen(false)} />
       <div className="app-layout-column">
         <header className="modern-topbar">
           <div className="modern-topbar-left">
-            <button className="topbar-collapse" onClick={() => setCollapsed(value => !value)} title={collapsed ? "Menü kinyitása" : "Menü összecsukása"}>{collapsed ? <PanelLeftOpen size={19}/> : <PanelLeftClose size={19}/>}</button>
+            <button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen || !collapsed}>
+              <span className="desktop-sidebar-icon">{collapsed ? <PanelLeftOpen size={19}/> : <PanelLeftClose size={19}/>}</span>
+              <span className="mobile-sidebar-icon">{mobileOpen ? <X size={20}/> : <Menu size={20}/>}</span>
+            </button>
             <div className="topbar-breadcrumb"><span>Kleoszalon VIR</span><ChevronRight size={13}/><b>{currentPage}</b></div>
           </div>
           <div className="modern-topbar-right">
