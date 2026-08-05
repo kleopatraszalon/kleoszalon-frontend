@@ -29,6 +29,9 @@ const ServicesList = lazy(() => import("./pages/ServicesList"));
 const SignageAdmin = lazy(() => import("./pages/SignageAdmin"));
 const KioskAdmin = lazy(() => import("./pages/KioskAdmin"));
 const TimetableUpdatePage = lazy(() => import("./pages/TimetableUpdatePage"));
+const HrAttendancePage = lazy(() => import("./pages/HrAttendancePage"));
+const PayrollPage = lazy(() => import("./pages/PayrollPage"));
+const AccessControlPage = lazy(() => import("./pages/AccessControlPage"));
 
 const VirDashboardPage = lazy(() => import("./pages/VirDashboardPage"));
 const VirStaffDetailPage = lazy(() => import("./pages/VirStaffDetailPage"));
@@ -111,7 +114,23 @@ const router = createBrowserRouter(
       path: "/modules/team/payroll",
       element: (
         <RequireAuth>
-          <EmployeesList />
+          <PayrollPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/modules/team/roles",
+      element: (
+        <RequireAuth>
+          <AccessControlPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/admin/access-control",
+      element: (
+        <RequireAuth>
+          <AccessControlPage />
         </RequireAuth>
       ),
     },
@@ -171,7 +190,7 @@ const router = createBrowserRouter(
       path: "/dashboard/shift",
       element: (
         <RequireAuth>
-          <div>Munkaidő indítása / zárása – fejlesztés alatt</div>
+          <HrAttendancePage />
         </RequireAuth>
       ),
     },
@@ -249,7 +268,7 @@ const router = createBrowserRouter(
       path: "/hr",
       element: (
         <RequireAuth>
-          <div>HR modul – fejlesztés alatt</div>
+          <EmployeesList />
         </RequireAuth>
       ),
     },
@@ -631,7 +650,7 @@ const router = createBrowserRouter(
       path: "/masterdata/vacation-types",
       element: (
         <RequireAuth>
-          <div>Szabadság típusok – fejlesztés alatt</div>
+          <HrAttendancePage />
         </RequireAuth>
       ),
     },
@@ -689,7 +708,7 @@ const router = createBrowserRouter(
       path: "/hr/employees",
       element: (
         <RequireAuth>
-          <div>Dolgozói adatok és beosztások – fejlesztés alatt</div>
+          <EmployeesList />
         </RequireAuth>
       ),
     },
@@ -697,7 +716,7 @@ const router = createBrowserRouter(
       path: "/hr/vacations",
       element: (
         <RequireAuth>
-          <div>Szabadságkezelés – fejlesztés alatt</div>
+          <HrAttendancePage />
         </RequireAuth>
       ),
     },
@@ -705,7 +724,7 @@ const router = createBrowserRouter(
       path: "/hr/timesheets",
       element: (
         <RequireAuth>
-          <div>Munkaidő-nyilvántartás – fejlesztés alatt</div>
+          <HrAttendancePage />
         </RequireAuth>
       ),
     },
