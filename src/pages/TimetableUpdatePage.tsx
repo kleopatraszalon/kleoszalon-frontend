@@ -1,246 +1,46 @@
-import React, { useEffect, useMemo, useState } from "react";
-import "./timetableUpdate.css";
-import AppointmentDrawer from "../components/AppointmentDrawer";
+import React,{FormEvent,useCallback,useEffect,useMemo,useState}from"react";
+import{AlertTriangle,CalendarDays,CheckCircle2,ChevronLeft,ChevronRight,Clock3,Coffee,Plus,RefreshCw,Save,Send,Settings2,Trash2,UsersRound,X}from"lucide-react";
+import withBase from"../utils/apiBase";
+import"./timetableUpdate.css";
 
-type TimetableEmployee = {
-  id: string;
-  full_name?: string;
-  short_name?: string;
-  photo_url?: string;
-  color?: string;
-  role?: string;
-  location_id?: string;
-  location_name?: string;
-};
+type Employee={id:string;full_name:string;position_name?:string;location_id?:string;location_name?:string;schedule_type:string;weekly_minutes:number;daily_minutes:number;min_daily_minutes:number;max_daily_minutes:number;max_weekly_minutes:number;min_daily_rest_minutes:number;min_weekly_rest_minutes:number;break_after_six_hours:number;additional_break_after_nine_hours:number;allow_split_shift:boolean;allow_sunday:boolean;allow_public_holiday:boolean;allow_night_work:boolean;standby_position:boolean;multi_shift_activity:boolean;seasonal_activity:boolean;uninterrupted_activity:boolean;voluntary_overtime_agreement:boolean;annual_overtime_limit:number;voluntary_overtime_limit:number;frame_start?:string;frame_end?:string;settlement_period_weeks?:number;notes?:string};
+type Shift={id:string;employee_id:string;location_id?:string;work_date:string;starts_at:string;ends_at:string;break_minutes:number;shift_type:string;status:string;is_overtime:boolean;overtime_ordered:boolean;is_standby:boolean;is_on_call:boolean;is_training:boolean;legal_override_reason?:string;note?:string};
+type Warning={code:string;severity:"error"|"warning";message:string;employee_id:string;shift_id?:string;work_date?:string};
+type Data={employees:Employee[];shifts:Shift[];warnings:Warning[];locations:Array<{id:string;name:string}>;holidays:Array<{holiday_date:string;name:string}>;summary:{employee_count:number;shift_count:number;scheduled_minutes:number;error_count:number;warning_count:number}};
+const token=()=>localStorage.getItem("token")||localStorage.getItem("kleo_token")||"";
+async function api<T>(path:string,init:RequestInit={}):Promise<T>{const r=await fetch(withBase(path),{...init,credentials:"include",headers:{"Content-Type":"application/json",Authorization:`Bearer ${token()}`,...(init.headers||{})}});const text=await r.text();let body:any={};try{body=text?JSON.parse(text):{}}catch{throw new Error(`A szerver nem JSON választ adott (HTTP ${r.status}).`)}if(!r.ok)throw Object.assign(new Error(body.error||`HTTP ${r.status}`),{details:body.warnings});return body}
+const pad=(n:number)=>String(n).padStart(2,"0");const iso=(d:Date)=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+function weekOf(anchor:Date){const start=new Date(anchor);start.setHours(12,0,0,0);start.setDate(start.getDate()-((start.getDay()+6)%7));return Array.from({length:7},(_,i)=>{const d=new Date(start);d.setDate(start.getDate()+i);return d})}
+const mins=(n:number)=>`${Math.floor(Number(n||0)/60)} ó ${Number(n||0)%60?`${Number(n||0)%60} p`:""}`;
+const time=(value:string)=>new Date(value).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
+const emptyShift={employee_id:"",location_id:"",work_date:"",start:"09:00",end:"17:00",break_minutes:20,shift_type:"regular",is_overtime:false,overtime_ordered:false,is_standby:false,is_on_call:false,is_training:false,note:"",legal_override_reason:""};
 
-type TimetableAppointment = {
-  id: string;
-  employee_id: string;
-  client_id: string | null;
-  client_name: string;
-  location_id: string;
-  location_name: string | null;
-  title: string | null;
-  start_time: string;
-  end_time: string;
-  status: string | null;
-  notes: string | null;
-  service_names?: string[];
-  total?: number;
-};
-
-const START_HOUR = 7;
-const END_HOUR = 20;
-const PX_PER_30MIN = 28;
-
-function pad2(n: number) { return String(n).padStart(2, "0"); }
-function toISODate(d: Date) {
-  const y = d.getFullYear();
-  const m = pad2(d.getMonth() + 1);
-  const day = pad2(d.getDate());
-  return `${y}-${m}-${day}`;
+export default function TimetableUpdatePage(){
+ const[anchor,setAnchor]=useState(new Date());const week=useMemo(()=>weekOf(anchor),[anchor]);const from=iso(week[0]),to=iso(week[6]);
+ const[data,setData]=useState<Data|null>(null);const[loading,setLoading]=useState(false);const[error,setError]=useState("");const[search,setSearch]=useState("");const[location,setLocation]=useState("");const[selected,setSelected]=useState<Employee|null>(null);const[profile,setProfile]=useState<any>(null);const[shiftModal,setShiftModal]=useState(false);const[shift,setShift]=useState<any>(emptyShift);const[saving,setSaving]=useState(false);const[notice,setNotice]=useState("");
+ const load=useCallback(async()=>{setLoading(true);setError("");try{setData(await api<Data>(`timetable/schedule?from=${from}&to=${to}${location?`&location_id=${location}`:""}`))}catch(e:any){setError(e.message)}finally{setLoading(false)}},[from,to,location]);useEffect(()=>{load()},[load]);
+ const employees=useMemo(()=>data?.employees.filter(e=>!search.trim()||`${e.full_name} ${e.position_name||""}`.toLowerCase().includes(search.toLowerCase()))||[],[data,search]);
+ const shiftMap=useMemo(()=>{const m=new Map<string,Shift[]>();for(const s of data?.shifts||[]){if(s.status==="cancelled")continue;const key=`${s.employee_id}:${String(s.work_date).slice(0,10)}`;m.set(key,[...(m.get(key)||[]),s])}return m},[data]);
+ const warningMap=useMemo(()=>{const m=new Map<string,Warning[]>();for(const w of data?.warnings||[]){const key=w.shift_id||`${w.employee_id}:${String(w.work_date||"").slice(0,10)}`;m.set(key,[...(m.get(key)||[]),w])}return m},[data]);
+ const showNotice=(v:string)=>{setNotice(v);window.setTimeout(()=>setNotice(""),3000)};
+ const editProfile=(e:Employee)=>{setSelected(e);setProfile({...e})};
+ const openShift=(employee:Employee,date:string,current?:Shift)=>{setSelected(employee);setShift(current?{...current,start:time(current.starts_at),end:time(current.ends_at),work_date:String(current.work_date).slice(0,10)}:{...emptyShift,employee_id:employee.id,location_id:employee.location_id||location,work_date:date});setShiftModal(true)};
+ const saveProfile=async(e:FormEvent)=>{e.preventDefault();if(!selected)return;setSaving(true);setError("");try{await api(`timetable/profiles/${selected.id}`,{method:"PUT",body:JSON.stringify(profile)});setSelected(null);showNotice("A munkaidőprofil mentése sikerült.");await load()}catch(x:any){setError(x.message)}finally{setSaving(false)}};
+ const saveShift=async(e:FormEvent)=>{e.preventDefault();setSaving(true);setError("");try{const payload={...shift,starts_at:`${shift.work_date}T${shift.start}:00`,ends_at:`${shift.work_date}T${shift.end}:00`};if(new Date(payload.ends_at)<=new Date(payload.starts_at))throw new Error("A befejezés legyen későbbi a kezdésnél.");await api(shift.id?`timetable/shifts/${shift.id}`:"timetable/shifts",{method:shift.id?"PATCH":"POST",body:JSON.stringify(payload)});setShiftModal(false);showNotice("A műszak mentése sikerült.");await load()}catch(x:any){setError(x.message)}finally{setSaving(false)}};
+ const removeShift=async()=>{if(!shift.id||!window.confirm("Törli ezt a műszakot?"))return;setSaving(true);try{await api(`timetable/shifts/${shift.id}`,{method:"DELETE"});setShiftModal(false);showNotice("A műszak törölve.");await load()}catch(x:any){setError(x.message)}finally{setSaving(false)}};
+ const publish=async()=>{if(!window.confirm("Közzéteszi a heti beosztást? A munkajogi hibák megakadályozzák a közzétételt."))return;setSaving(true);setError("");try{await api("timetable/publish",{method:"POST",body:JSON.stringify({from,to,location_id:location||null})});showNotice("A heti beosztás közzétéve.");await load()}catch(x:any){setError(x.message);if(x.details)setData(d=>d?{...d,warnings:x.details}:d)}finally{setSaving(false)}};
+ return <main className="work-schedule-page">
+  <header className="ws-hero"><div><span>CSAPAT ÉS HR</span><h1>Munkaidő és beosztás</h1><p>Heti munkarend, munkaidőkeret, pihenőidő és rendkívüli munkavégzés dolgozónként.</p></div><button className="ws-publish" onClick={publish} disabled={saving||!data?.shifts.length}><Send/> Beosztás közzététele</button></header>
+  {notice&&<div className="ws-notice"><CheckCircle2/>{notice}</div>}{error&&<div className="ws-error"><AlertTriangle/>{error}<button onClick={()=>setError("")}><X/></button></div>}
+  <section className="ws-stats"><article><UsersRound/><div><small>Munkatársak</small><strong>{data?.summary.employee_count||0}</strong></div></article><article><CalendarDays/><div><small>Heti műszakok</small><strong>{data?.summary.shift_count||0}</strong></div></article><article><Clock3/><div><small>Beosztott idő</small><strong>{mins(data?.summary.scheduled_minutes||0)}</strong></div></article><article className={(data?.summary.error_count||0)>0?"danger":""}><AlertTriangle/><div><small>Jogi eltérések</small><strong>{data?.summary.error_count||0}</strong></div></article></section>
+  <section className="ws-toolbar"><div><button onClick={()=>setAnchor(new Date(+anchor-7*86400000))}><ChevronLeft/></button><button onClick={()=>setAnchor(new Date())}>Mai hét</button><button onClick={()=>setAnchor(new Date(+anchor+7*86400000))}><ChevronRight/></button><b>{week[0].toLocaleDateString("hu-HU",{month:"short",day:"numeric"})} – {week[6].toLocaleDateString("hu-HU",{month:"short",day:"numeric"})}</b></div><div><select value={location}onChange={e=>setLocation(e.target.value)}><option value="">Minden telephely</option>{data?.locations.map(l=><option key={l.id}value={l.id}>{l.name}</option>)}</select><input placeholder="Munkatárs keresése…"value={search}onChange={e=>setSearch(e.target.value)}/><button onClick={load}title="Frissítés"><RefreshCw className={loading?"spin":""}/></button></div></section>
+  <section className="ws-board"><div className="ws-grid ws-grid-head"><div className="ws-person-head">Munkatárs</div>{week.map((d,i)=><div key={i}className={iso(d)===iso(new Date())?"today":""}><small>{["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"][i]}</small><strong>{d.getDate()}</strong>{data?.holidays.some(h=>String(h.holiday_date).slice(0,10)===iso(d))&&<em>Ünnepnap</em>}</div>)}</div>
+   {loading&&!data?<div className="ws-empty">Beosztás betöltése…</div>:employees.length===0?<div className="ws-empty">Nincs megjeleníthető munkatárs.</div>:employees.map(employee=><div className="ws-grid ws-employee-row"key={employee.id}><div className="ws-person"><div className="ws-avatar">{employee.full_name.charAt(0)}</div><div><strong>{employee.full_name}</strong><span>{employee.position_name||"Nincs munkakör"} · {mins(employee.weekly_minutes)}/hét</span></div><button onClick={()=>editProfile(employee)}title="Munkaidőprofil"><Settings2/></button></div>{week.map(date=>{const key=`${employee.id}:${iso(date)}`,items=shiftMap.get(key)||[];return <div className="ws-day"key={key}>{items.map(s=>{const warns=warningMap.get(s.id)||[];return <button key={s.id}className={`ws-shift ${s.status} ${warns.length?"has-warning":""}`}onClick={()=>openShift(employee,iso(date),s)}><b>{time(s.starts_at)}–{time(s.ends_at)}</b><span><Coffee/>{s.break_minutes||0} p · {s.status==="published"?"közzétéve":"tervezet"}</span>{warns.length>0&&<AlertTriangle/>}</button>})}<button className="ws-add"onClick={()=>openShift(employee,iso(date))}><Plus/> Műszak</button></div>})}</div>)}</section>
+  <section className="ws-compliance"><header><div><h2>Munkajogi ellenőrzések</h2><p>A rendszer a beosztás mentésekor és közzétételekor újraszámolja az eltéréseket.</p></div><span>{data?.warnings.length||0} jelzés</span></header>{!data?.warnings.length?<div className="ws-compliance-ok"><CheckCircle2/> A heti beosztásban nincs észlelt eltérés.</div>:<div>{data.warnings.map((w,i)=><article key={`${w.code}-${i}`}className={w.severity}><AlertTriangle/><div><b>{w.code}</b><p>{w.message}</p></div><span>{data.employees.find(e=>e.id===w.employee_id)?.full_name}</span></article>)}</div>}</section>
+  {selected&&profile&&!shiftModal&&<div className="ws-modal-bg"><form className="ws-modal ws-profile-modal"onSubmit={saveProfile}><ModalHead title={`${selected.full_name} munkaidőprofilja`}close={()=>setSelected(null)}/><div className="ws-form-section"><h3>Alap munkaidő</h3><div className="ws-form-grid"><Field label="Munkarend"><select value={profile.schedule_type}onChange={e=>setProfile({...profile,schedule_type:e.target.value})}><option value="general">Általános</option><option value="uneven">Egyenlőtlen</option><option value="flexible">Rugalmas</option><option value="split">Osztott</option><option value="multi_shift">Több műszakos</option><option value="standby">Készenléti jellegű</option></select></Field><Num label="Heti munkaidő (perc)"k="weekly_minutes"/><Num label="Napi munkaidő (perc)"k="daily_minutes"/><Num label="Elszámolási időszak (hét)"k="settlement_period_weeks"/></div></div><div className="ws-form-section"><h3>Korlátok és pihenőidő</h3><div className="ws-form-grid"><Num label="Napi minimum (perc)"k="min_daily_minutes"/><Num label="Napi maximum (perc)"k="max_daily_minutes"/><Num label="Heti maximum (perc)"k="max_weekly_minutes"/><Num label="Napi pihenőidő (perc)"k="min_daily_rest_minutes"/><Num label="Heti pihenőidő (perc)"k="min_weekly_rest_minutes"/><Num label="Szünet 6 óra felett"k="break_after_six_hours"/><Num label="További szünet 9 óra felett"k="additional_break_after_nine_hours"/></div></div><div className="ws-form-section"><h3>Engedélyek és különleges munkarend</h3><div className="ws-check-grid">{[["allow_split_shift","Osztott munkaidő"],["allow_sunday","Vasárnapi munka"],["allow_public_holiday","Munkaszüneti napi munka"],["allow_night_work","Éjszakai munka"],["standby_position","Készenléti munkakör"],["multi_shift_activity","Több műszakos tevékenység"],["seasonal_activity","Idényjellegű tevékenység"],["uninterrupted_activity","Megszakítás nélküli tevékenység"],["voluntary_overtime_agreement","Önként vállalt túlmunka-megállapodás"]].map(([k,l])=><label key={k}><input type="checkbox"checked={Boolean(profile[k])}onChange={e=>setProfile({...profile,[k]:e.target.checked})}/><span/>{l}</label>)}</div><div className="ws-form-grid"><Num label="Éves rendkívüli munkaóra"k="annual_overtime_limit"/><Num label="Önként vállalt plusz óra"k="voluntary_overtime_limit"/></div></div><footer><button type="button"onClick={()=>setSelected(null)}>Mégse</button><button className="primary"disabled={saving}><Save/>{saving?"Mentés…":"Profil mentése"}</button></footer></form></div>}
+  {shiftModal&&selected&&<div className="ws-modal-bg"><form className="ws-modal ws-shift-modal"onSubmit={saveShift}><ModalHead title={shift.id?"Műszak szerkesztése":"Új műszak"}subtitle={selected.full_name}close={()=>setShiftModal(false)}/><div className="ws-form-grid"><Field label="Munkanap"><input type="date"required value={shift.work_date}onChange={e=>setShift({...shift,work_date:e.target.value})}/></Field><Field label="Telephely"><select value={shift.location_id||""}onChange={e=>setShift({...shift,location_id:e.target.value})}><option value="">Dolgozó alaptelephelye</option>{data?.locations.map(l=><option key={l.id}value={l.id}>{l.name}</option>)}</select></Field><Field label="Kezdés"><input type="time"required value={shift.start}onChange={e=>setShift({...shift,start:e.target.value})}/></Field><Field label="Befejezés"><input type="time"required value={shift.end}onChange={e=>setShift({...shift,end:e.target.value})}/></Field><Field label="Munkaközi szünet (perc)"><input type="number"min="0"value={shift.break_minutes}onChange={e=>setShift({...shift,break_minutes:Number(e.target.value)})}/></Field><Field label="Műszaktípus"><select value={shift.shift_type}onChange={e=>setShift({...shift,shift_type:e.target.value})}><option value="regular">Rendes munkaidő</option><option value="overtime">Rendkívüli munkaidő</option><option value="standby">Készenlét</option><option value="on_call">Ügyelet</option><option value="training">Oktatás</option></select></Field></div><div className="ws-check-grid compact">{[["is_overtime","Túlórának minősül"],["overtime_ordered","Írásban elrendelt"],["is_standby","Készenlét"],["is_on_call","Ügyelet"],["is_training","Képzés"]].map(([k,l])=><label key={k}><input type="checkbox"checked={Boolean(shift[k])}onChange={e=>setShift({...shift,[k]:e.target.checked})}/><span/>{l}</label>)}</div><Field label="Megjegyzés"><textarea value={shift.note||""}onChange={e=>setShift({...shift,note:e.target.value})}/></Field><Field label="Jogi eltérés indoka (csak dokumentált kivételnél)"><textarea value={shift.legal_override_reason||""}onChange={e=>setShift({...shift,legal_override_reason:e.target.value})}/></Field><footer>{shift.id&&<button type="button"className="danger"onClick={removeShift}><Trash2/> Törlés</button>}<span/><button type="button"onClick={()=>setShiftModal(false)}>Mégse</button><button className="primary"disabled={saving}><Save/>{saving?"Mentés…":"Műszak mentése"}</button></footer></form></div>}
+ </main>;
+ function Num({label,k}:{label:string;k:string}){return <Field label={label}><input type="number"min="0"value={profile[k]??""}onChange={e=>setProfile({...profile,[k]:Number(e.target.value)})}/></Field>}
 }
-function weekdayHU(i: number) { return ["Hétfő","Kedd","Szerda","Csütörtök","Péntek","Szombat","Vasárnap"][i]; }
-function formatHUDate(d: Date) {
-  const months = ["jan","feb","márc","ápr","máj","jún","júl","aug","szept","okt","nov","dec"];
-  return `${d.getDate()} ${months[d.getMonth()]}`;
-}
-function getWeekDates(anchor: Date) {
-  const d = new Date(anchor);
-  const day = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - day);
-  return Array.from({ length: 7 }).map((_, i) => {
-    const x = new Date(d);
-    x.setDate(d.getDate() + i);
-    return x;
-  });
-}
-function minToTime(m: number) {
-  const hh = Math.floor(m / 60);
-  const mm = m % 60;
-  return `${pad2(hh)}:${pad2(mm)}`;
-}
-
-async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, {
-    credentials: "include",
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
-    ...init,
-  });
-  if (!res.ok) {
-    const t = await res.text().catch(() => "");
-    throw new Error(`HTTP ${res.status} ${res.statusText}${t ? ` — ${t}` : ""}`);
-  }
-  return (await res.json()) as T;
-}
-
-export default function TimetableUpdatePage() {
-  const [anchor, setAnchor] = useState<Date>(new Date());
-  const [search, setSearch] = useState("");
-  const week = useMemo(() => getWeekDates(anchor), [anchor]);
-  const from = useMemo(() => toISODate(week[0]), [week]);
-  const to = useMemo(() => toISODate(week[6]), [week]);
-
-  const [appointments, setAppointments] = useState<TimetableAppointment[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [err, setErr] = useState("");
-
-  // Drawer state
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerMode, setDrawerMode] = useState<"create"|"edit">("edit");
-  const [activeAppointmentId, setActiveAppointmentId] = useState<string | null>(null);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      setErr("");
-      try {
-        const data = await apiJson<{ employees: TimetableEmployee[]; appointments: TimetableAppointment[] }>(
-          `/api/timetable?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`
-        );
-        if (!mounted) return;
-        setAppointments(data.appointments || []);
-      } catch (e: any) {
-        if (!mounted) return;
-        setErr(e?.message || "Hiba a betöltésnél");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, [from, to]);
-
-  const filteredAppointments = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    if (!q) return appointments;
-    return appointments.filter(a => `${a.client_name} ${a.title || ""}`.toLowerCase().includes(q));
-  }, [appointments, search]);
-
-  const gridHeightPx = useMemo(() => ((END_HOUR - START_HOUR) * 2) * PX_PER_30MIN, []);
-
-  const apByDay = useMemo(() => {
-    const map = new Map<number, TimetableAppointment[]>();
-    for (let i = 0; i < 7; i++) map.set(i, []);
-    for (const a of filteredAppointments) {
-      const s = new Date(a.start_time);
-      const dayIndex = Math.floor((Date.UTC(s.getFullYear(), s.getMonth(), s.getDate()) - Date.UTC(week[0].getFullYear(), week[0].getMonth(), week[0].getDate())) / 86400000);
-      if (dayIndex < 0 || dayIndex > 6) continue;
-      map.get(dayIndex)!.push(a);
-    }
-    for (const [k, arr] of map.entries()) {
-      arr.sort((x, y) => +new Date(x.start_time) - +new Date(y.start_time));
-      map.set(k, arr);
-    }
-    return map;
-  }, [filteredAppointments, week]);
-
-  function openAppointment(id: string) {
-    setActiveAppointmentId(id);
-    setDrawerMode("edit"); setDrawerOpen(true);
-  }
-
-  return (
-    <div className="home-container app-shell app-shell--collapsed">
-      <div className="page-content">
-        <div className="tt-page">
-          <div className="tt-topbar">
-            <div className="tt-topbar-left">
-              <button className="tt-btn" onClick={() => setAnchor(new Date())}>Mai nap</button>
-              <button className="tt-btn" onClick={() => setAnchor(new Date(anchor.getTime() - 7 * 86400000))}>‹</button>
-              <button className="tt-btn" onClick={() => setAnchor(new Date(anchor.getTime() + 7 * 86400000))}>›</button>
-              <div className="tt-week-range">{formatHUDate(week[0])} – {formatHUDate(week[6])}</div>
-            </div>
-            <div className="tt-topbar-right">
-              <input className="tt-input" placeholder="Keresés…" value={search} onChange={(e) => setSearch(e.target.value)} />
-            </div>
-          </div>
-
-          <div className="tt-content">
-            <div className="tt-calendar">
-              {err ? <div className="tt-warn">{err}</div> : null}
-              {loading ? <div className="tt-muted">Betöltés…</div> : null}
-
-              <div className="tt-header-row">
-                <div className="tt-time-col" />
-                {week.map((d, i) => (
-                  <div key={i} className="tt-day-header">
-                    <div className="tt-day-name">{weekdayHU(i)}</div>
-                    <div className="tt-day-date">{formatHUDate(d)}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="tt-grid">
-                <div className="tt-time-col">
-                  <div style={{ height: 8 }} />
-                  {Array.from({ length: ((END_HOUR - START_HOUR) * 2) + 1 }).map((_, idx) => {
-                    const min = START_HOUR * 60 + idx * 30;
-                    const show = min % 60 === 0;
-                    return (
-                      <div key={idx} className="tt-slot" style={{ height: PX_PER_30MIN }}>
-                        {show ? <div className="tt-time-label">{minToTime(min)}</div> : null}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {Array.from({ length: 7 }).map((_, dayIdx) => (
-                  <div key={dayIdx} className="tt-day-col" style={{ height: gridHeightPx }}>
-                    {Array.from({ length: ((END_HOUR - START_HOUR) * 2) + 1 }).map((__, idx) => (
-                      <div key={idx} className="tt-line" style={{ top: idx * PX_PER_30MIN }} />
-                    ))}
-
-                    {(apByDay.get(dayIdx) ?? []).map((a) => {
-                      const s = new Date(a.start_time);
-                      const e = new Date(a.end_time);
-                      const startMin = s.getHours() * 60 + s.getMinutes();
-                      const endMin = e.getHours() * 60 + e.getMinutes();
-                      const topPx = ((startMin - START_HOUR * 60) / 30) * PX_PER_30MIN;
-                      const hPx = ((endMin - startMin) / 30) * PX_PER_30MIN;
-
-                      return (
-                        <div
-                          key={a.id}
-                          className="tt-event"
-                          style={{ top: topPx, height: Math.max(28, hPx) }}
-                          onClick={() => openAppointment(a.id)}
-                          role="button"
-                          tabIndex={0}
-                        >
-                          <div className="tt-event-bar" />
-                          <div className="tt-event-body">
-                            <div className="tt-event-title">
-                              <span className="tt-ellipsis">{a.client_name || a.title || "Foglalás"}</span>
-                              <span className="tt-event-time">{minToTime(startMin)}–{minToTime(endMin)}</span>
-                            </div>
-                            <div className="tt-event-sub tt-ellipsis">
-                              {(a.service_names && a.service_names.length ? a.service_names.join(", ") : a.title) || ""}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* right panel kept as-is in your current version (optional). */}
-          </div>
-        </div>
-      </div>
-
-      <AppointmentDrawer
-        mode={drawerMode}
-        open={drawerOpen}
-        appointmentId={activeAppointmentId}
-        onClose={() => setDrawerOpen(false)}
-        onChanged={() => {
-          // refresh after save
-          setAnchor(new Date(anchor));
-        }}
-      />
-    </div>
-  );
-}
+function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="ws-field"><span>{label}</span>{children}</label>}
+function ModalHead({title,subtitle,close}:{title:string;subtitle?:string;close:()=>void}){return <header className="ws-modal-head"><div><h2>{title}</h2>{subtitle&&<p>{subtitle}</p>}</div><button type="button"onClick={close}><X/></button></header>}
