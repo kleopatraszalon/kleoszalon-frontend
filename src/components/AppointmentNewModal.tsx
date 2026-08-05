@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { CalendarDays, Check, ChevronRight, Clock3, MapPin, Plus, Search, Trash2, UserRound, X } from "lucide-react";
 import { fetchArray, fetchJSON, apiFetch } from "../utils/fetch";
 import "./AppointmentNewModal.css";
+import "./ModernAppointmentNewModal.css";
 
 type PickerItem = {
   id: string; name?: string | null; full_name?: string | null; title?: string | null;
@@ -98,7 +99,7 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
 
   return <div className="booking-modal-overlay" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
     <section className="booking-modal" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title">
-      <header className="booking-modal-header"><div><span>Új foglalás</span><h2 id="booking-modal-title">Időpont létrehozása</h2></div><button onClick={onClose} aria-label="Bezárás"><X size={20}/></button></header>
+      <header className="booking-modal-header"><div className="booking-modal-title-group"><i><CalendarDays size={20}/></i><div><span>Új foglalás</span><h2 id="booking-modal-title">Időpont létrehozása</h2><p>Adja meg a vendéget, a szolgáltatást és a megfelelő időpontot.</p></div></div><button onClick={onClose} aria-label="Bezárás"><X size={20}/></button></header>
       {loading ? <div className="booking-modal-loading">Foglalási adatok betöltése…</div> : <div className="booking-modal-body">
         <div className="booking-modal-form">
           {error && <div className="booking-error">{error}</div>}
@@ -108,7 +109,7 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
           <div className="booking-section"><div className="booking-section-title"><CalendarDays size={17}/><div><h3>Időzítés</h3><p>A befejezést a szolgáltatások alapján számítjuk</p></div></div><div className="booking-three-columns"><label>Dátum<input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label><label>Kezdés<input type="time" step={900} value={startHM} onChange={(event) => setStartHM(event.target.value)}/></label><label>Befejezés<input type="time" value={endHM} readOnly/></label></div>{checking && <p className="booking-checking">Ütközés ellenőrzése…</p>}{conflicts.length > 0 && <div className="booking-conflict">Ez az időpont foglalt. Válasszon másik kezdési időt.</div>}</div>
           <div className="booking-section"><label>Megjegyzés<textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Belső megjegyzés a foglaláshoz..."/></label></div>
         </div>
-        <aside className="booking-summary"><span className="booking-summary-icon"><CalendarDays/></span><h3>Foglalás összesítése</h3><dl><div><dt>Vendég</dt><dd>{displayName(clients.find((client) => client.id === clientId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Munkatárs</dt><dd>{displayName(employees.find((employee) => employee.id === employeeId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Időpont</dt><dd>{date}<br/>{startHM}–{endHM}</dd></div><div><dt>Szolgáltatások</dt><dd>{selectedServices.length} db</dd></div></dl><div className="booking-total"><span><Clock3 size={16}/>{totalDuration} perc</span><strong>{totalPrice.toLocaleString("hu-HU")} Ft</strong></div><div className={`booking-availability ${conflicts.length ? "busy" : "free"}`}>{conflicts.length ? <X size={16}/> : <Check size={16}/>} {checking ? "Ellenőrzés…" : conflicts.length ? "Az időpont foglalt" : "Az időpont elérhető"}</div></aside>
+        <aside className="booking-summary"><span className="booking-summary-eyebrow">Élő összesítés</span><span className="booking-summary-icon"><CalendarDays/></span><h3>Foglalás összesítése</h3><p className="booking-summary-lead">Mentés előtt ellenőrizze a kiválasztott adatokat.</p><dl><div><dt>Vendég</dt><dd>{displayName(clients.find((client) => client.id === clientId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Munkatárs</dt><dd>{displayName(employees.find((employee) => employee.id === employeeId) || { id: "Nincs kiválasztva" })}</dd></div><div><dt>Időpont</dt><dd>{date}<br/>{startHM}–{endHM}</dd></div><div><dt>Szolgáltatások</dt><dd>{selectedServices.length ? `${selectedServices.length} kiválasztva` : "Nincs kiválasztva"}</dd></div></dl><div className="booking-total"><span><Clock3 size={16}/>{totalDuration} perc</span><strong>{totalPrice.toLocaleString("hu-HU")} Ft</strong></div><div className={`booking-availability ${conflicts.length ? "busy" : "free"}`}>{conflicts.length ? <X size={16}/> : <Check size={16}/>} {checking ? "Ellenőrzés…" : conflicts.length ? "Az időpont foglalt" : "Az időpont elérhető"}</div></aside>
       </div>}
       <footer className="booking-modal-footer"><button onClick={onClose}>Mégse</button><button className="booking-save" disabled={!canSubmit} onClick={submit}>{saving ? "Mentés…" : <>Időpont létrehozása <ChevronRight size={17}/></>}</button></footer>
     </section>
