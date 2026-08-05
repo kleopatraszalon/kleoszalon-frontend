@@ -65,7 +65,10 @@ export async function apiFetch(
     let msg = `${res.status} ${res.statusText}`;
     try {
       const data = await res.json();
-      if (data && (data as any).error) msg = (data as any).error;
+      if (data && (data as any).error) {
+        msg = (data as any).error;
+        if ((data as any).detail) msg += ` — ${(data as any).detail}`;
+      }
       else if (data && (data as any).message) msg = (data as any).message;
     } catch {
       // ignore JSON parse error
