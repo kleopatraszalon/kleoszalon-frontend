@@ -1,437 +1,138 @@
-// src/pages/Home.tsx
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
-  CartesianGrid,
+  Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart,
+  Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-
+import {
+  Activity, AlertTriangle, Banknote, BriefcaseBusiness, Building2,
+  CalendarOff, CheckCircle2, Clock3, RefreshCw, UserRoundX, UsersRound,
+} from "lucide-react";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import "./Home.css";
 
-import Modal from "react-modal";
-const homeAppElement = document.getElementById("root");
-if (homeAppElement) Modal.setAppElement(homeAppElement);
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+  ? "http://localhost:5000/api"
+  : "https://kleoszalon-api-1.onrender.com/api";
 
-// 🔹 Ugyanaz mint Login.tsx-ben
-const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000/api"
-    : "https://kleoszalon-api-1.onrender.com/api";
+type Row = Record<string, any>;
+type Alert = { level: string; title: string; detail: string };
+type DashboardData = {
+  period: { from: string; to: string };
+  stats: Record<string, number>;
+  chartData: Row[];
+  revenueByLocation: Row[];
+  revenueByPosition: Row[];
+  topEmployees: Row[];
+  absenceByPosition: Row[];
+  locations: Array<{ id: string; name: string }>;
+  alerts: Alert[];
+};
 
-interface DashboardStats {
-  dailyRevenue: number;
-  monthlyRevenue: number;
-  totalClients: number;
-  activeAppointments: number;
-  lowStockCount: number;
+const money = (value: unknown) => `${Number(value || 0).toLocaleString("hu-HU", { maximumFractionDigits: 0 })} Ft`;
+const number = (value: unknown, digits = 0) => Number(value || 0).toLocaleString("hu-HU", { maximumFractionDigits: digits });
+const pct = (value: unknown) => `${number(value, 1)}%`;
+const iso = (date: Date) => date.toISOString().slice(0, 10);
+const roleList = (role: unknown) => {
+  if (Array.isArray(role)) return role.map(String);
+  try { const parsed = JSON.parse(String(role || "")); if (Array.isArray(parsed)) return parsed.map(String); } catch { /* legacy */ }
+  return String(role || "").replace(/\[|\]|"/g, "").split(",").map(x => x.trim()).filter(Boolean);
+};
 
-  // 🔸 ÚJ mutatók a „Legfőbb mutatók” szekcióhoz
-  totalRevenue?: number;             // teljes bevétel (választott időszakra)
-  serviceRevenue?: number;           // szolgáltatásokból származó bevétel
-  productRevenue?: number;           // termékértékesítésből származó bevétel
-  averageInvoice?: number;           // átlagos számla (összes)
-  averageServiceInvoice?: number;    // szolgáltatások átlagos számlája
-  averageCapacity?: number;          // átlagos kapacitás (%)
+function Kpi({ icon, label, value, note, tone = "purple" }: { icon: React.ReactNode; label: string; value: string; note: string; tone?: string }) {
+  return <article className={`management-kpi tone-${tone}`}><span className="management-kpi__icon">{icon}</span><div><small>{label}</small><strong>{value}</strong><p>{note}</p></div></article>;
 }
 
-// Pénz / % formázó segédfüggvények
-const formatMoney = (value?: number) =>
-  typeof value === "number" && !Number.isNaN(value)
-    ? `${value.toLocaleString()} Ft`
-    : "–";
+const tooltipMoney = (value: unknown) => money(value);
 
-const formatPercent = (value?: number) =>
-  typeof value === "number" && !Number.isNaN(value)
-    ? `${value.toFixed(1)} %`
-    : "–";
-
-const Dashboard: React.FC = () => {
+export default function Dashboard() {
   const navigate = useNavigate();
-
-  // 🔐 user adatok /api/me-ből
   const { user, loading: userLoading, authError } = useCurrentUser();
+  const end = useMemo(() => new Date(), []);
+  const start = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - 29); return d; }, []);
+  const [from, setFrom] = useState(iso(start));
+  const [to, setTo] = useState(iso(end));
+  const [locationId, setLocationId] = useState("");
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loadingStats, setLoadingStats] = useState(true);
-  const [chartData, setChartData] = useState<any[]>([]);
-
-  const [, setSelectedDate] = useState<Date>(new Date());
-
-  // dátum kiválasztás (napi beosztáshoz – most csak eltároljuk)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const custom = e as CustomEvent<{ date?: string }>;
-      const iso = custom.detail?.date;
-      if (!iso) return;
-      setSelectedDate(new Date(iso));
-      // itt hívhatod majd a napi beosztás lekérését:
-      // loadDailySchedule(iso);
-    };
-
-    window.addEventListener("kleo:_selectedDate", handler as EventListener);
-    return () =>
-      window.removeEventListener("kleo:_selectedDate", handler as EventListener);
-  }, []);
-
-  // ⛔ KILÉPÉS
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("kleo_token");
-    localStorage.removeItem("kleo_role");
-    localStorage.removeItem("kleo_location_id");
-    localStorage.removeItem("kleo_location_name");
-    localStorage.removeItem("kleo_full_name");
-    localStorage.removeItem("email");
-    localStorage.removeItem("userId");
-
+  const isAdmin = roleList(user?.role).map(x => x.toLowerCase()).includes("admin");
+  const logout = useCallback(() => {
+    ["token","kleo_token","kleo_role","kleo_location_id","kleo_location_name","kleo_full_name","email","userId"].forEach(key => localStorage.removeItem(key));
     navigate("/login");
   }, [navigate]);
 
-  // ha nincs jogosult user → logout
-  useEffect(() => {
-    if (!userLoading) {
-      if (authError || !user) {
-        handleLogout();
-      }
-    }
-  }, [userLoading, authError, user, handleLogout]);
-
-  // statisztikák lekérése, ha már van user
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!user || authError) return;
+    const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
+    if (!token) return logout();
+    setLoading(true); setError("");
+    const params = new URLSearchParams({ from, to });
+    const effectiveLocation = isAdmin ? locationId : (user.location_id || "");
+    if (effectiveLocation) params.set("location_id", String(effectiveLocation));
+    try {
+      const response = await fetch(`${API_BASE}/dashboard?${params}`, { headers: { Authorization: `Bearer ${token}` }, credentials: "include" });
+      const payload = await response.json();
+      if (response.status === 401) return logout();
+      if (!response.ok) throw new Error(payload.detail || payload.error || "Dashboard hiba");
+      setData(payload);
+    } catch (err: any) { setError(err?.message || "A kimutatások nem tölthetők be."); }
+    finally { setLoading(false); }
+  }, [user, authError, from, to, locationId, isAdmin, logout]);
 
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("kleo_token");
+  useEffect(() => { if (!userLoading && (authError || !user)) logout(); }, [userLoading, authError, user, logout]);
+  useEffect(() => { if (user) load(); }, [user, load]);
 
-    if (!token) {
-      // ha valamiért nincs token, ne hívjunk védett endpointot
-      handleLogout();
-      return;
-    }
+  const setPreset = (days: number) => { const d = new Date(); d.setDate(d.getDate() - (days - 1)); setFrom(iso(d)); setTo(iso(new Date())); };
+  const stats = data?.stats || {};
+  const revenueMix = [{ name: "Szolgáltatás", value: stats.serviceRevenue || 0 }, { name: "Termék", value: stats.productRevenue || 0 }];
+  const colors = ["#7c5ce5", "#ec6597", "#34a98b", "#e6a746", "#5b8def", "#9367d8"];
 
-    const url = user.location_id
-      ? `${API_BASE}/dashboard?location_id=${user.location_id}`
-      : `${API_BASE}/dashboard`;
+  if (userLoading) return <div className="management-loading"><RefreshCw className="spin"/> Belépési adatok ellenőrzése…</div>;
 
-    fetch(url, {
-      headers: { Authorization: `Bearer ${token}` },
-      credentials: "include",
-    })
-      .then(async (res) => {
-        const text = await res.text();
-        let data: any = {};
-        try {
-          data = text ? JSON.parse(text) : {};
-        } catch {
-          data = {};
-        }
-
-        if (!res.ok) {
-          console.warn("Dashboard auth error / token lejárt?");
-          handleLogout();
-          return;
-        }
-
-        setStats(data.stats || null);
-        setChartData(data.chartData || []); // 7 napos bevétel grafikonhoz
-      })
-      .catch((err) => {
-        console.error("Dashboard fetch error:", err);
-      })
-      .finally(() => {
-        setLoadingStats(false);
-      });
-  }, [user, authError, handleLogout]);
-
-  // Betöltés közben – itt még nincs user, ezért nem hívjuk a Sidebart
-  if (userLoading || loadingStats) {
-    return (
-      <div className="home-container app-shell app-shell--collapsed">
-        <div className="calendar-container">
-          <p>Betöltés...</p>
-        </div>
+  return <main className="management-dashboard">
+    <header className="management-header">
+      <div><span className="management-eyebrow">VEZETŐI INFORMÁCIÓS RENDSZER</span><h1>Irányítópult</h1><p>Forgalom, teljesítmény, kapacitás és humán mutatók egy helyen.</p></div>
+      <div className="management-filters">
+        <div className="management-presets"><button onClick={() => setPreset(7)}>7 nap</button><button onClick={() => setPreset(30)}>30 nap</button><button onClick={() => setPreset(90)}>90 nap</button></div>
+        <label><span>Kezdőnap</span><input type="date" value={from} onChange={e => setFrom(e.target.value)}/></label>
+        <label><span>Zárónap</span><input type="date" value={to} onChange={e => setTo(e.target.value)}/></label>
+        {isAdmin && <label><span>Szalon</span><select value={locationId} onChange={e => setLocationId(e.target.value)}><option value="">Összes szalon</option>{data?.locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>}
+        <button className="management-refresh" onClick={load} disabled={loading}><RefreshCw size={17} className={loading ? "spin" : ""}/>{loading ? "Frissítés…" : "Frissítés"}</button>
       </div>
-    );
-  }
+    </header>
 
-  // ha valami félrement
-  if (!user || !stats) {
-    return (
-      <div className="home-container app-shell app-shell--collapsed">
-        <main className="calendar-container">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "flex-start",
-              marginBottom: "1.5rem",
-            }}
-          >
-            <div>
-              <h2 style={{ fontSize: "1.75rem", fontWeight: 600 }}>
-                Irányítópult
-              </h2>
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{
-                backgroundColor: "#dc2626",
-                color: "#fff",
-                border: "none",
-                borderRadius: 8,
-                padding: "0.4rem 1rem",
-                fontSize: "0.85rem",
-                fontWeight: 600,
-                cursor: "pointer",
-              }}
-            >
-              Kilépés
-            </button>
-          </div>
+    {error && <div className="management-error"><AlertTriangle size={18}/><span><b>Nem sikerült betölteni a kimutatásokat.</b>{error}</span></div>}
+    {loading && !data ? <div className="management-loading"><RefreshCw className="spin"/> Vezetői adatok összeállítása…</div> : data && <>
+      <section className="management-kpis">
+        <Kpi icon={<Banknote/>} label="Összes bevétel" value={money(stats.totalRevenue)} note={`${money(stats.serviceRevenue)} szolgáltatás`} tone="purple"/>
+        <Kpi icon={<Building2/>} label="Átlagos számla" value={money(stats.averageInvoice)} note={`${number(stats.activeAppointments)} időpont`} tone="blue"/>
+        <Kpi icon={<Activity/>} label="Kapacitáskihasználtság" value={pct(stats.averageCapacity)} note={`${pct(stats.completionRate)} teljesítési arány`} tone="green"/>
+        <Kpi icon={<UsersRound/>} label="Új vendégek" value={number(stats.newClients)} note={`${number(stats.totalClients)} vendég a törzsben`} tone="gold"/>
+        <Kpi icon={<CalendarOff/>} label="Betegség és szabadság" value={`${number(Number(stats.sickDays)+Number(stats.leaveDays),1)} nap`} note={`${number(stats.sickDays,1)} betegnap`} tone="pink"/>
+        <Kpi icon={<UserRoundX/>} label="Meg nem jelenés" value={number(stats.noShowCount)} note={`${pct(stats.noShowRate)} no-show arány`} tone="red"/>
+      </section>
 
-          <div style={{ color: "#dc2626" }}>
-            Nem sikerült betölteni az adatokat.
-          </div>
-        </main>
-      </div>
-    );
-  }
+      <section className="management-grid management-grid--wide">
+        <article className="management-panel management-panel--trend"><header><div><span>FORGALOM</span><h2>Bevétel alakulása</h2></div><b>{money(stats.totalRevenue)}</b></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={data.chartData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={v => String(v).slice(5)} tick={{fontSize:11}}/><YAxis tickFormatter={v => `${Math.round(Number(v)/1000)}e`} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Legend/><Line type="monotone" dataKey="revenue" name="Összes bevétel" stroke="#7455dc" strokeWidth={3} dot={false}/><Line type="monotone" dataKey="service_revenue" name="Szolgáltatás" stroke="#e96496" strokeWidth={2} dot={false}/></LineChart></ResponsiveContainer></div></article>
+        <article className="management-panel"><header><div><span>BEVÉTELMIX</span><h2>Szolgáltatás és termék</h2></div></header><div className="management-chart management-chart--pie"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={revenueMix} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="82%" paddingAngle={4}>{revenueMix.map((_,i)=><Cell key={i} fill={colors[i]}/>)}</Pie><Tooltip formatter={tooltipMoney}/><Legend/></PieChart></ResponsiveContainer></div></article>
+      </section>
 
-  // 🔸 Oszlopdiagram adatok a szolgáltatás vs termék bontáshoz
-  const revenueBreakdownData = [
-    {
-      name: "Szolgáltatások",
-      amount: stats.serviceRevenue ?? 0,
-    },
-    {
-      name: "Termékek",
-      amount: stats.productRevenue ?? 0,
-    },
-  ];
+      <section className="management-grid management-grid--half">
+        <article className="management-panel"><header><div><span>SZALONHÁLÓZAT</span><h2>Bevétel szalononként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByLocation} layout="vertical" margin={{left:20}}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><YAxis type="category" dataKey="name" width={125} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="revenue" name="Bevétel" fill="#7455dc" radius={[0,8,8,0]}/></BarChart></ResponsiveContainer></div></article>
+        <article className="management-panel"><header><div><span>SZAKMAI TELJESÍTMÉNY</span><h2>Bevétel munkakörönként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByPosition.slice(0,8)}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="position_name" tick={{fontSize:10}} interval={0} angle={-18} textAnchor="end" height={65}/><YAxis tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="service_revenue" stackId="a" name="Szolgáltatás" fill="#7455dc"/><Bar dataKey="product_revenue" stackId="a" name="Termék" fill="#ec6597" radius={[7,7,0,0]}/></BarChart></ResponsiveContainer></div></article>
+      </section>
 
-  // A Sidebart kizárólag az AppLayout rajzolja ki.
-  return (
-    <div className="home-container app-shell app-shell--collapsed">
-      <main className="calendar-container">
-        {/* Fejléc */}
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            justifyContent: "space-between",
-            gap: "0.5rem",
-            marginBottom: "1.5rem",
-          }}
-        >
-          <div>
-            <h2 style={{ fontSize: "1.75rem", fontWeight: 600 }}>
-              Irányítópult
-            </h2>
-            <div style={{ fontSize: "0.85rem", color: "#6b7280" }}>
-              {user.full_name} – {user.role}
-              {user.location_name ? ` @ ${user.location_name}` : ""}
-            </div>
-          </div>
+      <section className="management-grid management-grid--half">
+        <article className="management-panel management-table-panel"><header><div><span>MUNKAKÖRÖK</span><h2>Szakmai eredményesség</h2></div><BriefcaseBusiness/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Bevétel</th><th>Teljesítés</th><th>Ft/óra</th><th>Kapacitás</th></tr></thead><tbody>{data.revenueByPosition.map((r,i)=><tr key={r.position_name}><td><i style={{background:colors[i%colors.length]}}/>{r.position_name}</td><td><b>{money(r.revenue)}</b></td><td>{number(r.completed)}</td><td>{money(r.revenue_per_hour)}</td><td><span className="capacity-pill">{pct(r.capacity)}</span></td></tr>)}</tbody></table></div></article>
+        <article className="management-panel management-table-panel"><header><div><span>HUMÁN MUTATÓK</span><h2>Betegségek és hiányzások</h2></div><CalendarOff/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Betegnap</th><th>Szabadság</th><th>Igazolatlan</th><th>Hiányzás</th></tr></thead><tbody>{data.absenceByPosition.length ? data.absenceByPosition.map(r=><tr key={r.position_name}><td>{r.position_name}</td><td>{number(r.sick_days,1)}</td><td>{number(Number(r.paid_leave_days)+Number(r.unpaid_leave_days),1)}</td><td className={Number(r.unexcused_days)>0?"danger-text":""}>{number(r.unexcused_days,1)}</td><td><span className="absence-pill">{pct(r.absence_rate)}</span></td></tr>) : <tr><td colSpan={5}>Nincs hiányzási adat az időszakban.</td></tr>}</tbody></table></div></article>
+      </section>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              backgroundColor: "#dc2626",
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "0.4rem 1rem",
-              fontSize: "0.85rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              alignSelf: "flex-start",
-            }}
-          >
-            Kilépés
-          </button>
-        </div>
-
-        {/* Felső, „klasszikus” stat-kártyák */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-            gap: "1.5rem",
-            marginBottom: "2rem",
-          }}
-        >
-          <div className="stat-card">
-            <h3 className="stat-title">Napi bevétel</h3>
-            <p className="stat-value">
-              {stats.dailyRevenue.toLocaleString()} Ft
-            </p>
-          </div>
-
-          <div className="stat-card">
-            <h3 className="stat-title">Havi bevétel</h3>
-            <p className="stat-value">
-              {stats.monthlyRevenue.toLocaleString()} Ft
-            </p>
-          </div>
-
-          <div className="stat-card">
-            <h3 className="stat-title">Vendégek</h3>
-            <p className="stat-value">{stats.totalClients}</p>
-          </div>
-
-          <div className="stat-card">
-            <h3 className="stat-title">Aktív bejelentkezések</h3>
-            <p className="stat-value">{stats.activeAppointments}</p>
-          </div>
-        </div>
-
-        {/* ÚJ – Legfőbb mutatók (mint a képen) */}
-        <section style={{ marginBottom: "2rem" }}>
-          <h3
-            style={{
-              fontSize: "1.1rem",
-              fontWeight: 600,
-              marginBottom: "0.75rem",
-            }}
-          >
-            Legfőbb mutatók
-          </h3>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: "1rem",
-            }}
-          >
-            {/* Bevétel – teljes */}
-            <div className="stat-card">
-              <h4 className="stat-title">Bevétel</h4>
-              <p className="stat-value">
-                {formatMoney(
-                  stats.totalRevenue ?? stats.monthlyRevenue ?? stats.dailyRevenue
-                )}
-              </p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Teljes bevétel (időszakra)
-              </p>
-            </div>
-
-            {/* Szolgáltatásokból származó bevétel */}
-            <div className="stat-card">
-              <h4 className="stat-title">Szolgáltatásokból származó bevétel</h4>
-              <p className="stat-value">{formatMoney(stats.serviceRevenue)}</p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Teljes bevétel
-              </p>
-            </div>
-
-            {/* Termékértékesítésből származó bevétel */}
-            <div className="stat-card">
-              <h4 className="stat-title">
-                Termékértékesítésből származó bevétel
-              </h4>
-              <p className="stat-value">{formatMoney(stats.productRevenue)}</p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Teljes bevétel
-              </p>
-            </div>
-
-            {/* Átlagos számla */}
-            <div className="stat-card">
-              <h4 className="stat-title">Átlagos számla</h4>
-              <p className="stat-value">{formatMoney(stats.averageInvoice)}</p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Átlagos számla bejegyzésenként
-              </p>
-            </div>
-
-            {/* Szolgáltatások átlagos számlája */}
-            <div className="stat-card">
-              <h4 className="stat-title">Szolgáltatások átlagos számlája</h4>
-              <p className="stat-value">
-                {formatMoney(stats.averageServiceInvoice)}
-              </p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Átlagos számla bejegyzésenként
-              </p>
-            </div>
-
-            {/* Átlagos kapacitás */}
-            <div className="stat-card">
-              <h4 className="stat-title">Átlagos kapacitás</h4>
-              <p className="stat-value">
-                {formatPercent(stats.averageCapacity)}
-              </p>
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", marginTop: 4 }}>
-                Átlagos napi kapacitás
-              </p>
-            </div>
-          </div>
-        </section>
-
-        {/* Grafikonok: 7 napos bevétel + szolgáltatás/termék bontás */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 2fr) minmax(0, 1.5fr)",
-            gap: "1.5rem",
-            marginBottom: "2rem",
-            alignItems: "stretch",
-          }}
-        >
-          <div className="chart-card">
-            <h3 className="chart-title">Bevétel alakulása (7 nap)</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="revenue" fill="#4f46e5" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="chart-card">
-            <h3 className="chart-title">Bevétel forrás szerinti bontása</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={revenueBreakdownData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="amount" fill="#f97316" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Figyelmeztetések */}
-        <div className="warnings-card">
-          <h3 className="chart-title">Figyelmeztetések és teendők</h3>
-          <ul style={{ fontSize: "0.9rem", marginTop: "0.5rem" }}>
-            {stats.lowStockCount > 0 ? (
-              <li style={{ color: "#ca8a04", marginBottom: "0.2rem" }}>
-                ⚠ {stats.lowStockCount} termék készlete alacsony
-              </li>
-            ) : (
-              <li style={{ color: "#16a34a", marginBottom: "0.2rem" }}>
-                ✔ Minden termék készlete rendben
-              </li>
-            )}
-            <li>📅 Közelgő időpontok: {stats.activeAppointments}</li>
-            <li>👥 Összes vendég: {stats.totalClients}</li>
-          </ul>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-export default Dashboard;
+      <section className="management-grid management-grid--half">
+        <article className="management-panel management-table-panel"><header><div><span>TOPLISTA</span><h2>Legeredményesebb munkatársak</h2></div><CheckCircle2/></header><div className="management-table-wrap"><table><thead><tr><th>Munkatárs</th><th>Szalon</th><th>Bevétel</th><th>Kapacitás</th></tr></thead><tbody>{data.topEmployees.map((r,i)=><tr key={r.id}><td><span className="rank">{i+1}</span><b>{r.full_name}</b><small>{r.position_name}</small></td><td>{r.location_name}</td><td><b>{money(r.revenue)}</b></td><td>{pct(r.capacity)}</td></tr>)}</tbody></table></div></article>
+        <article className="management-panel management-alerts"><header><div><span>VEZETŐI FIGYELMEZTETÉSEK</span><h2>Teendők és kockázatok</h2></div><Clock3/></header>{data.alerts.length ? data.alerts.map((a,i)=><div key={i} className={`management-alert is-${a.level}`}><AlertTriangle/><span><b>{a.title}</b><small>{a.detail}</small></span></div>) : <div className="management-alert is-success"><CheckCircle2/><span><b>Minden fő mutató rendben</b><small>Az időszakban nincs kiemelt vezetői riasztás.</small></span></div>}</article>
+      </section>
+    </>}
+  </main>;
+}
