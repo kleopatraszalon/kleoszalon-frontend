@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Building2, ChevronRight, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
-import { useLocation } from "react-router-dom";
+import { Bell, Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
@@ -13,6 +13,7 @@ const pageNames: Record<string, string> = {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
   const location = useLocation();
+  const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const currentPage = pageNames[location.pathname] || location.pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ") || "Irányítópult";
@@ -43,6 +44,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const logout = () => {
+    ["token", "kleo_token", "kleo_role", "kleo_location_id", "kleo_location_name", "kleo_full_name", "email", "userId"]
+      .forEach(key => localStorage.removeItem(key));
+    sessionStorage.clear();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""} ${mobileOpen ? "is-mobile-sidebar-open" : ""}`}>
       <Sidebar user={user} />
@@ -61,6 +69,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div>
             <button className="topbar-notification"><Bell size={18}/><i/></button>
             <div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div>
+            <button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button>
           </div>
         </header>
         <div className="altegio-main app-layout-main">{children}</div>
