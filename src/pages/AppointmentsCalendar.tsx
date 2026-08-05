@@ -13,6 +13,7 @@ import { AppointmentNewModal } from "../components/AppointmentNewModal";
 import AppointmentDrawer from "../components/AppointmentDrawer";
 import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
+import "./ClassicAppointmentsCalendar.css";
 
 type Employee = {
   id: string;
@@ -61,6 +62,13 @@ function eventColor(status?: string | null) {
   return "#7d58df";
 }
 
+const EMPLOYEE_COLORS = ["#8f6ad8", "#d58273", "#4a9a8a", "#ca9646", "#5f83c7", "#b96386", "#6c9a52", "#96735f"];
+function stableEmployeeColor(id: string, preferred?: string | null) {
+  if (preferred) return preferred;
+  const hash = Array.from(id).reduce((sum, char) => ((sum * 31) + char.charCodeAt(0)) >>> 0, 0);
+  return EMPLOYEE_COLORS[hash % EMPLOYEE_COLORS.length];
+}
+
 export default function AppointmentsCalendarPage() {
   const navigate = useNavigate();
   const calendarRef = useRef<FullCalendar | null>(null);
@@ -104,7 +112,8 @@ export default function AppointmentsCalendarPage() {
   const resources = useMemo(() => visibleEmployees.map((item) => ({
     id: item.id,
     title: employeeName(item),
-    eventColor: item.color || "#7d58df",
+    eventColor: stableEmployeeColor(item.id, item.color),
+    extendedProps: { photoUrl: item.photo_url, color: stableEmployeeColor(item.id, item.color) },
   })), [visibleEmployees]);
 
   const events = useMemo<EventInput[]>(() => appointments
@@ -171,21 +180,16 @@ export default function AppointmentsCalendarPage() {
   if (!user) { navigate("/login"); return null; }
 
   return <main className="modern-calendar-page">
-    <header className="modern-calendar-hero">
-      <div className="modern-calendar-heading"><span className="modern-calendar-kicker"><Sparkles size={14}/> Interaktív időbeosztás</span><h1>Naptár és digitális beosztás</h1><p>Fogja meg az időpontot az áthelyezéshez, az alsó szélét az időtartam módosításához.</p></div>
+    <header className="modern-calendar-hero calendar-classic-hero">
+      <div className="modern-calendar-heading"><span className="modern-calendar-kicker"><Sparkles size={14}/> Naptár és digitális beosztás</span><h1>Időpontnaptár</h1><p>Munkatársak napi beosztása és foglalásai egy áttekinthető felületen.</p></div>
       <button className="modern-primary-button" onClick={() => setModal({ open: true })}><Plus size={18}/> Új időpont</button>
     </header>
-
-    <section className="modern-calendar-summary">
-      <article><span><CalendarDays size={18}/></span><div><strong>{appointments.length}</strong><small>Foglalás a nézetben</small></div></article>
-      <article><span><Users size={18}/></span><div><strong>{activeEmployees}/{employees.length}</strong><small>Foglalt munkatárs</small></div></article>
-      <article><span><Clock3 size={18}/></span><div><strong>{Math.round(plannedMinutes / 60 * 10) / 10} óra</strong><small>Tervezett idő</small></div></article>
-    </section>
 
     <section className="modern-calendar-board">
       <header className="interactive-calendar-toolbar">
         <div className="calendar-nav"><button onClick={() => calendarRef.current?.getApi().prev()}>‹</button><button onClick={() => calendarRef.current?.getApi().today()}>Ma</button><button onClick={() => calendarRef.current?.getApi().next()}>›</button></div>
         <label className="calendar-employee-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Munkatárs keresése…"/></label>
+        <div className="calendar-compact-stats"><span><CalendarDays size={14}/><b>{appointments.length}</b> foglalás</span><span><Users size={14}/><b>{activeEmployees}/{employees.length}</b> munkatárs</span><span><Clock3 size={14}/><b>{Math.round(plannedMinutes / 60 * 10) / 10}</b> óra</span></div>
         <div className="modern-view-switcher">
           <button className={view === "resourceTimeGridDay" ? "active" : ""} onClick={() => changeView("resourceTimeGridDay")}><LayoutGrid size={15}/> Nap</button>
           <button className={view === "resourceTimeGridWeek" ? "active" : ""} onClick={() => changeView("resourceTimeGridWeek")}>Hét</button>
@@ -203,6 +207,13 @@ export default function AppointmentsCalendarPage() {
           locale="hu"
           firstDay={1}
           resources={resources}
+          resourceLabelContent={(info: any) => {
+            const title = info.resource.title || "Munkatárs";
+            const photo = info.resource.extendedProps?.photoUrl;
+            const color = info.resource.extendedProps?.color || "#8f6ad8";
+            const initials = title.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join("");
+            return <div className="classic-resource-label">{photo ? <img src={photo} alt=""/> : <span style={{ background: color }}>{initials}</span>}<div><b>{title}</b><small><i/> Foglalható</small></div></div>;
+          }}
           events={events}
           datesSet={datesSet}
           selectable
@@ -225,6 +236,7 @@ export default function AppointmentsCalendarPage() {
           nowIndicator
           height="auto"
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+          eventContent={(info) => <div className="classic-calendar-event"><b>{info.timeText}</b><span>{info.event.title}</span><small>{(info.event.extendedProps.service_names || []).join(", ")}</small></div>}
         />
       </div>
     </section>
