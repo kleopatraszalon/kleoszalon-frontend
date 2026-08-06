@@ -2,7 +2,30 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { NavLink, useLocation } from "react-router-dom";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import {
+  BookOpenText,
+  Boxes,
+  Building2,
+  CalendarDays,
+  ChartNoAxesCombined,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  ClipboardCheck,
+  Database,
+  Gift,
+  Globe2,
+  LayoutDashboard,
+  Megaphone,
+  MonitorSmartphone,
+  PlugZap,
+  Settings,
+  ShoppingBag,
+  UserCog,
+  Users,
+  WalletCards,
+  type LucideIcon,
+} from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
 
@@ -37,6 +60,32 @@ interface MenuItem {
 
 interface SidebarProps {
   user?: { role?: string | null } | null;
+}
+
+const menuIcons: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  CalendarDays,
+  Users,
+  Gift,
+  UserCog,
+  WalletCards,
+  Boxes,
+  ChartNoAxesCombined,
+  Building2,
+  Megaphone,
+  Globe2,
+  ShoppingBag,
+  MonitorSmartphone,
+  PlugZap,
+  Settings,
+  ClipboardCheck,
+  BookOpenText,
+  Database,
+};
+
+function MenuIcon({ name }: { name?: string }) {
+  const Icon = (name && menuIcons[name]) || Circle;
+  return <Icon className="kleo-sidebar-menu-icon" size={17} strokeWidth={1.8} aria-hidden="true" />;
 }
 
 /** Mindig abszolút útvonalat csinál: "employees" -> "/employees" */
@@ -195,6 +244,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                     onClick={() => toggleExpanded(menu.id)}
                     className="kleo-sidebar-menu-button"
                   >
+                    <MenuIcon name={menu.icon} />
                     <span className="kleo-sidebar-menu-label">{menu.name}</span>
 
                     <span className="kleo-sidebar-menu-chevron">
@@ -215,6 +265,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                     }
                     aria-disabled={to === "#"}
                   >
+                    <MenuIcon name={menu.icon} />
                     <span className="kleo-sidebar-menu-label">{menu.name}</span>
                   </NavLink>
                 )}
