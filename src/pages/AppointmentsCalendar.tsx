@@ -13,6 +13,7 @@ import { AppointmentNewModal } from "../components/AppointmentNewModal";
 import AppointmentDrawer from "../components/AppointmentDrawer";
 import BookingOperationsPanel from "./booking/BookingOperationsPanel";
 import SmartSlotSuggestions from "./booking/SmartSlotSuggestions";
+import BookingConflictPanel from "./booking/BookingConflictPanel";
 import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
@@ -222,13 +223,13 @@ export default function AppointmentsCalendarPage() {
       employees={visibleEmployees.map((item) => ({ id: item.id, name: employeeName(item) }))}
       appointments={appointments}
       selectedDate={range.from}
-      onSelect={(slot, duration) => setModal({
-        open: true,
-        employeeId: slot.employeeId,
-        date: slot.date,
-        startMinutes: slot.startMinutes,
-        duration,
-      })}
+      onSelect={(slot, duration) => setModal({ open: true, employeeId: slot.employeeId, date: slot.date, startMinutes: slot.startMinutes, duration })}
+    />
+
+    <BookingConflictPanel
+      employees={visibleEmployees.map((item) => ({ id: item.id, name: employeeName(item) }))}
+      appointments={appointments}
+      onOpenAppointment={setDrawerId}
     />
 
     <section className="modern-calendar-board">
