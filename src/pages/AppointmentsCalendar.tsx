@@ -12,6 +12,7 @@ import { apiFetch } from "../utils/api";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
 import AppointmentDrawer from "../components/AppointmentDrawer";
 import BookingOperationsPanel from "./booking/BookingOperationsPanel";
+import SmartSlotSuggestions from "./booking/SmartSlotSuggestions";
 import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
@@ -215,10 +216,19 @@ export default function AppointmentsCalendarPage() {
       <button className="modern-primary-button" onClick={() => setModal({ open: true })}><Plus size={18}/> Új időpont</button>
     </header>
 
-    <BookingOperationsPanel
+    <BookingOperationsPanel appointments={appointments} employeeCount={employees.length} onOpenAppointment={setDrawerId}/>
+
+    <SmartSlotSuggestions
+      employees={visibleEmployees.map((item) => ({ id: item.id, name: employeeName(item) }))}
       appointments={appointments}
-      employeeCount={employees.length}
-      onOpenAppointment={setDrawerId}
+      selectedDate={range.from}
+      onSelect={(slot, duration) => setModal({
+        open: true,
+        employeeId: slot.employeeId,
+        date: slot.date,
+        startMinutes: slot.startMinutes,
+        duration,
+      })}
     />
 
     <section className="modern-calendar-board">
@@ -234,10 +244,7 @@ export default function AppointmentsCalendarPage() {
         </div>
       </header>
       {error && <div className="interactive-calendar-error">{error}</div>}
-      <div
-        className={`interactive-fullcalendar modern-service-calendar ${loading ? "is-loading" : ""}`}
-        style={{ "--calendar-content-width": `${Math.max(940, visibleEmployees.length * 166 + 72)}px` } as React.CSSProperties}
-      >
+      <div className={`interactive-fullcalendar modern-service-calendar ${loading ? "is-loading" : ""}`} style={{ "--calendar-content-width": `${Math.max(940, visibleEmployees.length * 166 + 72)}px` } as React.CSSProperties}>
         <FullCalendar
           ref={calendarRef}
           plugins={[resourceTimeGridPlugin, timeGridPlugin, dayGridPlugin, interactionPlugin]}
