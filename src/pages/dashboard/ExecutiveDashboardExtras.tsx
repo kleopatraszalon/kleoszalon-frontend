@@ -57,12 +57,12 @@ export default function ExecutiveDashboardExtras({ stats, alerts = [] }: Props) 
   }, [alerts.length, stats]);
 
   const actions = [
-    { label: "Új időpont", path: "/appointments/new", icon: CalendarPlus },
+    { label: "Új időpont", path: "/modules/appointments/new", icon: CalendarPlus },
     { label: "Új munkalap", path: "/workorders/new", icon: ClipboardPlus },
     { label: "Új vendég", path: "/modules/customers/new", icon: UserPlus },
-    { label: "Új dolgozó", path: "/hr/employees/new", icon: Users },
+    { label: "Dolgozók", path: "/hr", icon: Users },
     { label: "Új beszerzés", path: "/inventory/purchase", icon: PackagePlus },
-    { label: "Új számla", path: "/finance/invoices/out", icon: ReceiptText },
+    { label: "Kimenő számlák", path: "/finance/invoices/out", icon: ReceiptText },
   ];
 
   return (
