@@ -1,0 +1,20 @@
+.client-booking-insights{margin-top:14px;padding:16px;border:1px solid rgba(184,143,44,.28);border-radius:18px;background:linear-gradient(145deg,#fffdf8,#fff);box-shadow:0 12px 30px rgba(31,23,7,.07)}
+.client-booking-insights>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.client-booking-insights>header span{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;letter-spacing:.12em;color:#9a7421}
+.client-booking-insights h4{margin:4px 0 0;font-size:18px;color:#1f1b14}
+.client-booking-insights__vip{display:inline-flex;align-items:center;gap:6px;padding:7px 10px;border-radius:999px;background:#19150d;color:#e8c76a;font-size:12px}
+.client-booking-insights__metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.client-booking-insights__metrics article{display:flex;align-items:center;gap:9px;padding:11px;border-radius:14px;background:#fff;border:1px solid #eee4cd}
+.client-booking-insights__metrics svg{width:18px;color:#ad8426}
+.client-booking-insights__metrics span{display:flex;flex-direction:column;min-width:0}
+.client-booking-insights__metrics strong{font-size:14px;color:#282116;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.client-booking-insights__metrics small{font-size:11px;color:#776f62}
+.client-booking-insights dl{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0 0}
+.client-booking-insights dl div{padding:10px 12px;border-radius:12px;background:#f8f4ea}
+.client-booking-insights dt{font-size:11px;color:#7b6f5c}
+.client-booking-insights dd{margin:3px 0 0;font-size:13px;font-weight:700;color:#312a20}
+.client-booking-insights__warning,.client-booking-insights__note{margin:12px 0 0;padding:10px 12px;border-radius:12px;font-size:13px}
+.client-booking-insights__warning{display:flex;gap:9px;background:#fff2ee;color:#873a2a;border:1px solid #f2c6bc}
+.client-booking-insights__warning span{display:flex;flex-direction:column;gap:2px}
+.client-booking-insights__note{background:#f4effb;color:#4c3d64;border:1px solid #ddd0ed}
+@media(max-width:760px){.client-booking-insights__metrics{grid-template-columns:1fr}.client-booking-insights dl{grid-template-columns:1fr}}
