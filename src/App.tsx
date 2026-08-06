@@ -168,6 +168,22 @@ const router = createBrowserRouter(
         </RequireAuth>
       ),
     },
+    {
+      path: "/spec/:moduleKey",
+      element: (
+        <RequireAuth>
+          <ModulePlaceholderPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/knowledge-base",
+      element: (
+        <RequireAuth>
+          <ModulePlaceholderPage />
+        </RequireAuth>
+      ),
+    },
 
     // Home (régi root)
     {
@@ -292,11 +308,7 @@ const router = createBrowserRouter(
     },
     {
       path: "/marketing",
-      element: (
-        <RequireAuth>
-          <div>Marketing modul – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/modules/marketing/campaigns" replace />,
     },
     {
       path: "/reports",
@@ -314,7 +326,7 @@ const router = createBrowserRouter(
       path: "/reports/appointments",
       element: (
         <RequireAuth>
-          <div style={{ padding: "2rem" }}>Bejegyzések kimutatás – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -338,17 +350,13 @@ const router = createBrowserRouter(
       path: "/settings",
       element: (
         <RequireAuth>
-          <div>Beállítások / Adminisztráció – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/extras",
-      element: (
-        <RequireAuth>
-          <div>Egyéb modulok – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/extra/tasks" replace />,
     },
 
     // Weblap / arculat
@@ -440,7 +448,7 @@ const router = createBrowserRouter(
       path: "/finance/cash",
       element: (
         <RequireAuth>
-          <div>Pénztár kezelése – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -448,23 +456,19 @@ const router = createBrowserRouter(
       path: "/finance/invoice",
       element: (
         <RequireAuth>
-          <div>Számlázás – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/finance/transaction",
-      element: (
-        <RequireAuth>
-          <div>Kiadás / bevétel rögzítése – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/finance/transactions" replace />,
     },
     {
       path: "/finance/transactions",
       element: (
         <RequireAuth>
-          <div>Tranzakciók listája – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -472,7 +476,7 @@ const router = createBrowserRouter(
       path: "/finance/invoices/out",
       element: (
         <RequireAuth>
-          <div>Kimenő számlák – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -480,7 +484,7 @@ const router = createBrowserRouter(
       path: "/finance/invoices/in",
       element: (
         <RequireAuth>
-          <div>Bejövő számlák – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -488,7 +492,7 @@ const router = createBrowserRouter(
       path: "/finance/transactions/guest",
       element: (
         <RequireAuth>
-          <div>Vendégszámla tranzakciók – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -496,7 +500,7 @@ const router = createBrowserRouter(
       path: "/finance/balance/topup",
       element: (
         <RequireAuth>
-          <div>Egyenlegfeltöltés – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -522,7 +526,7 @@ const router = createBrowserRouter(
       path: "/warehouse/incoming",
       element: (
         <RequireAuth>
-          <div>Bevételezés – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -530,23 +534,19 @@ const router = createBrowserRouter(
       path: "/inventory/transfer",
       element: (
         <RequireAuth>
-          <div>Raktárak közötti termékmozgás – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/inventory/purchase",
-      element: (
-        <RequireAuth>
-          <div>Új beszerzés költséggel – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/spec/inventory-orders" replace />,
     },
     {
       path: "/inventory/adjustment",
       element: (
         <RequireAuth>
-          <div>Készletkorrekció – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -554,7 +554,7 @@ const router = createBrowserRouter(
       path: "/inventory/usage",
       element: (
         <RequireAuth>
-          <div>Szalonhasználat – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -564,7 +564,7 @@ const router = createBrowserRouter(
       path: "/masters/salons",
       element: (
         <RequireAuth>
-          <div>Szalonok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -572,23 +572,19 @@ const router = createBrowserRouter(
       path: "/masters/users",
       element: (
         <RequireAuth>
-          <div>Felhasználók – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/masters/guests",
-      element: (
-        <RequireAuth>
-          <div>Vendégek – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/modules/customers/list" replace />,
     },
     {
       path: "/masterdata/departments",
       element: (
         <RequireAuth>
-          <div>Részlegek – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -596,7 +592,7 @@ const router = createBrowserRouter(
       path: "/masterdata/service-types",
       element: (
         <RequireAuth>
-          <div>Szolgáltatás típusok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -620,7 +616,7 @@ const router = createBrowserRouter(
       path: "/masterdata/product-types",
       element: (
         <RequireAuth>
-          <div>Termék típusok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -644,7 +640,7 @@ const router = createBrowserRouter(
       path: "/masterdata/assets",
       element: (
         <RequireAuth>
-          <div>Eszközök és eszköz típusok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -652,7 +648,7 @@ const router = createBrowserRouter(
       path: "/masterdata/discounts",
       element: (
         <RequireAuth>
-          <div>Kedvezmények – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -660,7 +656,7 @@ const router = createBrowserRouter(
       path: "/masterdata/partners",
       element: (
         <RequireAuth>
-          <div>Partnerek / Beszállítók – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -676,7 +672,7 @@ const router = createBrowserRouter(
       path: "/masterdata/units",
       element: (
         <RequireAuth>
-          <div>Mennyiségi egységek – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -684,7 +680,7 @@ const router = createBrowserRouter(
       path: "/masterdata/payment-methods",
       element: (
         <RequireAuth>
-          <div>Fizetési módok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -692,7 +688,7 @@ const router = createBrowserRouter(
       path: "/masterdata/price-types",
       element: (
         <RequireAuth>
-          <div>Ár típusok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -700,7 +696,7 @@ const router = createBrowserRouter(
       path: "/masterdata/movement-types",
       element: (
         <RequireAuth>
-          <div>Készletmozgás típusok – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -710,17 +706,13 @@ const router = createBrowserRouter(
       path: "/hr/applications",
       element: (
         <RequireAuth>
-          <div>Jelentkezések kezelése – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/hr/applications/review",
-      element: (
-        <RequireAuth>
-          <div>Jelentkezés elbírálása – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/hr/applications" replace />,
     },
     {
       path: "/hr/employees",
@@ -750,7 +742,7 @@ const router = createBrowserRouter(
       path: "/hr/evaluations",
       element: (
         <RequireAuth>
-          <div>Dolgozói értékelések – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -760,23 +752,19 @@ const router = createBrowserRouter(
       path: "/marketing/newsletter",
       element: (
         <RequireAuth>
-          <div>Hírlevél küldése – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/marketing/coupons",
-      element: (
-        <RequireAuth>
-          <div>Bérletek, hűségkártyák, kuponok – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/modules/loyalty/discounts" replace />,
     },
     {
       path: "/marketing/daily-deals",
       element: (
         <RequireAuth>
-          <div>Napi akciók – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -784,17 +772,13 @@ const router = createBrowserRouter(
       path: "/marketing/complaints",
       element: (
         <RequireAuth>
-          <div>Panaszkezelés – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
     {
       path: "/marketing/reviews",
-      element: (
-        <RequireAuth>
-          <div>Értékelések kezelése – fejlesztés alatt</div>
-        </RequireAuth>
-      ),
+      element: <Navigate to="/modules/marketing/feedback" replace />,
     },
 
     // Reports aloldalak
@@ -802,7 +786,7 @@ const router = createBrowserRouter(
       path: "/reports/profit",
       element: (
         <RequireAuth>
-          <div>Profit táblázat – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -810,7 +794,7 @@ const router = createBrowserRouter(
       path: "/reports/stock-movements",
       element: (
         <RequireAuth>
-          <div>Készletmozgások lekérdezése – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -818,7 +802,7 @@ const router = createBrowserRouter(
       path: "/reports/expected-revenue",
       element: (
         <RequireAuth>
-          <div>Elvárt bevételek (napi, óránkénti, üzletenkénti) – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -826,7 +810,7 @@ const router = createBrowserRouter(
       path: "/reports/custom",
       element: (
         <RequireAuth>
-          <div>Jelentés szerkesztő – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -894,7 +878,7 @@ const router = createBrowserRouter(
       path: "/extra/documents",
       element: (
         <RequireAuth>
-          <div>Elektronikus dokumentum nyilvántartás – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -902,7 +886,7 @@ const router = createBrowserRouter(
       path: "/extra/chat",
       element: (
         <RequireAuth>
-          <div>Belső üzenetküldés / chat – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
@@ -910,7 +894,7 @@ const router = createBrowserRouter(
       path: "/extra/tasks",
       element: (
         <RequireAuth>
-          <div>Teendők lista – fejlesztés alatt</div>
+          <ModulePlaceholderPage />
         </RequireAuth>
       ),
     },
