@@ -2,10 +2,20 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../utils/api";
 import WorkOrderLifecyclePanel, { WorkOrderLifecycleStatus } from "./workorders/WorkOrderLifecyclePanel";
+import WorkOrderMaterialsPanel, { WorkOrderMaterial } from "./workorders/WorkOrderMaterialsPanel";
 
 type Employee = { id: string | number; full_name?: string; display_name?: string };
 type Service = { id: string | number; name: string; duration_minutes?: number | null; default_duration?: number | null; price?: number | null; price_gross?: number | null };
-type Product = { id: string | number; name: string; price?: number | null; price_gross?: number | null };
+type Product = {
+  id: string | number;
+  name: string;
+  price?: number | null;
+  price_gross?: number | null;
+  unit?: string | null;
+  stock_quantity?: number | null;
+  available_stock?: number | null;
+  quantity?: number | null;
+};
 type WorkOrderPayload = {
   title: string;
   notes: string;
@@ -34,7 +44,7 @@ const WorkOrderNew: React.FC = () => {
   const [serviceSearch, setServiceSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
-  const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
+  const [materials, setMaterials] = useState<WorkOrderMaterial[]>([]);
   const [activeTab, setActiveTab] = useState<"services" | "products">("services");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,11 +73,13 @@ const WorkOrderNew: React.FC = () => {
   };
 
   const selectedServices = useMemo(() => services.filter((item) => selectedServiceIds.includes(String(item.id))), [services, selectedServiceIds]);
-  const selectedProducts = useMemo(() => products.filter((item) => selectedProductIds.includes(String(item.id))), [products, selectedProductIds]);
+  const selectedProductIds = useMemo(() => materials.map((item) => String(item.productId)), [materials]);
   const filteredServices = useMemo(() => services.filter((item) => item.name.toLowerCase().includes(serviceSearch.trim().toLowerCase())), [services, serviceSearch]);
   const filteredProducts = useMemo(() => products.filter((item) => item.name.toLowerCase().includes(productSearch.trim().toLowerCase())), [products, productSearch]);
   const totalDuration = useMemo(() => selectedServices.reduce((sum, item) => sum + Number(item.duration_minutes ?? item.default_duration ?? 0), 0), [selectedServices]);
-  const totalPrice = useMemo(() => selectedServices.reduce((sum, item) => sum + Number(item.price_gross ?? item.price ?? 0), 0) + selectedProducts.reduce((sum, item) => sum + Number(item.price_gross ?? item.price ?? 0), 0), [selectedServices, selectedProducts]);
+  const serviceTotal = useMemo(() => selectedServices.reduce((sum, item) => sum + Number(item.price_gross ?? item.price ?? 0), 0), [selectedServices]);
+  const materialTotal = useMemo(() => materials.reduce((sum, item) => sum + Number(item.unitPrice ?? 0) * item.quantity, 0), [materials]);
+  const totalPrice = serviceTotal + materialTotal;
 
   const handleLifecycleChange = (status: WorkOrderLifecycleStatus) => {
     const now = new Date().toISOString();
@@ -87,16 +99,34 @@ const WorkOrderNew: React.FC = () => {
     setSelectedServiceIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
     if (!form.title.trim()) setForm((current) => ({ ...current, title: service.name }));
   };
+
   const toggleProduct = (product: Product) => {
-    const id = String(product.id);
-    setSelectedProductIds((current) => current.includes(id) ? current.filter((value) => value !== id) : [...current, id]);
+    const exists = materials.some((item) => String(item.productId) === String(product.id));
+    if (exists) {
+      setMaterials((current) => current.filter((item) => String(item.productId) !== String(product.id)));
+      return;
+    }
+    setMaterials((current) => [
+      ...current,
+      {
+        productId: product.id,
+        name: product.name,
+        quantity: 1,
+        unit: product.unit || "db",
+        unitPrice: Number(product.price_gross ?? product.price ?? 0),
+        availableStock: product.available_stock ?? product.stock_quantity ?? product.quantity ?? null,
+      },
+    ]);
   };
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!form.title.trim() && !selectedServices.length && !selectedProducts.length) return setError("Adj meg egy címet vagy válassz legalább egy szolgáltatást / terméket.");
+    if (!form.title.trim() && !selectedServices.length && !materials.length) return setError("Adj meg egy címet vagy válassz legalább egy szolgáltatást / terméket.");
+    const invalidMaterial = materials.find((item) => item.quantity <= 0 || (item.availableStock != null && item.quantity > Number(item.availableStock)));
+    if (invalidMaterial) return setError(`Ellenőrizd a(z) „${invalidMaterial.name}” anyagmennyiségét és készletét.`);
+
     const payload: WorkOrderPayload = {
-      title: form.title.trim() || selectedServices[0]?.name || selectedProducts[0]?.name || "Munkalap",
+      title: form.title.trim() || selectedServices[0]?.name || materials[0]?.name || "Munkalap",
       notes: form.notes,
       status: form.status,
       started_at: startedAt,
@@ -108,7 +138,7 @@ const WorkOrderNew: React.FC = () => {
       fully_paid: form.fullyPaid,
       note_for_another_visitor: form.noteForAnotherVisitor,
       services: selectedServiceIds.map((service_id) => ({ service_id, quantity: 1 })),
-      products: selectedProductIds.map((product_id) => ({ product_id, quantity: 1 })),
+      products: materials.map((item) => ({ product_id: item.productId, quantity: item.quantity })),
     };
     try {
       setSaving(true);
@@ -139,11 +169,12 @@ const WorkOrderNew: React.FC = () => {
         <label style={fieldStyle}>Telefonszám<input value={form.clientPhone} onChange={(event) => setForm((current) => ({ ...current, clientPhone: event.target.value }))} style={inputStyle}/></label>
         <label style={fieldStyle}>E-mail<input value={form.clientEmail} onChange={(event) => setForm((current) => ({ ...current, clientEmail: event.target.value }))} style={inputStyle}/></label>
         <label style={fieldStyle}>Munkalap címe<input value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} style={inputStyle}/></label>
-        <div style={summaryStyle}><div style={sumRow}><span>Szolgáltatások</span><b>{selectedServices.length}</b></div><div style={sumRow}><span>Termékek</span><b>{selectedProducts.length}</b></div><div style={sumRow}><span>Időtartam</span><b>{totalDuration} perc</b></div><div style={sumStrong}><span>Fizetendő</span><b>{totalPrice.toLocaleString("hu-HU")} Ft</b></div></div>
+        <div style={summaryStyle}><div style={sumRow}><span>Szolgáltatások</span><b>{selectedServices.length}</b></div><div style={sumRow}><span>Anyagtételek</span><b>{materials.length}</b></div><div style={sumRow}><span>Időtartam</span><b>{totalDuration} perc</b></div><div style={sumRow}><span>Anyagérték</span><b>{materialTotal.toLocaleString("hu-HU")} Ft</b></div><div style={sumStrong}><span>Fizetendő</span><b>{totalPrice.toLocaleString("hu-HU")} Ft</b></div></div>
         {error && <div style={{ color: "#b91c1c", marginTop: 14 }}>{error}</div>}
         <div style={{ display: "flex", gap: 10, marginTop: 18 }}><button type="button" onClick={() => navigate("/workorders")} style={secondaryBtn}>Mégse</button><button type="submit" disabled={saving} style={primaryBtn}>{saving ? "Mentés..." : "Munkalap mentése"}</button></div>
       </aside>
     </div>
+    <div style={{ marginTop: 18 }}><WorkOrderMaterialsPanel materials={materials} onChange={setMaterials} disabled={saving}/></div>
   </form></div></main></div>;
 };
 
