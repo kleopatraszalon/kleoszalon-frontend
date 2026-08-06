@@ -1,0 +1,494 @@
+/*
+ * Kleopátra 2026 UI layer
+ * The values below follow the supplied brand manual. This file is loaded last
+ * so the active application receives one consistent visual system while the
+ * legacy page-specific styles can be migrated gradually.
+ */
+
+:root {
+  --kleo-brown: #120c08;
+  --kleo-gold: #b69861;
+  --kleo-gold-2: #c8b187;
+  --kleo-gold-3: #d5c4a4;
+  --kleo-gold-4: #e3d8c3;
+  --kleo-magenta: #ec008c;
+  --kleo-magenta-2: #f173ac;
+  --kleo-magenta-3: #f59ac2;
+  --kleo-magenta-4: #f9c1d9;
+  --kleo-gray-1: #5d5a55;
+  --kleo-gray-2: #84837e;
+  --kleo-gray-3: #b0afad;
+  --kleo-canvas: #f7f5f1;
+  --kleo-card: #ffffff;
+  --kleo-border: #e5dfd6;
+  --kleo-shadow: 0 14px 36px rgba(18, 12, 8, .07);
+  --color-text: var(--kleo-brown);
+  --color-gold: var(--kleo-gold);
+  --color-magenta: var(--kleo-magenta);
+}
+
+html {
+  color-scheme: light;
+  background: var(--kleo-canvas);
+}
+
+body {
+  color: var(--kleo-brown);
+  background: var(--kleo-canvas) !important;
+  font-family: "Open Sans", Arial, system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: normal;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: var(--kleo-brown);
+  font-family: Montserrat, "Open Sans", Arial, sans-serif;
+  letter-spacing: normal !important;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+::selection {
+  color: #fff;
+  background: var(--kleo-magenta);
+}
+
+*::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--kleo-gold-2) !important;
+  background-clip: padding-box !important;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--kleo-gold) !important;
+  background-clip: padding-box !important;
+}
+
+/* Main application shell */
+
+.app-layout-shell {
+  background: var(--kleo-canvas) !important;
+}
+
+.app-layout-shell > .kleo-sidebar.app-sidebar,
+.altegio-page-shell .kleo-sidebar {
+  color: #fff;
+  background:
+    linear-gradient(180deg, rgba(182, 152, 97, .08), transparent 180px),
+    var(--kleo-brown) !important;
+  box-shadow: inset -1px 0 rgba(255, 255, 255, .07) !important;
+}
+
+.app-layout-shell > .kleo-sidebar .kleo-sidebar-hero-card,
+.altegio-page-shell .kleo-sidebar-hero-card {
+  border: 1px solid rgba(200, 177, 135, .22) !important;
+  border-radius: 16px !important;
+  color: #fff;
+  background: rgba(255, 255, 255, .035) !important;
+}
+
+.app-layout-shell .kleo-sidebar-header {
+  gap: 7px;
+}
+
+.app-layout-shell .kleo-sidebar-logo-wrap {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.app-layout-shell .kleo-sidebar-logo {
+  width: min(100%, 180px);
+  height: auto;
+  max-height: 52px;
+  object-fit: contain;
+  filter: none !important;
+  transform: none !important;
+}
+
+.app-layout-shell .kleo-sidebar-title,
+.app-layout-shell .kleo-sidebar-subtitle {
+  color: #fff !important;
+  letter-spacing: normal !important;
+}
+
+.app-layout-shell .kleo-sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.app-layout-shell .kleo-sidebar-subtitle {
+  color: var(--kleo-gold-2) !important;
+  font-size: 9px;
+}
+
+.app-layout-shell .sidebar-calendar {
+  border: 1px solid rgba(200, 177, 135, .18);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .035) !important;
+  box-shadow: none !important;
+}
+
+.app-layout-shell .sidebar-calendar-month {
+  color: var(--kleo-gold-2);
+  letter-spacing: normal;
+}
+
+.app-layout-shell .sidebar-calendar-nav-btn {
+  color: #fff;
+  background: rgba(255, 255, 255, .07);
+  box-shadow: none;
+}
+
+.app-layout-shell .sidebar-calendar-day--selected {
+  color: #fff;
+  background: var(--kleo-magenta) !important;
+  box-shadow: 0 7px 16px rgba(236, 0, 140, .28) !important;
+}
+
+.app-layout-shell .kleo-sidebar-nav {
+  border-top: 1px solid rgba(200, 177, 135, .16) !important;
+}
+
+.app-layout-shell .kleo-sidebar-menu-button {
+  color: rgba(255, 255, 255, .88) !important;
+  border-radius: 9px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+}
+
+.app-layout-shell .kleo-sidebar-menu-button:hover,
+.app-layout-shell .kleo-sidebar-menu-item--open > .kleo-sidebar-menu-button {
+  color: #fff !important;
+  background: rgba(200, 177, 135, .13) !important;
+}
+
+.kleo-sidebar-menu-label-wrap {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: 9px;
+}
+
+.kleo-sidebar-menu-icon {
+  display: grid;
+  place-items: center;
+  flex: 0 0 18px;
+  color: var(--kleo-gold-2);
+}
+
+.app-layout-shell .kleo-sidebar-submenu {
+  border-left: 1px solid rgba(200, 177, 135, .2);
+}
+
+.app-layout-shell .kleo-sidebar-submenu-item {
+  color: rgba(255, 255, 255, .72) !important;
+  border-radius: 8px !important;
+  font-size: 11px !important;
+}
+
+.app-layout-shell .kleo-sidebar-submenu-item:hover {
+  color: #fff !important;
+  background: rgba(255, 255, 255, .06) !important;
+}
+
+.app-layout-shell .kleo-sidebar-submenu-item.active {
+  color: #fff !important;
+  background: var(--kleo-magenta) !important;
+  box-shadow: 0 7px 18px rgba(236, 0, 140, .2);
+}
+
+/* Top bar */
+
+.modern-topbar {
+  border-bottom-color: var(--kleo-border) !important;
+  background: rgba(255, 255, 255, .94) !important;
+  box-shadow: 0 7px 24px rgba(18, 12, 8, .035) !important;
+}
+
+.topbar-collapse,
+.topbar-notification {
+  border-color: var(--kleo-border) !important;
+  color: var(--kleo-gray-1) !important;
+  background: #fff !important;
+}
+
+.topbar-collapse:hover,
+.topbar-notification:hover {
+  border-color: var(--kleo-gold-2) !important;
+  color: var(--kleo-brown) !important;
+  background: #fbf8f2 !important;
+}
+
+.topbar-breadcrumb span {
+  color: var(--kleo-gray-2);
+}
+
+.topbar-breadcrumb b,
+.topbar-location b,
+.topbar-profile b {
+  color: var(--kleo-brown) !important;
+}
+
+.topbar-global-search {
+  border-color: var(--kleo-border) !important;
+  color: var(--kleo-gray-2) !important;
+  background: #faf9f7 !important;
+}
+
+.topbar-global-search:focus-within {
+  border-color: var(--kleo-gold) !important;
+  box-shadow: 0 0 0 3px rgba(182, 152, 97, .12);
+}
+
+.topbar-location {
+  color: var(--kleo-gold) !important;
+}
+
+.topbar-notification i {
+  background: var(--kleo-magenta) !important;
+}
+
+.topbar-profile > span {
+  border-radius: 9px !important;
+  color: #fff;
+  background: var(--kleo-brown) !important;
+}
+
+.topbar-logout {
+  border-color: rgba(236, 0, 140, .22) !important;
+  color: #a1005f !important;
+  background: #fff5fa !important;
+}
+
+.topbar-logout:hover {
+  border-color: var(--kleo-magenta) !important;
+  color: #fff !important;
+  background: var(--kleo-magenta) !important;
+}
+
+.app-layout-main {
+  background: var(--kleo-canvas);
+}
+
+/* Shared controls, cards and tables */
+
+.card,
+.stat-card,
+.chart-card,
+.warnings-card,
+.employees-list-card,
+.altegio-section-card,
+.altegio-metric-card {
+  border-color: var(--kleo-border) !important;
+  background: #fff !important;
+  box-shadow: var(--kleo-shadow) !important;
+}
+
+.btn,
+button.btn,
+.appointments-button--primary {
+  border-radius: 9px !important;
+  letter-spacing: normal !important;
+}
+
+.btn-primary,
+.appointments-button--primary {
+  border-color: var(--kleo-magenta) !important;
+  color: #fff !important;
+  background: var(--kleo-magenta) !important;
+  box-shadow: 0 8px 20px rgba(236, 0, 140, .16) !important;
+}
+
+.btn-primary:hover,
+.appointments-button--primary:hover {
+  background: #c90078 !important;
+}
+
+.btn-outline {
+  border-color: var(--kleo-gold) !important;
+  color: var(--kleo-brown) !important;
+  background: #fff !important;
+}
+
+.data-table thead,
+.appointments-table thead,
+.employees-table thead,
+.table thead {
+  background: var(--kleo-gold-4) !important;
+}
+
+.data-table th,
+.appointments-table th,
+.employees-table th,
+.table th {
+  color: var(--kleo-gray-1) !important;
+  letter-spacing: .04em !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--kleo-gold) !important;
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(182, 152, 97, .12) !important;
+}
+
+/* Login */
+
+.login-page {
+  position: relative;
+  min-height: 100dvh;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 15% 10%, rgba(200, 177, 135, .22), transparent 34%),
+    linear-gradient(135deg, var(--kleo-brown) 0 45%, #2a1d16 100%) !important;
+}
+
+.login-page::before {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 0 68%, rgba(236, 0, 140, .09) 68% 70%, transparent 70%);
+  content: "";
+}
+
+.login-card {
+  width: min(100%, 520px) !important;
+  border: 1px solid rgba(200, 177, 135, .65) !important;
+  border-radius: 20px !important;
+  background: rgba(255, 255, 255, .97) !important;
+  box-shadow: 0 34px 90px rgba(0, 0, 0, .36) !important;
+}
+
+.login-card-bg {
+  opacity: .08 !important;
+}
+
+.login-card-overlay {
+  background: linear-gradient(180deg, rgba(255, 255, 255, .91), #fff 44%) !important;
+}
+
+.login-card-inner {
+  padding: clamp(26px, 5vw, 42px) !important;
+}
+
+.login-header {
+  margin-bottom: 15px !important;
+}
+
+.login-logo {
+  width: min(100%, 290px);
+  padding: 11px 16px;
+  border: 1px solid var(--kleo-gold-4);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.login-logo img {
+  width: 100%;
+  height: auto !important;
+  max-height: 72px;
+  object-fit: contain;
+  filter: none !important;
+}
+
+.login-tagline {
+  max-width: 410px;
+  margin: 0 auto 18px !important;
+  color: var(--kleo-gray-1) !important;
+  line-height: 1.5 !important;
+}
+
+.login-title {
+  color: var(--kleo-brown) !important;
+  font-size: clamp(22px, 4vw, 29px) !important;
+  font-weight: 650 !important;
+  letter-spacing: normal !important;
+}
+
+.login-subtitle,
+.login-label,
+.login-footer,
+.login-text {
+  color: var(--kleo-gray-1) !important;
+}
+
+.login-tabs {
+  padding: 4px;
+  border: 1px solid var(--kleo-border) !important;
+  border-radius: 11px;
+  background: #f8f6f2;
+}
+
+.login-tab {
+  border: 0 !important;
+  border-radius: 8px;
+  color: var(--kleo-gray-1) !important;
+}
+
+.login-tab--active {
+  color: var(--kleo-brown) !important;
+  background: #fff !important;
+  box-shadow: 0 4px 12px rgba(18, 12, 8, .08);
+}
+
+.login-input {
+  min-height: 43px;
+  border: 1px solid var(--kleo-border) !important;
+  border-radius: 9px !important;
+}
+
+.login-button,
+.login-secondary-button {
+  min-height: 44px;
+  border-radius: 9px !important;
+  color: #fff !important;
+  background: var(--kleo-magenta) !important;
+  box-shadow: 0 9px 22px rgba(236, 0, 140, .18);
+}
+
+.login-button:hover,
+.login-secondary-button:hover {
+  background: #c90078 !important;
+}
+
+.login-link,
+.login-footer-link {
+  color: #a1005f !important;
+}
+
+@media (max-width: 900px) {
+  .app-layout-shell .kleo-sidebar-logo {
+    width: min(100%, 165px);
+  }
+}
+
+@media (max-width: 560px) {
+  .login-page {
+    padding: 14px !important;
+    align-items: flex-start !important;
+  }
+
+  .login-card {
+    margin-top: 8px;
+    border-radius: 15px !important;
+  }
+
+  .login-card-inner {
+    padding: 24px 19px !important;
+  }
+}

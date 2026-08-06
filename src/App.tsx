@@ -38,10 +38,12 @@ const VirStaffDetailPage = lazy(() => import("./pages/VirStaffDetailPage"));
 const VirServiceDetailPage = lazy(() => import("./pages/VirServiceDetailPage"));
 const VirReportsAdminPage = lazy(() => import("./pages/VirReportsAdminPage"));
 const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
-const ModulePlaceholderPage = lazy(() => import("./pages/ModulePlaceholderPage"));
 const AppointmentsModulePage = lazy(() => import("./pages/AppointmentsModulePage"));
 const ClientsCRMPage = lazy(() => import("./pages/ClientsCRMPage"));
 const StaffImportPage = lazy(() => import("./pages/StaffImportPage"));
+const SpecModulePage = lazy(() => import("./pages/SpecModulePage"));
+const KnowledgeBasePage = lazy(() => import("./pages/KnowledgeBasePage"));
+const ConversationHubPage = lazy(() => import("./pages/ConversationHubPage"));
 
 const HOME_PATH = "/";
 
@@ -68,7 +70,7 @@ function RequireAuth({ children }: GuardProps) {
 
   return (
     <AppLayout>
-      {isLegacyPlaceholder ? <ModulePlaceholderPage /> : children}
+      {isLegacyPlaceholder ? <SpecModulePage /> : children}
     </AppLayout>
   );
 }
@@ -164,10 +166,42 @@ const router = createBrowserRouter(
       path: "/modules/:moduleKey/*",
       element: (
         <RequireAuth>
-          <ModulePlaceholderPage />
+          <SpecModulePage />
         </RequireAuth>
       ),
     },
+    {
+      path: "/knowledge/articles",
+      element: (
+        <RequireAuth>
+          <KnowledgeBasePage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/knowledge/assistant",
+      element: (
+        <RequireAuth>
+          <ConversationHubPage />
+        </RequireAuth>
+      ),
+    },
+    {
+      path: "/operations/chat",
+      element: (
+        <RequireAuth>
+          <ConversationHubPage />
+        </RequireAuth>
+      ),
+    },
+    ...["operations", "finance", "inventory", "reports", "masterdata", "marketing", "hr", "settings"].map((section) => ({
+      path: `/${section}/:view`,
+      element: (
+        <RequireAuth>
+          <SpecModulePage />
+        </RequireAuth>
+      ),
+    })),
 
     // Home (régi root)
     {
@@ -902,7 +936,7 @@ const router = createBrowserRouter(
       path: "/extra/chat",
       element: (
         <RequireAuth>
-          <div>Belső üzenetküldés / chat – fejlesztés alatt</div>
+          <ConversationHubPage />
         </RequireAuth>
       ),
     },
