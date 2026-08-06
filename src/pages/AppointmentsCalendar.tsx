@@ -11,6 +11,7 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import { apiFetch } from "../utils/api";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
 import AppointmentDrawer from "../components/AppointmentDrawer";
+import BookingOperationsPanel from "./booking/BookingOperationsPanel";
 import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
@@ -108,7 +109,7 @@ export default function AppointmentsCalendarPage() {
     setError("");
     try {
       const params = new URLSearchParams({ from: range.from, to: range.to });
-      if (user.location_id) params.set("location_id", user.location_id);
+      if (user.location_id) params.set("location_id", String(user.location_id));
       const raw = await apiFetch<any>(`/api/timetable?${params}`);
       setEmployees(toArray<Employee>(raw?.employees));
       setAppointments(toArray<Appointment>(raw?.appointments));
@@ -213,6 +214,12 @@ export default function AppointmentsCalendarPage() {
       <div className="modern-calendar-heading"><span className="modern-calendar-kicker"><Sparkles size={14}/> Naptár és digitális beosztás</span><h1>Időpontnaptár</h1><p>Munkatársak napi beosztása és foglalásai egy áttekinthető felületen.</p></div>
       <button className="modern-primary-button" onClick={() => setModal({ open: true })}><Plus size={18}/> Új időpont</button>
     </header>
+
+    <BookingOperationsPanel
+      appointments={appointments}
+      employeeCount={employees.length}
+      onOpenAppointment={setDrawerId}
+    />
 
     <section className="modern-calendar-board">
       <header className="interactive-calendar-toolbar">
