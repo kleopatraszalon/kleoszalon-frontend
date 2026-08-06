@@ -9,6 +9,7 @@ import {
   CalendarOff, CheckCircle2, Clock3, RefreshCw, UserRoundX, UsersRound,
 } from "lucide-react";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import ExecutiveDashboardExtras from "./dashboard/ExecutiveDashboardExtras";
 import "./Home.css";
 
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -105,6 +106,8 @@ export default function Dashboard() {
 
     {error && <div className="management-error"><AlertTriangle size={18}/><span><b>Nem sikerült betölteni a kimutatásokat.</b>{error}</span></div>}
     {loading && !data ? <div className="management-loading"><RefreshCw className="spin"/> Vezetői adatok összeállítása…</div> : data && <>
+      <ExecutiveDashboardExtras stats={stats} alerts={data.alerts} />
+
       <section className="management-kpis">
         <Kpi icon={<Banknote/>} label="Összes bevétel" value={money(stats.totalRevenue)} note={`${money(stats.serviceRevenue)} szolgáltatás`} tone="purple"/>
         <Kpi icon={<Building2/>} label="Átlagos számla" value={money(stats.averageInvoice)} note={`${number(stats.activeAppointments)} időpont`} tone="blue"/>
