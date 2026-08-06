@@ -4,7 +4,7 @@ import "./DashboardTargets.css";
 
 type Props = {
   stats: Record<string, number>;
-  locationKey?: string;
+  locationKey?: string | number;
 };
 
 type Targets = {
@@ -28,7 +28,7 @@ const money = (value: unknown) => `${number(value)} Ft`;
 const clamp = (value: number) => Math.max(0, Math.min(100, value));
 
 export default function DashboardTargets({ stats, locationKey = "all" }: Props) {
-  const storageKey = `kleo_dashboard_targets_${locationKey}`;
+  const storageKey = `kleo_dashboard_targets_${String(locationKey)}`;
   const [editing, setEditing] = useState(false);
   const [targets, setTargets] = useState<Targets>(() => {
     try {
