@@ -15,6 +15,7 @@ import "./AppointmentsCalendar.css";
 import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
 import "./EmployeeCalendarHeader.css";
+import "./ModernServiceCalendar.css";
 
 type Employee = {
   id: string;
@@ -55,12 +56,27 @@ function employeeName(employee: Employee) {
   return employee.short_name || employee.full_name || [employee.first_name, employee.last_name].filter(Boolean).join(" ") || "Munkatárs";
 }
 
-function eventColor(status?: string | null) {
-  const key = (status || "confirmed").toLowerCase();
-  if (["completed", "done", "finished"].includes(key)) return "#2fa86f";
-  if (["cancelled", "canceled", "no_show"].includes(key)) return "#dc5969";
-  if (["waiting", "planned"].includes(key)) return "#d59b36";
-  return "#7d58df";
+const SERVICE_PALETTE = [
+  { background: "#bfe8dc", border: "#76c8b2", text: "#184c40" },
+  { background: "#cfc0e4", border: "#aa8fce", text: "#412d59" },
+  { background: "#f3c6c0", border: "#df9187", text: "#66322c" },
+  { background: "#c8dfb7", border: "#8fbd70", text: "#315020" },
+  { background: "#f2d28e", border: "#d9ac4f", text: "#5d4514" },
+  { background: "#b9d8ee", border: "#79acd1", text: "#214c68" },
+  { background: "#efc2d5", border: "#d989aa", text: "#633149" },
+  { background: "#c3ddd9", border: "#83b8b0", text: "#234d47" },
+  { background: "#d8d2a8", border: "#b8ad6f", text: "#4f4821" },
+  { background: "#c8cef0", border: "#909bd2", text: "#313b68" },
+  { background: "#e7c7a9", border: "#c99768", text: "#5d3a1f" },
+  { background: "#bcd9c3", border: "#7eb18a", text: "#294f32" },
+  { background: "#ddc1e8", border: "#b783cb", text: "#533060" },
+  { background: "#f0bfc2", border: "#d77f85", text: "#672f34" },
+  { background: "#bddfe9", border: "#7db9c9", text: "#244f5b" },
+  { background: "#e5d3b5", border: "#c2a573", text: "#59472b" },
+];
+
+function appointmentServiceKey(item: Appointment) {
+  return item.service_names?.find((name) => name?.trim())?.trim() || item.title?.trim() || "Általános szolgáltatás";
 }
 
 const EMPLOYEE_COLORS = ["#8f6ad8", "#d58273", "#4a9a8a", "#ca9646", "#5f83c7", "#b96386", "#6c9a52", "#96735f"];
@@ -117,18 +133,30 @@ export default function AppointmentsCalendarPage() {
     extendedProps: { photoUrl: item.photo_url, color: stableEmployeeColor(item.id, item.color) },
   })), [visibleEmployees]);
 
+  const serviceColors = useMemo(() => {
+    const keys = Array.from(new Set(appointments.map(appointmentServiceKey))).sort((a, b) => a.localeCompare(b, "hu"));
+    return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]]));
+  }, [appointments]);
+
   const events = useMemo<EventInput[]>(() => appointments
     .filter((item) => !item.employee_id || visibleEmployees.some((employee) => employee.id === item.employee_id))
-    .map((item) => ({
-      id: item.id,
-      resourceId: item.employee_id || undefined,
-      start: item.start_time,
-      end: item.end_time,
-      title: item.client_name || item.title || "Foglalás",
-      backgroundColor: eventColor(item.status),
-      borderColor: eventColor(item.status),
-      extendedProps: item,
-    })), [appointments, visibleEmployees]);
+    .map((item) => {
+      const serviceLabel = appointmentServiceKey(item);
+      const palette = serviceColors.get(serviceLabel) || SERVICE_PALETTE[0];
+      const statusKey = (item.status || "confirmed").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+      return {
+        id: item.id,
+        resourceId: item.employee_id || undefined,
+        start: item.start_time,
+        end: item.end_time,
+        title: item.client_name || item.title || "Vendég",
+        backgroundColor: palette.background,
+        borderColor: palette.border,
+        textColor: palette.text,
+        classNames: ["service-calendar-event", `appointment-status-${statusKey}`],
+        extendedProps: { ...item, service_label: serviceLabel },
+      };
+    }), [appointments, serviceColors, visibleEmployees]);
 
   const plannedMinutes = useMemo(() => appointments.reduce((sum, item) => {
     return sum + Math.max(0, (new Date(item.end_time).getTime() - new Date(item.start_time).getTime()) / 60000);
@@ -199,7 +227,10 @@ export default function AppointmentsCalendarPage() {
         </div>
       </header>
       {error && <div className="interactive-calendar-error">{error}</div>}
-      <div className={`interactive-fullcalendar ${loading ? "is-loading" : ""}`}>
+      <div
+        className={`interactive-fullcalendar modern-service-calendar ${loading ? "is-loading" : ""}`}
+        style={{ "--calendar-content-width": `${Math.max(940, visibleEmployees.length * 166 + 72)}px` } as React.CSSProperties}
+      >
         <FullCalendar
           ref={calendarRef}
           plugins={[resourceTimeGridPlugin, timeGridPlugin, dayGridPlugin, interactionPlugin]}
@@ -237,7 +268,7 @@ export default function AppointmentsCalendarPage() {
           nowIndicator
           height="auto"
           eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
-          eventContent={(info) => <div className="classic-calendar-event"><b>{info.timeText}</b><span>{info.event.title}</span><small>{(info.event.extendedProps.service_names || []).join(", ")}</small></div>}
+          eventContent={(info) => <div className="classic-calendar-event"><b>{info.timeText}</b><span>{info.event.title}</span><small>{info.event.extendedProps.service_label}</small></div>}
         />
       </div>
     </section>
