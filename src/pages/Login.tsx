@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
+import "./Login.css";
 
 const API_BASE =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -204,6 +205,13 @@ const LoginPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
+  }, []);
+
+  useEffect(() => {
+    const notice = sessionStorage.getItem("kleo.login.notice");
+    if (!notice) return;
+    setError(notice);
+    sessionStorage.removeItem("kleo.login.notice");
   }, []);
 
 const persistAuthAndGoHome = (body: VerifyResponse) => {
