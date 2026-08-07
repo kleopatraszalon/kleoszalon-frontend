@@ -12,6 +12,7 @@ import { useCurrentUser } from "../hooks/useCurrentUser";
 import ExecutiveDashboardExtras from "./dashboard/ExecutiveDashboardExtras";
 import DashboardPeriodInsights from "./dashboard/DashboardPeriodInsights";
 import DashboardTargets from "./dashboard/DashboardTargets";
+import LiveManagementKpis from "./dashboard/LiveManagementKpis";
 import "./Home.css";
 
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -110,7 +111,16 @@ export default function Dashboard() {
     {loading && !data ? <div className="management-loading"><RefreshCw className="spin"/> Vezetői adatok összeállítása…</div> : data && <>
       <ExecutiveDashboardExtras stats={stats} alerts={data.alerts} />
       <DashboardPeriodInsights chartData={data.chartData} />
-      <DashboardTargets stats={stats} locationKey={locationId || user?.location_id || "all"} />
+      <DashboardTargets stats={stats} locationKey={String(locationId || user?.location_id || "all")} />
+      <LiveManagementKpis
+        from={from}
+        to={to}
+        locationId={isAdmin ? locationId : user?.location_id}
+        appointments={Number(stats.activeAppointments || 0)}
+        completed={Number(stats.completedAppointments || 0)}
+        cancelled={Number(stats.cancelledAppointments || 0)}
+        noShow={Number(stats.noShowCount || 0)}
+      />
 
       <section className="management-kpis">
         <Kpi icon={<Banknote/>} label="Összes bevétel" value={money(stats.totalRevenue)} note={`${money(stats.serviceRevenue)} szolgáltatás`} tone="purple"/>
