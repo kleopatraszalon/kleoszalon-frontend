@@ -7,6 +7,7 @@ import NotificationBell from "../components/NotificationBell";
 import AltegioServiceImportButton from "../components/AltegioServiceImportButton";
 import ServiceHierarchyPanel from "../components/ServiceHierarchyPanel";
 import EmployeeServicesPage from "../pages/EmployeeServicesPage";
+import ServicesCatalogPage from "../pages/ServicesCatalogPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
@@ -56,6 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMasterServices = location.pathname === "/masterdata/services";
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
+  if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
   const showHierarchy = isMasterServices && serviceView === "categories";
 
