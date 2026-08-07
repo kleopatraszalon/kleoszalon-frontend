@@ -79,6 +79,10 @@ function normalizeRoute(r?: string): string {
   s = s.replace(/\/{2,}/g, "/");
   return s;
 }
+function routePath(r?: string): string {
+  const normalized = normalizeRoute(r);
+  return normalized === "#" ? "#" : normalized.split(/[?#]/, 1)[0];
+}
 
 export function Menu({ items }: { items: Array<{ id: number; name: string; route?: string; icon?: string }> }) {
   return (
@@ -125,13 +129,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     function walk(items: MenuItem[], parentIds: number[] = []) {
       for (const item of items) {
         const nextParents = [...parentIds, item.id];
-        if (item.route && normalizeRoute(item.route) === location.pathname) activeParents.push(...parentIds);
+        if (item.route && routePath(item.route) === location.pathname) activeParents.push(...parentIds);
         if (item.children.length) walk(item.children, nextParents);
       }
     }
     walk(menus);
     if (activeParents.length) setOpenIds((prev) => Array.from(new Set([...prev, ...activeParents])));
-  }, [menus, location.pathname]);
+  }, [menus, location.pathname, location.search]);
 
   const handleDateSelect = (date: Date) => {
     const y = date.getFullYear();
@@ -159,7 +163,7 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
             const hasChildren = menu.children.length > 0;
             const expanded = isExpanded(menu.id);
             const to = normalizeRoute(menu.route);
-            const isLeafActive = !hasChildren && to !== "#" && location.pathname === to;
+            const isLeafActive = !hasChildren && to !== "#" && routePath(to) === location.pathname;
             return (
               <li key={menu.id} className={"kleo-sidebar-menu-item" + (expanded ? " kleo-sidebar-menu-item--open" : "") + (isLeafActive ? " kleo-sidebar-menu-item--active" : "")}>
                 {hasChildren ? (
@@ -177,7 +181,8 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
                     {menu.children.map((child) => {
                       const childTo = normalizeRoute(child.route);
                       const isDisabled = childTo === "#";
-                      return <li key={child.id}><NavLink to={childTo} className={({ isActive }) => "kleo-sidebar-submenu-item" + (isActive ? " active" : "") + (isDisabled ? " pointer-events-none opacity-50" : "")} aria-disabled={isDisabled}>{child.name}</NavLink></li>;
+                      const active = routePath(childTo) === location.pathname && (!childTo.includes("?") || childTo.split("?")[1] === location.search.replace(/^\?/, ""));
+                      return <li key={child.id}><NavLink to={childTo} className={() => "kleo-sidebar-submenu-item" + (active ? " active" : "") + (isDisabled ? " pointer-events-none opacity-50" : "")} aria-disabled={isDisabled}>{child.name}</NavLink></li>;
                     })}
                   </ul>
                 )}
