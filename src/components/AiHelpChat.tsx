@@ -64,8 +64,11 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
       const assistantMessage: ChatMessage = { role: "assistant", content: answer };
       setMessages(prev => [...prev, assistantMessage].slice(-20));
     } catch (err: any) {
-      const msg = err?.response?.data?.message || "Az AI támogatás most nem elérhető.";
-      setError(msg);
+      const data = err?.response?.data || {};
+      const base = String(data?.message || "Az AI támogatás most nem elérhető.");
+      const detail = data?.detail ? String(data.detail) : "";
+      const code = data?.code ? String(data.code) : "";
+      setError([base, detail, code ? `Hibakód: ${code}` : ""].filter(Boolean).join("\n"));
     } finally {
       setLoading(false);
     }
@@ -98,7 +101,7 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
               </div>
             ))}
             {loading && <div className="ai-help-message assistant"><Loader2 className="ai-help-spin" size={16}/><p>Gondolkodom…</p></div>}
-            {error && <div className="ai-help-error">{error}</div>}
+            {error && <div className="ai-help-error" style={{ whiteSpace: "pre-wrap" }}>{error}</div>}
             <div ref={endRef}/>
           </div>
 
