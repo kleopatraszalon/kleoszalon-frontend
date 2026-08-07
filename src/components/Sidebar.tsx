@@ -35,6 +35,7 @@ const API_BASE =
   window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000/api"
     : "https://kleoszalon-api-1.onrender.com/api";
+const MENU_CACHE_KEY = "kleo.menu.cache.v2";
 
 interface RawMenuItem {
   id: number;
@@ -115,7 +116,12 @@ export function Menu({ items }: { items: Array<{ id: number; name: string; route
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [menus, setMenus] = useState<MenuItem[]>([]);
+  const [menus, setMenus] = useState<MenuItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(MENU_CACHE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  });
   const [openIds, setOpenIds] = useState<number[]>([]);
   const [draggedId, setDraggedId] = useState<number | null>(null);
   const [dragOverId, setDragOverId] = useState<number | null>(null);
@@ -124,16 +130,30 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
   async function loadMenus() {
     const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
-    const res = await axios.get(`${API_BASE}/menus`, {
+    const config = {
       withCredentials: true,
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    });
-    const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-    setMenus(buildMenuTree(data, user?.role || null));
+    };
+    let data: RawMenuItem[] = [];
+    try {
+      const res = await axios.get(`${API_BASE}/menus`, config);
+      data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
+    } catch (primaryError) {
+      console.warn("⚠️ /api/menus nem elérhető, fallback /api/menu", primaryError);
+      const res = await axios.get(`${API_BASE}/menu`, config);
+      data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
+    }
+    const tree = buildMenuTree(data, user?.role || null);
+    if (tree.length) {
+      setMenus(tree);
+      try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(tree)); } catch {}
+    } else {
+      console.warn("⚠️ A menü API üres választ adott; a korábbi menü megmarad.");
+    }
   }
 
   useEffect(() => {
-    loadMenus().catch((err) => console.error("❌ Menü betöltési hiba:", err));
+    loadMenus().catch((err) => console.error("❌ Menü betöltési hiba, cache megtartva:", err));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
@@ -186,10 +206,13 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
 
     try {
       const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
-      await axios.put(`${API_BASE}/menus/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, {
-        withCredentials: true,
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-      });
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+      try {
+        await axios.put(`${API_BASE}/menus/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, { withCredentials: true, headers });
+      } catch {
+        await axios.put(`${API_BASE}/menu/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, { withCredentials: true, headers });
+      }
+      try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(next)); } catch {}
     } catch (err) {
       setMenus(previous);
       console.error("❌ Menü sorrend mentési hiba:", err);
