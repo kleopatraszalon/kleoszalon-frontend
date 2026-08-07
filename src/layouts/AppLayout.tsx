@@ -11,6 +11,8 @@ import EmployeeServicesPage from "../pages/EmployeeServicesPage";
 import ServicesCatalogPage from "../pages/ServicesCatalogPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import AccessControlPage from "../pages/AccessControlPage";
+import AuditLogPage from "../pages/AuditLogPage";
+import StaffChatAdminPage from "../pages/StaffChatAdminPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
 
@@ -19,6 +21,8 @@ const pageNames: Record<string, string> = {
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
   "/masterdata/services": "Szolgáltatási törzs", "/dashboard/notifications": "Értesítési központ",
   "/settings/roles": "Jogosultságok és hozzáférések",
+  "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
+  "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -45,6 +49,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMasterServices = location.pathname === "/masterdata/services";
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
   if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
+  if (location.pathname === "/modules/settings/audit-log") pageContent = <AuditLogPage />;
+  if (location.pathname === "/modules/settings/chat-supervision") pageContent = <StaffChatAdminPage />;
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
