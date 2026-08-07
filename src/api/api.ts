@@ -1,16 +1,6 @@
 import axios from "axios";
 
-/**
- * Frontend Axios instance (CRA / webpack) – NO Node polyfills.
- *
- * Priority:
- *  1) REACT_APP_API_ORIGIN / REACT_APP_API_URL (e.g. https://kleoszalon-api-1.onrender.com)
- *  2) Auto-detect by hostname (Render frontend -> Render API)
- *  3) Local dev -> http://localhost:5000
- *  4) Fallback -> window.location.origin
- */
 function norm(v?: string) {
-  // normalize: remove trailing slashes AND a trailing "/api" if the user accidentally includes it
   return (v ?? "")
     .trim()
     .replace(/\/+$/, "")
@@ -25,17 +15,12 @@ function detectApiOrigin(): string {
   if (env) return env;
 
   const host = window.location.hostname;
-
-  // Render frontend -> Render backend
   if (host === "kleoszalon-frontend.onrender.com") {
     return "https://kleoszalon-api-1.onrender.com";
   }
-
-  // Local dev default
   if (host === "localhost" || host === "127.0.0.1") {
     return "http://localhost:5000";
   }
-
   return norm(window.location.origin) || "";
 }
 
@@ -47,5 +32,24 @@ const api = axios.create({
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("kleo_token") || localStorage.getItem("token");
+  if (token) {
+    config.headers = config.headers || {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      console.warn("API 401: a munkamenet lejárt vagy a token hiányzik.");
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;
