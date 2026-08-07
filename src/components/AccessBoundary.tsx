@@ -3,7 +3,7 @@ import { ShieldAlert } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useCapabilities } from "../hooks/useCapabilities";
 
-type Rule = { feature?: string; menu?: string };
+type Rule = { feature?: string; menu?: string; financial?: boolean };
 
 function ruleFor(pathname: string, search: string): Rule | null {
   const q = new URLSearchParams(search);
@@ -13,18 +13,44 @@ function ruleFor(pathname: string, search: string): Rule | null {
     const known = new Set(["dashboard","suggestions","approvals","orders","suppliers","prices","performance","deviations"]);
     return { feature: "procurement", menu: `procurement.${known.has(section) ? section : "dashboard"}` };
   }
-  if (pathname === "/admin/access-control" || pathname === "/modules/team/roles") return { menu: "settings.access-control" };
+
+  // Jogosultság-adminisztráció
+  if (pathname === "/admin/access-control" || pathname === "/modules/team/roles" || pathname === "/settings/roles") {
+    return { feature: "hr", menu: "team.roles" };
+  }
+
+  // Pénzügy – a pénzügyi oldalaknál menü- és érzékeny adatjog is érvényesül.
+  if (pathname === "/finance/cash") return { feature: "finance", menu: "finance.cash", financial: true };
+  if (pathname === "/finance/invoice" || pathname.startsWith("/finance/invoices")) return { feature: "finance", menu: "finance.invoices", financial: true };
+  if (pathname === "/finance/transactions" || pathname === "/finance/transaction") return { feature: "finance", menu: "finance.transactions", financial: true };
+  if (pathname === "/workorders" || pathname.startsWith("/workorders/")) return { feature: "finance", menu: "finance.workorders", financial: true };
+  if (pathname === "/penzugy" || pathname === "/finance" || pathname.startsWith("/modules/finance")) return { feature: "finance", menu: "finance", financial: true };
+
+  // HR
+  if (pathname === "/employees" || pathname.startsWith("/employees/")) return { feature: "hr", menu: "team.employees" };
+  if (pathname === "/timetable/update") return { feature: "hr", menu: "team.schedule" };
+  if (pathname === "/hr/vacations" || pathname === "/masterdata/vacation-types") return { feature: "hr", menu: "team.vacations" };
+  if (pathname === "/modules/team/payroll") return { feature: "hr", menu: "team.payroll", financial: true };
+  if (pathname === "/modules/team/performance" || pathname === "/hr/evaluations") return { feature: "hr", menu: "team.performance" };
+  if (pathname === "/hr" || pathname.startsWith("/hr/")) return { feature: "hr", menu: "team" };
+
+  // Raktár
+  if (pathname === "/products" || pathname === "/warehouse/products") return { feature: "inventory", menu: "inventory.products" };
+  if (pathname === "/warehouse/list" || pathname === "/logisztika") return { feature: "inventory", menu: "inventory.stock" };
+  if (pathname === "/inventory/transfer") return { feature: "inventory", menu: "inventory.transfers" };
+  if (pathname === "/inventory/usage") return { feature: "inventory", menu: "inventory.usage" };
+  if (pathname === "/inventory/adjustment") return { feature: "inventory", menu: "inventory.adjustment" };
+  if (pathname === "/warehouse") return { feature: "inventory", menu: "inventory" };
+
+  // Vezetői / audit
   if (pathname === "/" || pathname.startsWith("/dashboard") || pathname.startsWith("/reports")) return { feature: "management_dashboard" };
-  if (pathname === "/penzugy" || pathname.startsWith("/finance")) return { feature: "finance" };
-  if (pathname === "/hr" || pathname.startsWith("/hr/") || pathname.startsWith("/modules/team") || pathname.startsWith("/employees")) return { feature: "hr" };
-  if (pathname === "/logisztika" || pathname.startsWith("/warehouse") || pathname.startsWith("/inventory")) return { feature: "inventory" };
-  if (pathname.startsWith("/audit") || pathname.includes("audit")) return { feature: "audit" };
+  if (pathname.startsWith("/audit") || pathname.includes("audit")) return { feature: "audit", menu: "settings.audit" };
   return null;
 }
 
 export default function AccessBoundary({ children }: { children: React.ReactNode }) {
   const location = useLocation();
-  const { data, loading, error, feature, menu } = useCapabilities();
+  const { loading, error, feature, menu } = useCapabilities();
   const rule = ruleFor(location.pathname, location.search);
 
   if (!rule) return <>{children}</>;
@@ -33,12 +59,11 @@ export default function AccessBoundary({ children }: { children: React.ReactNode
 
   const featureAllowed = !rule.feature || feature(rule.feature);
   const menuAllowed = !rule.menu || menu(rule.menu, "can_view");
-  if (!featureAllowed || !menuAllowed) {
-    return <Denied title="Nincs hozzáférése ehhez a modulhoz" detail="A menüpont vagy funkció nincs engedélyezve az aktuális szerepkör számára. A jogosultság a Beállítások és adminisztráció → Jogosultságok oldalon módosítható." />;
+  const financialAllowed = !rule.financial || !rule.menu || menu(rule.menu, "can_view_financial");
+  if (!featureAllowed || !menuAllowed || !financialAllowed) {
+    return <Denied title="Nincs hozzáférése ehhez a modulhoz" detail="A menüpont, funkció vagy érzékeny adat nincs engedélyezve az aktuális szerepkör számára. A jogosultság a Beállítások és adminisztráció → Jogosultságok oldalon módosítható." />;
   }
 
-  // data felhasználása szándékos: a hook válaszának betöltése után engedünk tovább.
-  void data;
   return <>{children}</>;
 }
 
