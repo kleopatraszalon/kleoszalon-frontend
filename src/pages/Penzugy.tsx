@@ -2,151 +2,32 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Banknote, CalendarDays, CheckCircle2, CreditCard, FileText, Gift, RefreshCw, Search, WalletCards } from "lucide-react";
 import api from "../api";
 import FinanceOperationsPanel from "./finance/FinanceOperationsPanel";
+import FinanceInvoicesPanel from "./finance/FinanceInvoicesPanel";
 import "./Penzugy.css";
 
-type WorkOrder = {
-  id: string | number; client_name?: string; status: string; created_at?: string; completed_at?: string;
-  gross_total?: number; discount_amount?: number; tip_amount?: number; amount_due?: number;
-  amount_paid?: number; paid_total?: number; payment_status?: string; invoice_status?: string; financial_closed_at?: string;
-};
-type PaymentRow = { payment_method: string; amount: number; note?: string };
-type Summary = { cash_sales:number; card_sales:number; transfer_sales:number; voucher_sales:number; other_sales:number; tips:number; discounts:number; workorder_count:number };
-
-const fmt = (v: any) => `${Math.round(Number(v || 0)).toLocaleString("hu-HU")} Ft`;
-const methods = [
-  ["cash", "Készpénz"], ["card", "Bankkártya"], ["transfer", "Átutalás"], ["voucher", "Utalvány"], ["other", "Egyéb"],
-];
-
-export default function Penzugy() {
-  const [orders, setOrders] = useState<WorkOrder[]>([]);
-  const [selected, setSelected] = useState<WorkOrder | null>(null);
-  const [query, setQuery] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [discount, setDiscount] = useState(0);
-  const [tip, setTip] = useState(0);
-  const [invoiceStatus, setInvoiceStatus] = useState("not_requested");
-  const [payments, setPayments] = useState<PaymentRow[]>([{ payment_method: "cash", amount: 0 }]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [openingCash, setOpeningCash] = useState(0);
-  const [countedCash, setCountedCash] = useState(0);
-  const [closeNote, setCloseNote] = useState("");
-  const locationId = localStorage.getItem("kleo_location_id") || "";
-  const today = new Date().toISOString().slice(0,10);
-
-  async function load() {
-    setLoading(true); setError("");
-    try {
-      const suffix = locationId ? `?location_id=${encodeURIComponent(locationId)}` : "";
-      const [o, s] = await Promise.all([
-        api.get(`/api/transactions/cashier/workorders${suffix}`),
-        api.get(`/api/transactions/cashier/daily-summary?date=${today}${locationId ? `&location_id=${encodeURIComponent(locationId)}` : ""}`),
-      ]);
-      setOrders(o.data || []); setSummary(s.data || null);
-    } catch (e:any) { setError(e?.response?.data?.message || "A pénztár adatai nem tölthetők be."); }
-    finally { setLoading(false); }
-  }
-
-  useEffect(() => { load(); }, []);
-
-  const filtered = useMemo(() => orders.filter(o => {
-    const hay = `${o.id} ${o.client_name || ""} ${o.status} ${o.payment_status || ""}`.toLowerCase();
-    return hay.includes(query.toLowerCase());
-  }), [orders, query]);
-
-  const baseGross = Number(selected?.gross_total || 0);
-  const due = Math.max(0, baseGross - Number(discount || 0) + Number(tip || 0));
-  const alreadyPaid = Number(selected?.paid_total || selected?.amount_paid || 0);
-  const newPaymentTotal = payments.reduce((s,p) => s + Number(p.amount || 0), 0);
-  const remaining = Math.max(0, due - alreadyPaid - newPaymentTotal);
-
-  function choose(o: WorkOrder) {
-    setSelected(o);
-    setDiscount(Number(o.discount_amount || 0)); setTip(Number(o.tip_amount || 0));
-    setInvoiceStatus(o.invoice_status || "not_requested");
-    const open = Math.max(0, Number(o.gross_total || 0) - Number(o.discount_amount || 0) + Number(o.tip_amount || 0) - Number(o.paid_total || o.amount_paid || 0));
-    setPayments([{ payment_method: "cash", amount: open }]); setError("");
-  }
-
-  function updatePayment(index:number, patch:Partial<PaymentRow>) {
-    setPayments(prev => prev.map((p,i) => i === index ? { ...p, ...patch } : p));
-  }
-
-  async function settle(closeFinancially:boolean) {
-    if (!selected) return;
-    setLoading(true); setError("");
-    try {
-      await api.post(`/api/transactions/cashier/workorders/${selected.id}/settle`, {
-        discount_amount: Number(discount || 0), tip_amount: Number(tip || 0), invoice_status: invoiceStatus,
-        close_financially: closeFinancially,
-        payments: payments.filter(p => Number(p.amount) > 0),
-      });
-      setSelected(null); await load();
-    } catch (e:any) { setError(e?.response?.data?.message || "A fizetés nem menthető."); }
-    finally { setLoading(false); }
-  }
-
-  async function dailyClose() {
-    setLoading(true); setError("");
-    try {
-      await api.post("/api/transactions/cashier/daily-close", {
-        business_date: today, location_id: locationId || null, opening_cash: Number(openingCash || 0),
-        counted_cash: Number(countedCash || 0), note: closeNote || null,
-      });
-      await load();
-    } catch (e:any) { setError(e?.response?.data?.message || "A napi zárás nem menthető."); }
-    finally { setLoading(false); }
-  }
-
-  return <div className="cashier-page">
-    <div className="cashier-header">
-      <div><span className="eyebrow">PÉNZÜGY</span><h1>Pénztár és pénzügyi lezárás</h1><p>Fizetések, kedvezmények, borravaló, számlázási állapot és napi kasszazárás.</p></div>
-      <button onClick={load} disabled={loading}><RefreshCw size={17}/> Frissítés</button>
-    </div>
-
-    {summary && <div className="cashier-kpis">
-      <article><Banknote/><span>Készpénz</span><b>{fmt(summary.cash_sales)}</b></article>
-      <article><CreditCard/><span>Kártya</span><b>{fmt(summary.card_sales)}</b></article>
-      <article><WalletCards/><span>Egyéb elektronikus</span><b>{fmt(Number(summary.transfer_sales||0)+Number(summary.other_sales||0))}</b></article>
-      <article><Gift/><span>Utalvány</span><b>{fmt(summary.voucher_sales)}</b></article>
-      <article><FileText/><span>Mai munkalapok</span><b>{summary.workorder_count || 0}</b></article>
-    </div>}
-
-    {error && <div className="cashier-error">{error}</div>}
-
-    <div className="cashier-grid">
-      <section className="cashier-card order-list-card">
-        <div className="card-title"><div><h2>Munkalapok</h2><small>Fizetésre váró és lezárt tételek</small></div><div className="cashier-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Vendég vagy munkalap…"/></div></div>
-        <div className="cashier-order-list">
-          {filtered.map(o => <button key={String(o.id)} className={selected?.id===o.id ? "active" : ""} onClick={()=>choose(o)}>
-            <div><b>#{o.id} · {o.client_name || "Névtelen vendég"}</b><small>{o.completed_at ? new Date(o.completed_at).toLocaleString("hu-HU") : o.status}</small></div>
-            <div className="order-money"><b>{fmt(o.gross_total)}</b><span className={`status ${o.payment_status || "unpaid"}`}>{o.payment_status === "paid" ? "Fizetve" : o.payment_status === "partial" ? "Részfizetés" : "Fizetendő"}</span></div>
-          </button>)}
-          {!filtered.length && <div className="empty-state">Nincs megjeleníthető munkalap.</div>}
-        </div>
-      </section>
-
-      <section className="cashier-card settlement-card">
-        <div className="card-title"><div><h2>Fizetés rögzítése</h2><small>{selected ? `Munkalap #${selected.id}` : "Válassz egy munkalapot"}</small></div></div>
-        {!selected ? <div className="empty-state large">A bal oldali listából válassz munkalapot.</div> : <>
-          <div className="money-summary"><div><span>Bruttó összeg</span><b>{fmt(baseGross)}</b></div><div><span>Már fizetve</span><b>{fmt(alreadyPaid)}</b></div><div className="total"><span>Fizetendő</span><b>{fmt(due)}</b></div></div>
-          <div className="field-row"><label>Kedvezmény (Ft)<input type="number" min="0" value={discount} onChange={e=>setDiscount(Number(e.target.value))}/></label><label>Borravaló (Ft)<input type="number" min="0" value={tip} onChange={e=>setTip(Number(e.target.value))}/></label></div>
-          <label className="full-field">Számlázási állapot<select value={invoiceStatus} onChange={e=>setInvoiceStatus(e.target.value)}><option value="not_requested">Nem kért számlát</option><option value="requested">Számla kért</option><option value="issued">Számla kiállítva</option><option value="cancelled">Számla sztornózva</option></select></label>
-          <h3>Fizetések</h3>
-          <div className="payment-lines">{payments.map((p,i)=><div className="payment-line" key={i}><select value={p.payment_method} onChange={e=>updatePayment(i,{payment_method:e.target.value})}>{methods.map(m=><option key={m[0]} value={m[0]}>{m[1]}</option>)}</select><input type="number" min="0" value={p.amount} onChange={e=>updatePayment(i,{amount:Number(e.target.value)})}/><button onClick={()=>setPayments(prev=>prev.filter((_,x)=>x!==i))}>×</button></div>)}</div>
-          <button className="add-payment" onClick={()=>setPayments(p=>[...p,{payment_method:"card",amount:remaining}])}>+ Fizetési mód hozzáadása</button>
-          <div className="remaining"><span>Hátralék a mentés után</span><b>{fmt(remaining)}</b></div>
-          <div className="settle-actions"><button className="secondary" onClick={()=>settle(false)} disabled={loading}>Részfizetés mentése</button><button className="primary" onClick={()=>settle(true)} disabled={loading || remaining>0.01}><CheckCircle2 size={17}/> Fizetés és lezárás</button></div>
-        </>}
-      </section>
-    </div>
-
-    <section className="cashier-card daily-close-card">
-      <div className="card-title"><div><h2><CalendarDays size={19}/> Napi pénztárzárás</h2><small>{today} · {localStorage.getItem("kleo_location_name") || "Minden telephely"}</small></div></div>
-      <div className="daily-close-grid"><label>Nyitó készpénz<input type="number" value={openingCash} onChange={e=>setOpeningCash(Number(e.target.value))}/></label><label>Megszámolt készpénz<input type="number" value={countedCash} onChange={e=>setCountedCash(Number(e.target.value))}/></label><label className="note">Megjegyzés<input value={closeNote} onChange={e=>setCloseNote(e.target.value)} placeholder="Eltérés oka, átadás…"/></label><button onClick={dailyClose} disabled={loading}>Napi zárás mentése</button></div>
-      {summary && <div className="close-preview">Várt készpénz: <b>{fmt(Number(openingCash)+Number(summary.cash_sales||0))}</b> · Eltérés: <b>{fmt(Number(countedCash)-(Number(openingCash)+Number(summary.cash_sales||0)))}</b></div>}
-    </section>
-
-    <FinanceOperationsPanel />
-  </div>;
+type WorkOrder = { id:string|number; client_name?:string; status:string; created_at?:string; completed_at?:string; gross_total?:number; discount_amount?:number; tip_amount?:number; amount_due?:number; amount_paid?:number; paid_total?:number; payment_status?:string; invoice_status?:string; financial_closed_at?:string; };
+type PaymentRow={payment_method:string;amount:number;note?:string};
+type Summary={cash_sales:number;card_sales:number;transfer_sales:number;voucher_sales:number;other_sales:number;tips:number;discounts:number;workorder_count:number};
+const fmt=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;
+const methods=[["cash","Készpénz"],["card","Bankkártya"],["transfer","Átutalás"],["voucher","Utalvány"],["other","Egyéb"]];
+export default function Penzugy(){
+ const[orders,setOrders]=useState<WorkOrder[]>([]),[selected,setSelected]=useState<WorkOrder|null>(null),[query,setQuery]=useState(""),[loading,setLoading]=useState(false),[error,setError]=useState("");
+ const[discount,setDiscount]=useState(0),[tip,setTip]=useState(0),[invoiceStatus,setInvoiceStatus]=useState("not_requested"),[payments,setPayments]=useState<PaymentRow[]>([{payment_method:"cash",amount:0}]);
+ const[summary,setSummary]=useState<Summary|null>(null),[openingCash,setOpeningCash]=useState(0),[countedCash,setCountedCash]=useState(0),[closeNote,setCloseNote]=useState("");
+ const locationId=localStorage.getItem("kleo_location_id")||"",today=new Date().toISOString().slice(0,10);
+ async function load(){setLoading(true);setError("");try{const suffix=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[o,s]=await Promise.all([api.get(`/api/transactions/cashier/workorders${suffix}`),api.get(`/api/transactions/cashier/daily-summary?date=${today}${locationId?`&location_id=${encodeURIComponent(locationId)}`:""}`)]);setOrders(o.data||[]);setSummary(s.data||null);}catch(e:any){setError(e?.response?.data?.message||"A pénztár adatai nem tölthetők be.");}finally{setLoading(false)}}
+ useEffect(()=>{void load()},[]);
+ const filtered=useMemo(()=>orders.filter(o=>`${o.id} ${o.client_name||""} ${o.status} ${o.payment_status||""}`.toLowerCase().includes(query.toLowerCase())),[orders,query]);
+ const baseGross=Number(selected?.gross_total||0),due=Math.max(0,baseGross-Number(discount||0)+Number(tip||0)),alreadyPaid=Number(selected?.paid_total||selected?.amount_paid||0),newPaymentTotal=payments.reduce((s,p)=>s+Number(p.amount||0),0),remaining=Math.max(0,due-alreadyPaid-newPaymentTotal);
+ function choose(o:WorkOrder){setSelected(o);setDiscount(Number(o.discount_amount||0));setTip(Number(o.tip_amount||0));setInvoiceStatus(o.invoice_status||"not_requested");const open=Math.max(0,Number(o.gross_total||0)-Number(o.discount_amount||0)+Number(o.tip_amount||0)-Number(o.paid_total||o.amount_paid||0));setPayments([{payment_method:"cash",amount:open}]);setError("")}
+ function updatePayment(index:number,patch:Partial<PaymentRow>){setPayments(prev=>prev.map((p,i)=>i===index?{...p,...patch}:p))}
+ async function settle(closeFinancially:boolean){if(!selected)return;setLoading(true);setError("");try{await api.post(`/api/transactions/cashier/workorders/${selected.id}/settle`,{discount_amount:Number(discount||0),tip_amount:Number(tip||0),invoice_status:invoiceStatus,close_financially:closeFinancially,payments:payments.filter(p=>Number(p.amount)>0)});setSelected(null);await load();}catch(e:any){setError(e?.response?.data?.message||"A fizetés nem menthető.");}finally{setLoading(false)}}
+ async function dailyClose(){setLoading(true);setError("");try{await api.post("/api/transactions/cashier/daily-close",{business_date:today,location_id:locationId||null,opening_cash:Number(openingCash||0),counted_cash:Number(countedCash||0),note:closeNote||null});await load();}catch(e:any){setError(e?.response?.data?.message||"A napi zárás nem menthető.");}finally{setLoading(false)}}
+ return <div className="cashier-page"><div className="cashier-header"><div><span className="eyebrow">PÉNZÜGY</span><h1>Pénztár és pénzügyi lezárás</h1><p>Fizetések, kedvezmények, borravaló, számlázási állapot és napi kasszazárás.</p></div><button onClick={load} disabled={loading}><RefreshCw size={17}/> Frissítés</button></div>
+ {summary&&<div className="cashier-kpis"><article><Banknote/><span>Készpénz</span><b>{fmt(summary.cash_sales)}</b></article><article><CreditCard/><span>Kártya</span><b>{fmt(summary.card_sales)}</b></article><article><WalletCards/><span>Egyéb elektronikus</span><b>{fmt(Number(summary.transfer_sales||0)+Number(summary.other_sales||0))}</b></article><article><Gift/><span>Utalvány</span><b>{fmt(summary.voucher_sales)}</b></article><article><FileText/><span>Mai munkalapok</span><b>{summary.workorder_count||0}</b></article></div>}
+ {error&&<div className="cashier-error">{error}</div>}
+ <div className="cashier-grid"><section className="cashier-card order-list-card"><div className="card-title"><div><h2>Munkalapok</h2><small>Fizetésre váró és lezárt tételek</small></div><div className="cashier-search"><Search size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Vendég vagy munkalap…"/></div></div><div className="cashier-order-list">{filtered.map(o=><button key={String(o.id)} className={selected?.id===o.id?"active":""} onClick={()=>choose(o)}><div><b>#{o.id} · {o.client_name||"Névtelen vendég"}</b><small>{o.completed_at?new Date(o.completed_at).toLocaleString("hu-HU"):o.status}</small></div><div className="order-money"><b>{fmt(o.gross_total)}</b><span className={`status ${o.payment_status||"unpaid"}`}>{o.payment_status==="paid"?"Fizetve":o.payment_status==="partial"?"Részfizetés":"Fizetendő"}</span></div></button>)}{!filtered.length&&<div className="empty-state">Nincs megjeleníthető munkalap.</div>}</div></section>
+ <section className="cashier-card settlement-card"><div className="card-title"><div><h2>Fizetés rögzítése</h2><small>{selected?`Munkalap #${selected.id}`:"Válassz egy munkalapot"}</small></div></div>{!selected?<div className="empty-state large">A bal oldali listából válassz munkalapot.</div>:<><div className="money-summary"><div><span>Bruttó összeg</span><b>{fmt(baseGross)}</b></div><div><span>Már fizetve</span><b>{fmt(alreadyPaid)}</b></div><div className="total"><span>Fizetendő</span><b>{fmt(due)}</b></div></div><div className="field-row"><label>Kedvezmény (Ft)<input type="number" min="0" value={discount} onChange={e=>setDiscount(Number(e.target.value))}/></label><label>Borravaló (Ft)<input type="number" min="0" value={tip} onChange={e=>setTip(Number(e.target.value))}/></label></div><label className="full-field">Számlázási állapot<select value={invoiceStatus} onChange={e=>setInvoiceStatus(e.target.value)}><option value="not_requested">Nem kért számlát</option><option value="requested">Számla kért</option><option value="issued">Számla kiállítva</option><option value="cancelled">Számla sztornózva</option></select></label><h3>Fizetések</h3><div className="payment-lines">{payments.map((p,i)=><div className="payment-line" key={i}><select value={p.payment_method} onChange={e=>updatePayment(i,{payment_method:e.target.value})}>{methods.map(m=><option key={m[0]} value={m[0]}>{m[1]}</option>)}</select><input type="number" min="0" value={p.amount} onChange={e=>updatePayment(i,{amount:Number(e.target.value)})}/><button onClick={()=>setPayments(prev=>prev.filter((_,x)=>x!==i))}>×</button></div>)}</div><button className="add-payment" onClick={()=>setPayments(p=>[...p,{payment_method:"card",amount:remaining}])}>+ Fizetési mód hozzáadása</button><div className="remaining"><span>Hátralék a mentés után</span><b>{fmt(remaining)}</b></div><div className="settle-actions"><button className="secondary" onClick={()=>settle(false)} disabled={loading}>Részfizetés mentése</button><button className="primary" onClick={()=>settle(true)} disabled={loading||remaining>0.01}><CheckCircle2 size={17}/> Fizetés és lezárás</button></div></>}</section></div>
+ <section className="cashier-card daily-close-card"><div className="card-title"><div><h2><CalendarDays size={19}/> Napi pénztárzárás</h2><small>{today} · {localStorage.getItem("kleo_location_name")||"Minden telephely"}</small></div></div><div className="daily-close-grid"><label>Nyitó készpénz<input type="number" value={openingCash} onChange={e=>setOpeningCash(Number(e.target.value))}/></label><label>Megszámolt készpénz<input type="number" value={countedCash} onChange={e=>setCountedCash(Number(e.target.value))}/></label><label className="note">Megjegyzés<input value={closeNote} onChange={e=>setCloseNote(e.target.value)} placeholder="Eltérés oka, átadás…"/></label><button onClick={dailyClose} disabled={loading}>Napi zárás mentése</button></div>{summary&&<div className="close-preview">Várt készpénz: <b>{fmt(Number(openingCash)+Number(summary.cash_sales||0))}</b> · Eltérés: <b>{fmt(Number(countedCash)-(Number(openingCash)+Number(summary.cash_sales||0)))}</b></div>}</section>
+ <FinanceOperationsPanel/><FinanceInvoicesPanel/></div>;
 }
