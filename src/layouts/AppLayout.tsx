@@ -6,6 +6,7 @@ import AiHelpChat from "../components/AiHelpChat";
 import NotificationBell from "../components/NotificationBell";
 import AltegioServiceImportButton from "../components/AltegioServiceImportButton";
 import ServiceHierarchyPanel from "../components/ServiceHierarchyPanel";
+import EmployeeServicesPage from "../pages/EmployeeServicesPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
@@ -13,6 +14,7 @@ import "./AppLayout.css";
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
+  "/masterdata/services": "Szolgáltatási törzs",
   "/dashboard/notifications": "Értesítési központ",
 };
 
@@ -22,19 +24,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const currentPage = pageNames[location.pathname] || location.pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ") || "Irányítópult";
+  const serviceView = new URLSearchParams(location.search).get("view") || "services";
+  const currentPage = location.pathname === "/masterdata/services"
+    ? serviceView === "categories" ? "Szolgáltatási kategóriák" : serviceView === "staff" ? "Szakember–szolgáltatás beállítások" : "Szolgáltatások"
+    : pageNames[location.pathname] || location.pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ") || "Irányítópult";
   const fullName = localStorage.getItem("kleo_full_name") || "Adminisztrátor";
   const salon = localStorage.getItem("kleo_location_name") || "Minden telephely";
   const today = new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date());
 
-  useEffect(() => {
-    localStorage.setItem("kleo.sidebar.collapsed", String(collapsed));
-  }, [collapsed]);
-
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [location.pathname]);
-
+  useEffect(() => { localStorage.setItem("kleo.sidebar.collapsed", String(collapsed)); }, [collapsed]);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
   useEffect(() => {
     if (!mobileOpen) return;
     const previousOverflow = document.body.style.overflow;
@@ -43,11 +42,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, [mobileOpen]);
 
   const toggleSidebar = () => {
-    if (window.matchMedia("(max-width: 900px)").matches) {
-      setMobileOpen(value => !value);
-    } else {
-      setCollapsed(value => !value);
-    }
+    if (window.matchMedia("(max-width: 900px)").matches) setMobileOpen(value => !value);
+    else setCollapsed(value => !value);
   };
 
   const logout = () => {
@@ -57,8 +53,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate("/login", { replace: true });
   };
 
-  const pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
-  const showServiceTools = location.pathname === "/services";
+  const isMasterServices = location.pathname === "/masterdata/services";
+  let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
+  if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
+  const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
+  const showHierarchy = isMasterServices && serviceView === "categories";
 
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""} ${mobileOpen ? "is-mobile-sidebar-open" : ""}`}>
@@ -81,9 +80,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button>
           </div>
         </header>
-        {showServiceTools && <AltegioServiceImportButton />}
-        {showServiceTools && <ServiceHierarchyPanel />}
-        <div className="altegio-main app-layout-main">{pageContent}</div>
+        {showImport && <AltegioServiceImportButton />}
+        {showHierarchy && <ServiceHierarchyPanel />}
+        <div className="altegio-main app-layout-main">{showHierarchy ? null : pageContent}</div>
       </div>
       <AiHelpChat pageTitle={currentPage} />
     </div>
