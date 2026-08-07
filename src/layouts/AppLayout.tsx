@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Bell, Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import AiHelpChat from "../components/AiHelpChat";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
 
@@ -74,6 +75,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </header>
         <div className="altegio-main app-layout-main">{children}</div>
       </div>
+      <AiHelpChat pageTitle={currentPage} />
     </div>
   );
 }
