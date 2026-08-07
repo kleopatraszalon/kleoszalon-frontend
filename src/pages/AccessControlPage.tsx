@@ -1,5 +1,5 @@
 import React, { FormEvent, useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronDown, ChevronRight, Plus, Save, Search, ShieldCheck, SlidersHorizontal, UsersRound, X } from "lucide-react";
+import { Building2, Check, ChevronDown, ChevronRight, Plus, Save, Search, ShieldCheck, SlidersHorizontal, UsersRound, X } from "lucide-react";
 import withBase from "../utils/apiBase";
 import "./AccessControlPage.css";
 
@@ -7,6 +7,8 @@ type Role = { id: string; role_key: string; name: string; description?: string; 
 type Menu = { id: number; code?: string; name: string; parent_id?: number; route?: string; order_index: number };
 type Feature = { feature_key: string; name: string; description?: string };
 type FeaturePermission = { role_key: string; feature_key: string; can_use: boolean; scope_type: string };
+type Location = { id: string | number; name: string; city?: string; address?: string };
+type LocationPermission = { role_key: string; location_id: string | number; can_access: boolean };
 
 const fields = [
   { key: "can_view", label: "Látható" },
@@ -25,6 +27,8 @@ export default function AccessControlPage() {
   const [permissions, setPermissions] = useState<any[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);
   const [featurePermissions, setFeaturePermissions] = useState<FeaturePermission[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationPermissions, setLocationPermissions] = useState<LocationPermission[]>([]);
   const [selected, setSelected] = useState("manager");
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<number[]>([]);
@@ -56,6 +60,8 @@ export default function AccessControlPage() {
       setPermissions(data.permissions || []);
       setFeatures(data.features || []);
       setFeaturePermissions(data.feature_permissions || []);
+      setLocations(data.locations || []);
+      setLocationPermissions(data.location_permissions || []);
       if (!data.roles?.some((role: Role) => role.role_key === selected) && data.roles?.length) setSelected(data.roles[0].role_key);
     } catch (reason: any) {
       setError(reason.message);
@@ -92,6 +98,16 @@ export default function AccessControlPage() {
     });
     return map;
   }, [features, featurePermissions, selected]);
+
+  const selectedLocationIds = useMemo(() => new Set(
+    locationPermissions.filter((item) => item.role_key === selected && item.can_access).map((item) => String(item.location_id))
+  ), [locationPermissions, selected]);
+
+  const usesSelectedLocations = useMemo(() => {
+    if (selected === "admin") return false;
+    return [...current.values()].some((p) => p.can_view && p.scope_type === "selected_locations") ||
+      [...currentFeatures.values()].some((p) => p.can_use && p.scope_type === "selected_locations");
+  }, [current, currentFeatures, selected]);
 
   const roots = useMemo(() => {
     const query = search.toLowerCase();
@@ -140,14 +156,24 @@ export default function AccessControlPage() {
     });
   };
 
+  const toggleLocation = (locationId: string | number) => {
+    const key = String(locationId);
+    setLocationPermissions((previous) => {
+      const exists = previous.some((item) => item.role_key === selected && String(item.location_id) === key && item.can_access);
+      const kept = previous.filter((item) => !(item.role_key === selected && String(item.location_id) === key));
+      return exists ? kept : [...kept, { role_key: selected, location_id: locationId, can_access: true }];
+    });
+  };
+
   const save = async () => {
     setSaving(true); setError("");
     try {
       await Promise.all([
         api(`access-control/roles/${selected}/permissions`, { method: "PUT", body: JSON.stringify([...current.values()]) }),
         api(`access-control/roles/${selected}/features`, { method: "PUT", body: JSON.stringify([...currentFeatures.values()]) }),
+        api(`access-control/roles/${selected}/locations`, { method: "PUT", body: JSON.stringify({ location_ids: [...selectedLocationIds] }) }),
       ]);
-      setNotice("A menü- és funkciójogosultságok mentése sikerült.");
+      setNotice("A menü-, funkció- és telephely-jogosultságok mentése sikerült.");
       setTimeout(() => setNotice(""), 3000);
       await load();
     } catch (reason: any) {
@@ -172,13 +198,13 @@ export default function AccessControlPage() {
 
   return <main className="access-page">
     {notice && <div className="access-toast"><Check/>{notice}</div>}
-    <section className="access-hero"><div><span>BEÁLLÍTÁSOK ÉS ADMINISZTRÁCIÓ</span><h1>Jogosultságok és hozzáférések</h1><p>Menüpont- és funkciószinten szabályozható, hogy az egyes szerepkörök mit láthatnak és használhatnak.</p></div><button className="access-primary" onClick={save} disabled={saving || selected === "admin"}><Save/>{saving ? "Mentés…" : "Jogosultságok mentése"}</button></section>
+    <section className="access-hero"><div><span>BEÁLLÍTÁSOK ÉS ADMINISZTRÁCIÓ</span><h1>Jogosultságok és hozzáférések</h1><p>Menüpont-, művelet- és telephelyszinten szabályozható, hogy az egyes szerepkörök mit láthatnak és használhatnak.</p></div><button className="access-primary" onClick={save} disabled={saving || selected === "admin"}><Save/>{saving ? "Mentés…" : "Jogosultságok mentése"}</button></section>
     <section className="access-stats"><article><UsersRound/><div><small>Aktív szerepkör</small><strong>{roles.length}</strong></div></article><article><ShieldCheck/><div><small>Engedélyezett menüpont</small><strong>{selected === "admin" ? menus.length : granted}</strong></div></article><article><SlidersHorizontal/><div><small>Engedélyezett funkció</small><strong>{selected === "admin" ? features.length : enabledFeatures}</strong></div></article></section>
     {error && <div className="access-alert">{error}<button onClick={() => setError("")}><X/></button></div>}
 
     <section className="access-layout"><aside className="access-roles"><header><div><h2>Szerepkörök</h2><p>Válasszon szerkesztendő szerepkört.</p></div><button onClick={() => setRoleModal(true)}><Plus/></button></header>{roles.map((role) => <button key={role.id} className={selected === role.role_key ? "active" : ""} onClick={() => setSelected(role.role_key)}><span>{role.name.slice(0, 2).toUpperCase()}</span><div><strong>{role.name}</strong><small>{role.description || role.role_key}</small></div><em>{role.level}</em></button>)}</aside>
       <div className="access-matrix">
-        <header><div><h2>{selectedRole?.name || "Szerepkör"}</h2><p>{selected === "admin" ? "A rendszergazdai teljes hozzáférés nem korlátozható." : "A funkció- és menüjogosultságok együtt határozzák meg a tényleges hozzáférést."}</p></div><label><Search/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Menüpont keresése…"/></label></header>
+        <header><div><h2>{selectedRole?.name || "Szerepkör"}</h2><p>{selected === "admin" ? "A rendszergazdai teljes hozzáférés nem korlátozható." : "A funkció-, menü- és telephelyjogosultságok együtt határozzák meg a tényleges hozzáférést."}</p></div><label><Search/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Menüpont keresése…"/></label></header>
 
         <section style={{ padding: "18px 20px 6px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><SlidersHorizontal size={19}/><div><h3 style={{ margin: 0 }}>Funkció-hozzáférések</h3><p style={{ margin: "3px 0 0", opacity: .68, fontSize: 13 }}>Érzékeny modulok külön engedélyezése szerepkörönként.</p></div></div>
@@ -192,6 +218,14 @@ export default function AccessControlPage() {
             })}
           </div>
         </section>
+
+        {usesSelectedLocations && <section style={{ margin: "12px 20px 18px", padding: 16, border: "1px solid #e8e0eb", borderRadius: 14, background: "#fff" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}><Building2 size={19}/><div><h3 style={{ margin: 0 }}>Kijelölt telephelyek</h3><p style={{ margin: "3px 0 0", opacity: .68, fontSize: 13 }}>A „Kijelölt telephelyek” hatókörű modulokban csak ezek a szalonok érhetők el.</p></div></div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(230px,1fr))", gap: 9 }}>
+            {locations.map((location) => { const checked=selectedLocationIds.has(String(location.id)); return <label key={String(location.id)} style={{ display:"flex",gap:10,alignItems:"center",border:"1px solid #ece7ee",borderRadius:10,padding:"10px 12px",cursor:"pointer",background:checked?"#faf7ff":"#fff" }}><input type="checkbox" checked={checked} onChange={()=>toggleLocation(location.id)}/><span><strong style={{display:"block"}}>{location.name}</strong><small style={{opacity:.65}}>{[location.city,location.address].filter(Boolean).join(" · ") || `ID: ${location.id}`}</small></span></label>; })}
+          </div>
+          {!locations.length && <p style={{opacity:.65}}>Nincs aktív telephely az adatbázisban.</p>}
+        </section>}
 
         <div className="matrix-scroll"><table><thead><tr><th>Modul / menüpont</th>{fields.map((field) => <th key={field.key}>{field.label}</th>)}<th>Hatókör</th></tr></thead><tbody>{loading ? <tr><td colSpan={10} className="matrix-empty">Betöltés…</td></tr> : roots.map((root) => <React.Fragment key={root.id}><MatrixRow menu={root} permission={current.get(root.id)} admin={selected === "admin"} parent expanded={expanded.includes(root.id)} onExpand={() => setExpanded((items) => items.includes(root.id) ? items.filter((id) => id !== root.id) : [...items, root.id])} onChange={setPermission} onScope={setScope} onAll={toggleRow}/>{expanded.includes(root.id) && children(root.id).map((child) => <MatrixRow key={child.id} menu={child} permission={current.get(child.id)} admin={selected === "admin"} onChange={setPermission} onScope={setScope} onAll={toggleRow}/>)}</React.Fragment>)}</tbody></table></div>
       </div>
