@@ -21,9 +21,9 @@ const FALLBACK:MenuItem[]=[
 {id:90002,name:"Időpontok és jelenlét",icon:"CalendarDays",children:[{id:90101,name:"Naptár és időpontok",route:"/appointments/calendar",children:[]},{id:90102,name:"Munkaidő és beosztás",route:"/modules/team/timetable",children:[]},{id:90103,name:"Jelenlét",route:"/modules/team/attendance",children:[]}]},
 {id:90003,name:"Ügyfelek és CRM",icon:"Users",children:[{id:90201,name:"Ügyfelek",route:"/modules/clients",children:[]},{id:90202,name:"CRM",route:"/modules/crm",children:[]}]},
 {id:90004,name:"Hűség, bérletek és ajándékkártyák",icon:"Gift",route:"/modules/loyalty",children:[]},
-{id:90005,name:"Csapat és HR",icon:"UserCog",children:[{id:90301,name:"Munkatársak",route:"/employees",children:[]},{id:90302,name:"Bérszámfejtés",route:"/payroll",children:[]}]},
+{id:90005,name:"Csapat és HR",icon:"UserCog",children:[{id:90301,name:"Munkatársak",route:"/employees",children:[]},{id:90302,name:"Bérszámfejtés",route:"/modules/team/payroll",children:[]}]},
 {id:90006,name:"Működés és minőség",icon:"ClipboardCheck",route:"/modules/operations",children:[]},
-{id:90007,name:"Pénzügy és pénztár",icon:"WalletCards",children:[{id:90401,name:"Pénzügyek",route:"/finance",children:[]},{id:90402,name:"Bér és könyvelés",route:"/payroll-accounting",children:[]}]},
+{id:90007,name:"Pénzügy és pénztár",icon:"WalletCards",children:[{id:90401,name:"Pénzügyek",route:"/finance",children:[]},{id:90402,name:"Bér és könyvelés",route:"/modules/team/payroll",children:[]}]},
 {id:90008,name:"Raktár és készlet",icon:"Boxes",children:[{id:90501,name:"Termékek",route:"/warehouse/products",children:[]},{id:90502,name:"Készlet",route:"/warehouse",children:[]}]},
 {id:90009,name:"Beszerzés",icon:"ShoppingBag",route:"/warehouse?view=procurement&section=dashboard",children:[]},
 {id:90010,name:"Statisztika és VIR",icon:"ChartNoAxesCombined",children:[{id:90601,name:"Vezetői dashboard",route:"/",children:[]},{id:90602,name:"Részletes mutatók",route:"/reports/top-metrics",children:[]}]},
@@ -35,7 +35,7 @@ const FALLBACK:MenuItem[]=[
 {id:90016,name:"Kijelzők és kioszk",icon:"MonitorSmartphone",route:"/modules/screens",children:[]},
 {id:90017,name:"Integrációk és API",icon:"PlugZap",route:"/modules/integrations",children:[]},
 {id:90018,name:"Törzsadatok",icon:"Database",children:[{id:90701,name:"Szolgáltatások",route:"/masterdata/services",children:[]},{id:90702,name:"Termékek",route:"/masterdata/products",children:[]}]},
-{id:90019,name:"Beállítások és adminisztráció",icon:"Settings",children:[{id:90801,name:"Jogosultságok",route:"/settings/roles",children:[]},{id:90802,name:"Értesítési központ",route:"/dashboard/notifications",children:[]},{id:90803,name:"Auditnapló",route:"/modules/settings/audit-log",children:[]},{id:90804,name:"Chat felügyelet",route:"/modules/settings/chat-supervision",children:[]}]}
+{id:90019,name:"Beállítások és adminisztráció",icon:"Settings",children:[{id:90801,name:"Jogosultságok",route:"/admin/access-control",children:[]},{id:90802,name:"Értesítési központ",route:"/dashboard/notifications",children:[]},{id:90803,name:"Auditnapló",route:"/modules/settings/audit-log",children:[]},{id:90804,name:"Chat felügyelet",route:"/modules/settings/chat-supervision",children:[]},{id:90805,name:"Rendszerellenőrzés",route:"/admin/system-health",children:[]}]}
 ];
 export function Menu({items}:{items:Array<{id:number;name:string;route?:string}>}){return <nav>{items.map(it=><NavLink key={it.id} to={normalizeRoute(it.route)}>{it.name}</NavLink>)}</nav>}
 const Sidebar:React.FC<SidebarProps>=({user})=>{const location=useLocation();const navigate=useNavigate();const [menus,setMenus]=useState<MenuItem[]>(()=>{try{const raw=localStorage.getItem(MENU_CACHE_KEY);const parsed=raw?JSON.parse(raw):null;return Array.isArray(parsed)&&parsed.length?parsed:FALLBACK}catch{return FALLBACK}});const [openIds,setOpenIds]=useState<number[]>([]);const [draggedId,setDraggedId]=useState<number|null>(null);const [dragOverId,setDragOverId]=useState<number|null>(null);const [savingOrder,setSavingOrder]=useState(false);const isAdmin=useMemo(()=>roleList(user?.role).includes("admin"),[user?.role]);
