@@ -1,7 +1,7 @@
 // src/components/Sidebar.tsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   BookOpenText,
   Boxes,
@@ -29,7 +29,6 @@ import {
 import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
 
-// API alap URL (ugyanaz a logika, mint máshol)
 const API_BASE =
   window.location.hostname === "localhost" ||
   window.location.hostname === "127.0.0.1"
@@ -63,24 +62,9 @@ interface SidebarProps {
 }
 
 const menuIcons: Record<string, LucideIcon> = {
-  LayoutDashboard,
-  CalendarDays,
-  Users,
-  Gift,
-  UserCog,
-  WalletCards,
-  Boxes,
-  ChartNoAxesCombined,
-  Building2,
-  Megaphone,
-  Globe2,
-  ShoppingBag,
-  MonitorSmartphone,
-  PlugZap,
-  Settings,
-  ClipboardCheck,
-  BookOpenText,
-  Database,
+  LayoutDashboard, CalendarDays, Users, Gift, UserCog, WalletCards, Boxes,
+  ChartNoAxesCombined, Building2, Megaphone, Globe2, ShoppingBag,
+  MonitorSmartphone, PlugZap, Settings, ClipboardCheck, BookOpenText, Database,
 };
 
 function MenuIcon({ name }: { name?: string }) {
@@ -88,39 +72,25 @@ function MenuIcon({ name }: { name?: string }) {
   return <Icon className="kleo-sidebar-menu-icon" size={17} strokeWidth={1.8} aria-hidden="true" />;
 }
 
-/** Mindig abszolút útvonalat csinál: "employees" -> "/employees" */
 function normalizeRoute(r?: string): string {
   if (!r) return "#";
   let s = r.trim();
   if (!s.startsWith("/")) s = "/" + s;
-  s = s.replace(/\/{2,}/g, "/"); // dupla perjelek kiszedése
+  s = s.replace(/\/{2,}/g, "/");
   return s;
 }
 
-/** Egyszerű menükomponens más oldalakhoz (opcionális felhasználásra) */
-export function Menu({
-  items,
-}: {
-  items: Array<{ id: number; name: string; route?: string; icon?: string }>;
-}) {
+export function Menu({ items }: { items: Array<{ id: number; name: string; route?: string; icon?: string }> }) {
   return (
     <nav className="flex flex-col gap-1">
       {items.map((it) => {
         const to = normalizeRoute(it.route);
         const isDisabled = to === "#";
         return (
-          <NavLink
-            key={it.id}
-            to={to}
-            className={({ isActive }) =>
-              "px-3 py-2 rounded " +
-              (isActive ? "bg-black text-white" : "hover:bg-gray-100") +
-              (isDisabled ? " pointer-events-none opacity-50" : "")
-            }
-            aria-disabled={isDisabled}
-          >
-            {it.name}
-          </NavLink>
+          <NavLink key={it.id} to={to} className={({ isActive }) =>
+            "px-3 py-2 rounded " + (isActive ? "bg-black text-white" : "hover:bg-gray-100") +
+            (isDisabled ? " pointer-events-none opacity-50" : "")
+          } aria-disabled={isDisabled}>{it.name}</NavLink>
         );
       })}
     </nav>
@@ -129,169 +99,85 @@ export function Menu({
 
 const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const location = useLocation();
-
+  const navigate = useNavigate();
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [openIds, setOpenIds] = useState<number[]>([]);
 
-  // Menü betöltése az API-ból
   useEffect(() => {
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("kleo_token");
-
-    axios
-      .get(`${API_BASE}/menus`, {
-        withCredentials: true,
-        headers: token
-          ? {
-              Authorization: `Bearer ${token}`,
-            }
-          : undefined,
-      })
-      .then((res) => {
-        const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-        const role = (user && (user as any).role) || null;
-        const built = buildMenuTree(data, role);
-        setMenus(built);
-      })
-      .catch((err) => console.error("❌ Menü betöltési hiba:", err));
+    const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
+    axios.get(`${API_BASE}/menus`, {
+      withCredentials: true,
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    }).then((res) => {
+      const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
+      const role = (user && (user as any).role) || null;
+      setMenus(buildMenuTree(data, role));
+    }).catch((err) => console.error("❌ Menü betöltési hiba:", err));
   }, [user]);
 
   const isExpanded = (id: number) => openIds.includes(id);
-
   const toggleExpanded = (id: number) => {
-    setOpenIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setOpenIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
   useEffect(() => {
     const activeParents: number[] = [];
-
     function walk(items: MenuItem[], parentIds: number[] = []) {
       for (const item of items) {
         const nextParents = [...parentIds, item.id];
-        if (item.route && normalizeRoute(item.route) === location.pathname) {
-          activeParents.push(...parentIds);
-        }
+        if (item.route && normalizeRoute(item.route) === location.pathname) activeParents.push(...parentIds);
         if (item.children.length) walk(item.children, nextParents);
       }
     }
-
     walk(menus);
-    if (activeParents.length) {
-      setOpenIds((prev) => Array.from(new Set([...prev, ...activeParents])));
-    }
+    if (activeParents.length) setOpenIds((prev) => Array.from(new Set([...prev, ...activeParents])));
   }, [menus, location.pathname]);
 
-  // Mini naptár: később a napi beosztást erre a dátumra fogjuk betölteni
   const handleDateSelect = (date: Date) => {
-    const iso = date.toISOString().slice(0, 10); // pl. 2025-11-05
-
-    // elmentjük, hogy a Home / naptár oldal el tudja olvasni
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    const iso = `${y}-${m}-${d}`;
     localStorage.setItem("kleo.selectedDate", iso);
-
-    // custom event – tetszőleges komponens fel tud iratkozni rá
-    window.dispatchEvent(
-      new CustomEvent("kleo:selectedDate", {
-        detail: { date: iso },
-      })
-    );
+    window.dispatchEvent(new CustomEvent("kleo:selectedDate", { detail: { date: iso } }));
+    navigate(`/appointments/calendar?date=${encodeURIComponent(iso)}`);
   };
 
   return (
     <aside className="kleo-sidebar app-sidebar">
-      {/* Hero kártya: logó + mini naptár */}
       <div className="kleo-sidebar-hero-card">
         <div className="kleo-sidebar-header">
-          <div className="kleo-sidebar-logo-wrap">
-            <img
-              src={Logo}
-              alt="Kleopátra Szépségszalonok logó"
-              className="kleo-sidebar-logo"
-            />
-          </div>
-          <div className="kleo-sidebar-brand">
-            <div className="kleo-sidebar-title">Kleoszalon</div>
-            <div className="kleo-sidebar-subtitle">Admin felület</div>
-          </div>
+          <div className="kleo-sidebar-logo-wrap"><img src={Logo} alt="Kleopátra Szépségszalonok logó" className="kleo-sidebar-logo" /></div>
+          <div className="kleo-sidebar-brand"><div className="kleo-sidebar-title">Kleoszalon</div><div className="kleo-sidebar-subtitle">Admin felület</div></div>
         </div>
-
         <SidebarCalendar onSelectDate={handleDateSelect} />
       </div>
 
-      {/* MENÜLISTA */}
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
             const hasChildren = menu.children.length > 0;
             const expanded = isExpanded(menu.id);
-
             const to = normalizeRoute(menu.route);
             const isLeafActive = !hasChildren && to !== "#" && location.pathname === to;
-
             return (
-              <li
-                key={menu.id}
-                className={
-                  "kleo-sidebar-menu-item" +
-                  (expanded ? " kleo-sidebar-menu-item--open" : "") +
-                  (isLeafActive ? " kleo-sidebar-menu-item--active" : "")
-                }
-              >
+              <li key={menu.id} className={"kleo-sidebar-menu-item" + (expanded ? " kleo-sidebar-menu-item--open" : "") + (isLeafActive ? " kleo-sidebar-menu-item--active" : "")}>
                 {hasChildren ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleExpanded(menu.id)}
-                    className="kleo-sidebar-menu-button"
-                  >
-                    <MenuIcon name={menu.icon} />
-                    <span className="kleo-sidebar-menu-label">{menu.name}</span>
-
-                    <span className="kleo-sidebar-menu-chevron">
-                      {expanded ? (
-                        <ChevronDown size={16} />
-                      ) : (
-                        <ChevronRight size={16} />
-                      )}
-                    </span>
+                  <button type="button" onClick={() => toggleExpanded(menu.id)} className="kleo-sidebar-menu-button">
+                    <MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
+                    <span className="kleo-sidebar-menu-chevron">{expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
                   </button>
                 ) : (
-                  <NavLink
-                    to={to}
-                    className={({ isActive }) =>
-                      "kleo-sidebar-menu-button kleo-sidebar-menu-link" +
-                      (isActive ? " active" : "") +
-                      (to === "#" ? " pointer-events-none opacity-50" : "")
-                    }
-                    aria-disabled={to === "#"}
-                  >
-                    <MenuIcon name={menu.icon} />
-                    <span className="kleo-sidebar-menu-label">{menu.name}</span>
+                  <NavLink to={to} className={({ isActive }) => "kleo-sidebar-menu-button kleo-sidebar-menu-link" + (isActive ? " active" : "") + (to === "#" ? " pointer-events-none opacity-50" : "")} aria-disabled={to === "#"}>
+                    <MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
                   </NavLink>
                 )}
-
                 {hasChildren && expanded && (
                   <ul className="kleo-sidebar-submenu">
                     {menu.children.map((child) => {
-                      const to = normalizeRoute(child.route);
-                      const isDisabled = to === "#";
-                      return (
-                        <li key={child.id}>
-                          <NavLink
-                            to={to}
-                            className={({ isActive }) =>
-                              "kleo-sidebar-submenu-item" +
-                              (isActive ? " active" : "") +
-                              (isDisabled
-                                ? " pointer-events-none opacity-50"
-                                : "")
-                            }
-                            aria-disabled={isDisabled}
-                          >
-                            {child.name}
-                          </NavLink>
-                        </li>
-                      );
+                      const childTo = normalizeRoute(child.route);
+                      const isDisabled = childTo === "#";
+                      return <li key={child.id}><NavLink to={childTo} className={({ isActive }) => "kleo-sidebar-submenu-item" + (isActive ? " active" : "") + (isDisabled ? " pointer-events-none opacity-50" : "")} aria-disabled={isDisabled}>{child.name}</NavLink></li>;
                     })}
                   </ul>
                 )}
@@ -304,19 +190,9 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   );
 };
 
-/**
- * Menüfa építése:
- * - ha már hierarchikus (submenus), azt használjuk
- * - ha lapos (parent_id), abból építünk fát
- * - required_role alapján szűrünk, hogy role-hoz kötött menük legyenek
- */
 function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
   if (!raw.length) return [];
-
-  function canSee(
-    required: string | null | undefined,
-    role: string | null
-  ): boolean {
+  function canSee(required: string | null | undefined, role: string | null): boolean {
     const req = (required || "").trim().toLowerCase();
     if (!req || req === "all" || req === "*") return true;
     if (!role) return false;
@@ -324,73 +200,25 @@ function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
     if (r === "admin") return true;
     return req === r;
   }
-
-  // role alapú szűrés – 'all' és '*' bárki, admin mindent lát
   const filtered = raw.filter((item) => canSee(item.required_role, role));
-
-  // Ha már hierarchikus (submenus)
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
-    const sortFn = (a: RawMenuItem, b: RawMenuItem) =>
-      (a.order_index ?? 9999) - (b.order_index ?? 9999);
-
-    const normalize = (item: RawMenuItem): MenuItem => ({
-      id: item.id,
-      name: item.name,
-      icon: item.icon ?? undefined,
-      route: item.route ?? undefined,
-      children: (item.submenus || []).sort(sortFn).map(normalize),
-    });
-
+    const sortFn = (a: RawMenuItem, b: RawMenuItem) => (a.order_index ?? 9999) - (b.order_index ?? 9999);
+    const normalize = (item: RawMenuItem): MenuItem => ({ id: item.id, name: item.name, icon: item.icon ?? undefined, route: item.route ?? undefined, children: (item.submenus || []).sort(sortFn).map(normalize) });
     return filtered.sort(sortFn).map(normalize);
   }
-
-  // Lapos lista parent_id-vel
   const orderIndex: Record<number, number> = {};
-  filtered.forEach((item) => {
-    orderIndex[item.id] = item.order_index ?? 9999;
-  });
-
+  filtered.forEach((item) => { orderIndex[item.id] = item.order_index ?? 9999; });
   type InternalNode = MenuItem & { parent_id: number | null };
-
   const byId = new Map<number, InternalNode>();
-
-  filtered.forEach((item) => {
-    byId.set(item.id, {
-      id: item.id,
-      name: item.name,
-      icon: item.icon ?? undefined,
-      route: item.route ?? undefined,
-      parent_id: item.parent_id ?? null,
-      children: [],
-    });
-  });
-
+  filtered.forEach((item) => byId.set(item.id, { id: item.id, name: item.name, icon: item.icon ?? undefined, route: item.route ?? undefined, parent_id: item.parent_id ?? null, children: [] }));
   const roots: InternalNode[] = [];
-
   byId.forEach((node) => {
-    if (node.parent_id && byId.has(node.parent_id)) {
-      const parent = byId.get(node.parent_id)!;
-      parent.children.push(node);
-    } else {
-      roots.push(node);
-    }
+    if (node.parent_id && byId.has(node.parent_id)) byId.get(node.parent_id)!.children.push(node);
+    else roots.push(node);
   });
-
-  const sortFnNode = (a: MenuItem, b: MenuItem) =>
-    (orderIndex[a.id] ?? 9999) - (orderIndex[b.id] ?? 9999);
-
-  const normalizeNode = (node: InternalNode): MenuItem => ({
-    id: node.id,
-    name: node.name,
-    icon: node.icon,
-    route: node.route,
-    children: node.children
-      .sort(sortFnNode)
-      .map((child) => normalizeNode(child as InternalNode)),
-  });
-
-  const builtRoots = roots.sort(sortFnNode).map(normalizeNode);
-  return builtRoots;
+  const sortFnNode = (a: MenuItem, b: MenuItem) => (orderIndex[a.id] ?? 9999) - (orderIndex[b.id] ?? 9999);
+  const normalizeNode = (node: InternalNode): MenuItem => ({ id: node.id, name: node.name, icon: node.icon, route: node.route, children: node.children.sort(sortFnNode).map((child) => normalizeNode(child as InternalNode)) });
+  return roots.sort(sortFnNode).map(normalizeNode);
 }
 
 export default Sidebar;
