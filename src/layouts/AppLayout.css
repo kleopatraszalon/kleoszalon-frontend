@@ -36,6 +36,21 @@
   padding: 12px !important;
 }
 
+.kleo-menu-sort-hint {
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin:0 12px 2px;
+  padding:5px 8px;
+  border:1px solid rgba(196,155,82,.2);
+  border-radius:8px;
+  color:#b99a63;
+  background:rgba(255,255,255,.035);
+  font-size:9px;
+  line-height:1.2;
+}
+.kleo-menu-sort-hint span{flex:1;min-width:0}.kleo-menu-sort-hint b{font-size:8px;font-weight:700}.kleo-menu-drag-handle{flex:0 0 auto;color:#806c54;opacity:.72;cursor:grab}.kleo-sidebar-menu-item[draggable="true"]{transition:opacity .14s ease,transform .14s ease,box-shadow .14s ease}.kleo-sidebar-menu-item.is-dragging{opacity:.42;transform:scale(.985)}.kleo-sidebar-menu-item.is-drag-over{box-shadow:inset 3px 0 0 #d5a94f;background:rgba(213,169,79,.08)}
+
 .app-layout-shell > .kleo-sidebar .kleo-sidebar-nav {
   flex: 1 1 auto;
   min-height: 0;
@@ -178,6 +193,8 @@
   .topbar-location { display:none; }
   .topbar-breadcrumb span,.topbar-breadcrumb svg { display:none; }
   .app-layout-main { padding:12px !important; }
+  .kleo-menu-sort-hint,.kleo-menu-drag-handle{display:none}
+  .kleo-sidebar-menu-item[draggable="true"]{cursor:default}
 }
 
 @media (max-width: 560px) {
