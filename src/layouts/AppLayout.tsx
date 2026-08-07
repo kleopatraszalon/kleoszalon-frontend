@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import AiHelpChat from "../components/AiHelpChat";
 import NotificationBell from "../components/NotificationBell";
+import AltegioServiceImportButton from "../components/AltegioServiceImportButton";
 import NotificationsPage from "../pages/NotificationsPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
@@ -56,6 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   const pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
+  const showAltegioServiceImport = location.pathname === "/services";
 
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""} ${mobileOpen ? "is-mobile-sidebar-open" : ""}`}>
@@ -78,6 +80,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button>
           </div>
         </header>
+        {showAltegioServiceImport && <AltegioServiceImportButton />}
         <div className="altegio-main app-layout-main">{pageContent}</div>
       </div>
       <AiHelpChat pageTitle={currentPage} />
