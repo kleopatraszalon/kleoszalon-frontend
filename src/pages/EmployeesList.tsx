@@ -51,7 +51,6 @@ type Position = {
 
 type LocationItem = { id: string; name: string };
 type EmploymentType = { id: string; code: string; name: string; is_active: boolean };
-
 type WageBand = "" | "none" | "lt300" | "300-500" | "500-700" | "gte700";
 
 const emptyEmployee = {
@@ -76,21 +75,71 @@ const money = (value?: number | string | null) =>
 const initials = (name = "") =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "?";
 
-const roleLabel = (employee: Employee) => {
-  if (employee.position_name) return employee.position_name;
-  const raw = Array.isArray(employee.role) ? employee.role[0] : employee.role;
-  const labels: Record<string, string> = {
-    admin: "Adminisztrátor",
-    receptionist: "Recepciós",
-    employee: "Munkatárs",
-    worker: "Munkatárs",
-    hairdresser: "Fodrász",
-    manicurist: "Körmös",
-    cosmetician: "Kozmetikus",
-    masseur: "Masszőr",
-  };
-  return raw ? labels[raw] || raw : "Munkakör nélkül";
+const cleanRoleToken = (value?: string | null) => {
+  if (!value) return "";
+  return String(value)
+    .replace(/[\[\]{}"']/g, " ")
+    .replace(/\\/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 };
+
+const canonicalRole = (raw?: string | null) => {
+  const cleaned = cleanRoleToken(raw);
+  if (!cleaned) return "";
+  const lower = cleaned.toLocaleLowerCase("hu-HU");
+
+  if (lower.includes("top fodrász") || lower.includes("top fodrasz")) return "TOP fodrász";
+  if (lower.includes("fodrász mester") || lower.includes("fodrasz mester")) return "Fodrász mester";
+  if (lower.includes("fodrász") || lower.includes("fodrasz") || lower.includes("hairdresser")) return "Fodrász";
+  if (lower.includes("vezető kozmetikus") || lower.includes("vezeto kozmetikus")) return "Vezető kozmetikus";
+  if (lower.includes("kozmetikus") || lower.includes("cosmetician")) return "Kozmetikus";
+  if (lower.includes("körmös") || lower.includes("kormos") || lower.includes("manicur")) return "Körmös";
+  if (lower.includes("masszőr") || lower.includes("masszor") || lower.includes("masseur")) return "Masszőr";
+  if (lower.includes("recepciós") || lower.includes("recepcios") || lower.includes("receptionist")) return "Recepciós";
+  if (lower.includes("admin")) return "Adminisztrátor";
+  if (lower.includes("szalonvezet")) return "Szalonvezető";
+  if (lower.includes("üzletvezet") || lower.includes("uzletvezet")) return "Üzletvezető";
+  if (lower.includes("tulajdonos") || lower.includes("owner")) return "Tulajdonos";
+  if (lower === "employee" || lower === "worker" || lower === "staff" || lower === "munkatárs") return "Munkatárs";
+
+  const parts = cleaned.split(/[,;|]/).map(x => x.trim()).filter(Boolean);
+  if (parts.length > 1) {
+    for (const part of parts) {
+      const normalized = canonicalRole(part);
+      if (normalized && normalized !== "Munkatárs") return normalized;
+    }
+    return canonicalRole(parts[0]);
+  }
+
+  if (cleaned.length > 46) return "Egyéb / besorolatlan";
+  return cleaned.charAt(0).toLocaleUpperCase("hu-HU") + cleaned.slice(1);
+};
+
+const roleLabel = (employee: Employee) => {
+  const fromPosition = canonicalRole(employee.position_name);
+  if (fromPosition && fromPosition !== "Egyéb / besorolatlan") return fromPosition;
+  const rawRole = Array.isArray(employee.role) ? employee.role.join(",") : employee.role;
+  const fromRole = canonicalRole(rawRole);
+  return fromRole || fromPosition || "Munkakör nélkül";
+};
+
+const roleOrder = [
+  "Szalonvezető",
+  "Üzletvezető",
+  "Adminisztrátor",
+  "Recepciós",
+  "Vezető kozmetikus",
+  "Kozmetikus",
+  "TOP fodrász",
+  "Fodrász mester",
+  "Fodrász",
+  "Körmös",
+  "Masszőr",
+  "Munkatárs",
+  "Munkakör nélkül",
+  "Egyéb / besorolatlan",
+];
 
 export default function EmployeesList() {
   const routerLocation = useLocation();
@@ -176,24 +225,22 @@ export default function EmployeesList() {
     return employmentTypes.find(t => t.code === employee.employment_type)?.name || employee.employment_type || "Nincs megadva";
   }, [employmentTypes]);
 
-  const wageMatches = (employee: Employee) => {
-    if (!wageBand) return true;
-    const wage = Number(employee.monthly_wage || 0);
-    if (wageBand === "none") return wage <= 0;
-    if (wageBand === "lt300") return wage > 0 && wage < 300000;
-    if (wageBand === "300-500") return wage >= 300000 && wage < 500000;
-    if (wageBand === "500-700") return wage >= 500000 && wage < 700000;
-    return wage >= 700000;
-  };
-
   const filtered = useMemo(() => employees.filter(employee => {
-    const needle = search.trim().toLowerCase();
-    const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLowerCase();
+    const needle = search.trim().toLocaleLowerCase("hu-HU");
+    const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLocaleLowerCase("hu-HU");
+    const wage = Number(employee.monthly_wage || 0);
+    const wageOk = !wageBand
+      || (wageBand === "none" && wage <= 0)
+      || (wageBand === "lt300" && wage > 0 && wage < 300000)
+      || (wageBand === "300-500" && wage >= 300000 && wage < 500000)
+      || (wageBand === "500-700" && wage >= 500000 && wage < 700000)
+      || (wageBand === "gte700" && wage >= 700000);
+
     return (!needle || haystack.includes(needle))
       && (!positionFilter || String(employee.position_id || "") === positionFilter)
       && (!locationFilter || String(employee.location_id || "") === locationFilter)
       && (!employmentFilter || employee.employment_type === employmentFilter)
-      && wageMatches(employee);
+      && wageOk;
   }), [employees, search, positionFilter, locationFilter, employmentFilter, wageBand, employmentName]);
 
   const groups = useMemo(() => {
@@ -204,11 +251,17 @@ export default function EmployeesList() {
     });
     return Array.from(map.entries())
       .map(([name, people]) => ({ name, people: people.sort((a, b) => a.full_name.localeCompare(b.full_name, "hu")) }))
-      .sort((a, b) => a.name.localeCompare(b.name, "hu"));
+      .sort((a, b) => {
+        const ai = roleOrder.indexOf(a.name);
+        const bi = roleOrder.indexOf(b.name);
+        if (ai >= 0 || bi >= 0) return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+        return a.name.localeCompare(b.name, "hu");
+      });
   }, [filtered]);
 
   const activeCount = employees.filter(e => e.active).length;
   const monthlyTotal = employees.filter(e => e.active).reduce((sum, e) => sum + Number(e.monthly_wage || 0), 0);
+  const locationCount = new Set(employees.map(e => e.location_id).filter(Boolean)).size || locations.length;
 
   const showNotice = (message: string) => {
     setNotice(message);
@@ -300,14 +353,14 @@ export default function EmployeesList() {
     {notice && <div className="staff-toast"><Check size={18}/>{notice}</div>}
 
     <section className="staff-hero compact">
-      <div><span className="staff-eyebrow">CSAPAT ÉS HR</span><h1>Munkatársak listája</h1><p>Altegio-jellegű, munkakörönként csoportosított munkatársi törzs.</p></div>
+      <div><span className="staff-eyebrow">CSAPAT ÉS HR</span><h1>Munkatársak listája</h1><p>Munkakörönként csoportosított munkatársi törzs, HR- és béradatokkal.</p></div>
       <button className="staff-primary" onClick={() => openEmployee()}><Plus size={18}/> Hozzáadás</button>
     </section>
 
     <section className="staff-stats compact-stats">
       <article><span className="stat-icon purple"><UsersRound/></span><div><small>Aktív munkatárs</small><strong>{activeCount}</strong></div></article>
-      <article><span className="stat-icon blue"><BriefcaseBusiness/></span><div><small>Munkakör</small><strong>{groups.length}</strong></div></article>
-      <article><span className="stat-icon green"><Building2/></span><div><small>Telephely</small><strong>{locations.length}</strong></div></article>
+      <article><span className="stat-icon blue"><BriefcaseBusiness/></span><div><small>Munkakörcsoport</small><strong>{groups.length}</strong></div></article>
+      <article><span className="stat-icon green"><Building2/></span><div><small>Használt telephely</small><strong>{locationCount}</strong></div></article>
       <article><span className="stat-icon gold"><CircleDollarSign/></span><div><small>Havi alapbér összesen</small><strong>{money(monthlyTotal)}</strong></div></article>
     </section>
 
@@ -315,15 +368,15 @@ export default function EmployeesList() {
 
     <section className="staff-panel grouped-panel">
       <div className="grouped-filter-area">
-        <div className="staff-search wide"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Munkatárs keresése név, e-mail, telefon, munkakör vagy telephely alapján…"/></div>
+        <div className="staff-search wide"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Keresés név, e-mail, telefon, munkakör vagy telephely alapján…"/></div>
         <div className="staff-filter-grid">
-          <label><span>Munkakör</span><select value={positionFilter} onChange={e => setPositionFilter(e.target.value)}><option value="">Összes</option>{positions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label><span>Munkakör</span><select value={positionFilter} onChange={e => setPositionFilter(e.target.value)}><option value="">Összes</option>{positions.map(p => <option key={p.id} value={p.id}>{canonicalRole(p.name) || p.name}</option>)}</select></label>
           <label><span>Telephely</span><select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}><option value="">Összes telephely</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
           <label><span>Alkalmazás formája</span><select value={employmentFilter} onChange={e => setEmploymentFilter(e.target.value)}><option value="">Összes</option>{employmentTypes.filter(t => t.is_active !== false).map(t => <option key={t.id} value={t.code}>{t.name}</option>)}</select></label>
           <label><span>Havi alapbér</span><select value={wageBand} onChange={e => setWageBand(e.target.value as WageBand)}><option value="">Összes</option><option value="none">Nincs megadva</option><option value="lt300">300 000 Ft alatt</option><option value="300-500">300 000 – 499 999 Ft</option><option value="500-700">500 000 – 699 999 Ft</option><option value="gte700">700 000 Ft vagy több</option></select></label>
           <label className="staff-inactive-filter"><span>Státusz</span><span className="staff-switch"><input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)}/><i/> Inaktívak is</span></label>
         </div>
-        <div className="filter-actions"><button className="staff-filter-button"><SlidersHorizontal size={15}/> Találat: {filtered.length}</button><button className="staff-reset" onClick={resetFilters}>Visszaállítás</button></div>
+        <div className="filter-actions"><button type="button" className="staff-filter-button"><SlidersHorizontal size={15}/> Találat: {filtered.length}</button><button type="button" className="staff-reset" onClick={resetFilters}>Visszaállítás</button></div>
       </div>
 
       <div className="staff-group-list">
@@ -331,20 +384,20 @@ export default function EmployeesList() {
           const isCollapsed = collapsed[group.name] === true;
           return <section className="staff-group" key={group.name}>
             <button className="staff-group-head" onClick={() => setCollapsed(prev => ({ ...prev, [group.name]: !prev[group.name] }))}>
-              <span>{isCollapsed ? <ChevronRight size={17}/> : <ChevronDown size={17}/>}<strong>{group.name}</strong></span>
-              <small>Munkatársak: {group.people.length}</small>
+              <span>{isCollapsed ? <ChevronRight size={19}/> : <ChevronDown size={19}/>}<strong>{group.name}</strong><b>{group.people.length}</b></span>
+              <small>{isCollapsed ? "Kibontás" : "Összecsukás"}</small>
             </button>
             {!isCollapsed && <div className="staff-table-wrap"><table className="staff-table grouped-table">
               <thead><tr><th>Szakember</th><th>Telephely</th><th>Alkalmazás formája</th><th>Havi alapbér</th><th>Óradíj</th><th>Jutalék</th><th>Státusz</th><th/></tr></thead>
               <tbody>{group.people.map(employee => <tr key={employee.id}>
                 <td><div className="staff-person">{employee.photo_url ? <img src={employee.photo_url} alt=""/> : <span>{initials(employee.full_name)}</span>}<div><strong>{employee.full_name}</strong><small>{employee.qualification || employee.email || "Nincs megadva végzettség"}</small>{employee.phone && <small>{employee.phone}</small>}</div></div></td>
-                <td><span className="staff-muted"><MapPin size={14}/>{employee.location_name || "Nincs telephely"}</span></td>
+                <td><span className="staff-muted"><MapPin size={15}/>{employee.location_name || "Nincs telephely"}</span></td>
                 <td><span className="employment-badge">{employmentName(employee)}</span></td>
                 <td><strong className="wage-value">{money(employee.monthly_wage)}</strong></td>
                 <td><strong className="wage-value">{money(employee.hourly_wage)}</strong></td>
                 <td><strong className="commission-value">{Number(employee.commission_percent || 0)}%</strong></td>
                 <td><button className={`status-badge ${employee.active ? "on" : "off"}`} onClick={() => toggleActive(employee)}><i/>{employee.active ? "Aktív" : "Inaktív"}</button></td>
-                <td><button className="icon-button" onClick={() => openEmployee(employee)} title="Szerkesztés"><Pencil size={16}/></button></td>
+                <td><button className="icon-button" onClick={() => openEmployee(employee)} title="Szerkesztés"><Pencil size={17}/></button></td>
               </tr>)}</tbody>
             </table></div>}
           </section>;
@@ -360,7 +413,7 @@ export default function EmployeesList() {
           <label className="form-field"><span>E-mail</span><input type="email" value={employeeForm.email || ""} onChange={e => setEmployeeForm({ ...employeeForm, email: e.target.value })}/></label>
           <label className="form-field"><span>Telefonszám</span><input value={employeeForm.phone || ""} onChange={e => setEmployeeForm({ ...employeeForm, phone: e.target.value })}/></label>
           <label className="form-field wide"><span>Végzettség</span><input value={employeeForm.qualification || ""} onChange={e => setEmployeeForm({ ...employeeForm, qualification: e.target.value })}/></label>
-          <label className="form-field"><span>Munkakör</span><select value={employeeForm.position_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, position_id: e.target.value })}><option value="">Válasszon</option>{positions.filter(p => p.is_active !== false).map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label className="form-field"><span>Munkakör</span><select value={employeeForm.position_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, position_id: e.target.value })}><option value="">Válasszon</option>{positions.filter(p => p.is_active !== false).map(p => <option key={p.id} value={p.id}>{canonicalRole(p.name) || p.name}</option>)}</select></label>
           <label className="form-field"><span>Telephely</span><select value={employeeForm.location_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, location_id: e.target.value })}><option value="">Válasszon</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
           <label className="form-field wide"><span>Alkalmazás formája</span><select value={employeeForm.employment_type || ""} onChange={e => setEmployeeForm({ ...employeeForm, employment_type: e.target.value })}><option value="">Válasszon</option>{employmentTypes.filter(t => t.is_active !== false).map(t => <option key={t.id} value={t.code}>{t.name}</option>)}</select></label>
           <label className="form-field"><span>Havi alapbér (Ft)</span><input type="number" min="0" value={employeeForm.monthly_wage} onChange={e => setEmployeeForm({ ...employeeForm, monthly_wage: e.target.value })}/></label>
