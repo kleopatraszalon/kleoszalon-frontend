@@ -10,6 +10,7 @@ import AccessBoundary from "../components/AccessBoundary";
 import EmployeeServicesPage from "../pages/EmployeeServicesPage";
 import ServicesCatalogPage from "../pages/ServicesCatalogPage";
 import NotificationsPage from "../pages/NotificationsPage";
+import AccessControlPage from "../pages/AccessControlPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
 
@@ -17,6 +18,7 @@ const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
   "/masterdata/services": "Szolgáltatási törzs", "/dashboard/notifications": "Értesítési központ",
+  "/settings/roles": "Jogosultságok és hozzáférések",
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -42,6 +44,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isMasterServices = location.pathname === "/masterdata/services";
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
+  if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
