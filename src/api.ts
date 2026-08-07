@@ -12,7 +12,11 @@ const api = axios.create({
 
 // Auth header (Bearer token) automatikus hozzáadása
 api.interceptors.request.use((config) => {
-  const t = localStorage.getItem("token") || sessionStorage.getItem("token");
+  const t =
+    localStorage.getItem("kleo_token") ||
+    localStorage.getItem("token") ||
+    sessionStorage.getItem("kleo_token") ||
+    sessionStorage.getItem("token");
   if (t) {
     config.headers = config.headers ?? {};
     (config.headers as any).Authorization = `Bearer ${t}`;
