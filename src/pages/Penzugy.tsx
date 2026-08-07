@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Banknote, CalendarDays, CheckCircle2, CreditCard, FileText, Gift, RefreshCw, Search, WalletCards } from "lucide-react";
 import api from "../api";
+import FinanceOperationsPanel from "./finance/FinanceOperationsPanel";
 import "./Penzugy.css";
 
 type WorkOrder = {
@@ -145,5 +146,7 @@ export default function Penzugy() {
       <div className="daily-close-grid"><label>Nyitó készpénz<input type="number" value={openingCash} onChange={e=>setOpeningCash(Number(e.target.value))}/></label><label>Megszámolt készpénz<input type="number" value={countedCash} onChange={e=>setCountedCash(Number(e.target.value))}/></label><label className="note">Megjegyzés<input value={closeNote} onChange={e=>setCloseNote(e.target.value)} placeholder="Eltérés oka, átadás…"/></label><button onClick={dailyClose} disabled={loading}>Napi zárás mentése</button></div>
       {summary && <div className="close-preview">Várt készpénz: <b>{fmt(Number(openingCash)+Number(summary.cash_sales||0))}</b> · Eltérés: <b>{fmt(Number(countedCash)-(Number(openingCash)+Number(summary.cash_sales||0)))}</b></div>}
     </section>
+
+    <FinanceOperationsPanel />
   </div>;
 }
