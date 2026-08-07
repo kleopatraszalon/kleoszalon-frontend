@@ -2,316 +2,49 @@
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
-import {
-  BookOpenText,
-  Boxes,
-  Building2,
-  CalendarDays,
-  ChartNoAxesCombined,
-  ChevronDown,
-  ChevronRight,
-  Circle,
-  ClipboardCheck,
-  Database,
-  Gift,
-  Globe2,
-  GripVertical,
-  LayoutDashboard,
-  Megaphone,
-  MonitorSmartphone,
-  PlugZap,
-  Settings,
-  ShoppingBag,
-  UserCog,
-  Users,
-  WalletCards,
-  type LucideIcon,
-} from "lucide-react";
+import { BookOpenText, Boxes, Building2, CalendarDays, ChartNoAxesCombined, ChevronDown, ChevronRight, Circle, ClipboardCheck, Database, Gift, Globe2, GripVertical, LayoutDashboard, Megaphone, MonitorSmartphone, PlugZap, Settings, ShoppingBag, UserCog, Users, WalletCards, type LucideIcon } from "lucide-react";
 import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
 
-const API_BASE =
-  window.location.hostname === "localhost" ||
-  window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000/api"
-    : "https://kleoszalon-api-1.onrender.com/api";
-const MENU_CACHE_KEY = "kleo.menu.cache.v2";
-
-interface RawMenuItem {
-  id: number;
-  name: string;
-  icon?: string | null;
-  route?: string | null;
-  parent_id?: number | null;
-  required_role?: string | null;
-  role?: string | null;
-  code?: string | null;
-  feature_key?: string | null;
-  order_index?: number | null;
-  submenus?: RawMenuItem[];
-}
-
-interface MenuItem {
-  id: number;
-  name: string;
-  icon?: string;
-  route?: string;
-  children: MenuItem[];
-}
-
-interface SidebarProps {
-  user?: { role?: string | string[] | null } | null;
-}
-
-const menuIcons: Record<string, LucideIcon> = {
-  LayoutDashboard, CalendarDays, Users, Gift, UserCog, WalletCards, Boxes,
-  ChartNoAxesCombined, Building2, Megaphone, Globe2, ShoppingBag,
-  MonitorSmartphone, PlugZap, Settings, ClipboardCheck, BookOpenText, Database,
-};
-
-function MenuIcon({ name }: { name?: string }) {
-  const Icon = (name && menuIcons[name]) || Circle;
-  return <Icon className="kleo-sidebar-menu-icon" size={17} strokeWidth={1.8} aria-hidden="true" />;
-}
-
-function normalizeRoute(r?: string): string {
-  if (!r) return "#";
-  let s = r.trim();
-  if (!s.startsWith("/")) s = "/" + s;
-  s = s.replace(/\/{2,}/g, "/");
-  return s;
-}
-
-function routePath(r?: string): string {
-  const normalized = normalizeRoute(r);
-  return normalized === "#" ? "#" : normalized.split(/[?#]/, 1)[0];
-}
-
-function roleList(raw: unknown): string[] {
-  if (Array.isArray(raw)) return raw.map(String).map((x) => x.toLowerCase());
-  try {
-    const parsed = JSON.parse(String(raw || ""));
-    if (Array.isArray(parsed)) return parsed.map(String).map((x) => x.toLowerCase());
-  } catch {}
-  return String(raw || "").split(",").map((x) => x.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
-}
-
-export function Menu({ items }: { items: Array<{ id: number; name: string; route?: string; icon?: string }> }) {
-  return (
-    <nav className="flex flex-col gap-1">
-      {items.map((it) => {
-        const to = normalizeRoute(it.route);
-        const isDisabled = to === "#";
-        return (
-          <NavLink key={it.id} to={to} className={({ isActive }) =>
-            "px-3 py-2 rounded " + (isActive ? "bg-black text-white" : "hover:bg-gray-100") +
-            (isDisabled ? " pointer-events-none opacity-50" : "")
-          } aria-disabled={isDisabled}>{it.name}</NavLink>
-        );
-      })}
-    </nav>
-  );
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ user }) => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [menus, setMenus] = useState<MenuItem[]>(() => {
-    try {
-      const raw = localStorage.getItem(MENU_CACHE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
-  const [openIds, setOpenIds] = useState<number[]>([]);
-  const [draggedId, setDraggedId] = useState<number | null>(null);
-  const [dragOverId, setDragOverId] = useState<number | null>(null);
-  const [savingOrder, setSavingOrder] = useState(false);
-  const isAdmin = useMemo(() => roleList(user?.role).includes("admin"), [user?.role]);
-
-  async function loadMenus() {
-    const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
-    const config = {
-      withCredentials: true,
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    };
-    let data: RawMenuItem[] = [];
-    try {
-      const res = await axios.get(`${API_BASE}/menus`, config);
-      data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-    } catch (primaryError) {
-      console.warn("⚠️ /api/menus nem elérhető, fallback /api/menu", primaryError);
-      const res = await axios.get(`${API_BASE}/menu`, config);
-      data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-    }
-    const tree = buildMenuTree(data, user?.role || null);
-    if (tree.length) {
-      setMenus(tree);
-      try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(tree)); } catch {}
-    } else {
-      console.warn("⚠️ A menü API üres választ adott; a korábbi menü megmarad.");
-    }
-  }
-
-  useEffect(() => {
-    loadMenus().catch((err) => console.error("❌ Menü betöltési hiba, cache megtartva:", err));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user]);
-
-  const isExpanded = (id: number) => openIds.includes(id);
-  const toggleExpanded = (id: number) => {
-    setOpenIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
-  };
-
-  useEffect(() => {
-    const activeParents: number[] = [];
-    function walk(items: MenuItem[], parentIds: number[] = []) {
-      for (const item of items) {
-        const nextParents = [...parentIds, item.id];
-        if (item.route && routePath(item.route) === location.pathname) activeParents.push(...parentIds);
-        if (item.children.length) walk(item.children, nextParents);
-      }
-    }
-    walk(menus);
-    if (activeParents.length) setOpenIds((prev) => Array.from(new Set([...prev, ...activeParents])));
-  }, [menus, location.pathname, location.search]);
-
-  const handleDateSelect = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    const iso = `${y}-${m}-${d}`;
-    localStorage.setItem("kleo.selectedDate", iso);
-    window.dispatchEvent(new CustomEvent("kleo:selectedDate", { detail: { date: iso } }));
-    navigate(`/appointments/calendar?date=${encodeURIComponent(iso)}`);
-  };
-
-  async function reorderRoots(targetId: number) {
-    if (!isAdmin || draggedId == null || draggedId === targetId || savingOrder) {
-      setDraggedId(null);
-      setDragOverId(null);
-      return;
-    }
-    const previous = menus;
-    const from = previous.findIndex((m) => m.id === draggedId);
-    const to = previous.findIndex((m) => m.id === targetId);
-    if (from < 0 || to < 0) return;
-
-    const next = [...previous];
-    const [moved] = next.splice(from, 1);
-    next.splice(to, 0, moved);
-    setMenus(next);
-    setDraggedId(null);
-    setDragOverId(null);
-    setSavingOrder(true);
-
-    try {
-      const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-      try {
-        await axios.put(`${API_BASE}/menus/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, { withCredentials: true, headers });
-      } catch {
-        await axios.put(`${API_BASE}/menu/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, { withCredentials: true, headers });
-      }
-      try { localStorage.setItem(MENU_CACHE_KEY, JSON.stringify(next)); } catch {}
-    } catch (err) {
-      setMenus(previous);
-      console.error("❌ Menü sorrend mentési hiba:", err);
-    } finally {
-      setSavingOrder(false);
-    }
-  }
-
-  return (
-    <aside className="kleo-sidebar app-sidebar">
-      <div className="kleo-sidebar-hero-card">
-        <div className="kleo-sidebar-header">
-          <div className="kleo-sidebar-logo-wrap"><img src={Logo} alt="Kleopátra Szépségszalonok logó" className="kleo-sidebar-logo" /></div>
-          <div className="kleo-sidebar-brand"><div className="kleo-sidebar-title">Kleoszalon</div><div className="kleo-sidebar-subtitle">Admin felület</div></div>
-        </div>
-        <SidebarCalendar onSelectDate={handleDateSelect} />
-      </div>
-
-      {isAdmin && (
-        <div className="kleo-menu-sort-hint">
-          <GripVertical size={13}/><span>Főmenük húzással rendezhetők</span>{savingOrder && <b>Mentés…</b>}
-        </div>
-      )}
-
-      <nav className="kleo-sidebar-nav">
-        <ul className="kleo-sidebar-menu">
-          {menus.map((menu) => {
-            const hasChildren = menu.children.length > 0;
-            const expanded = isExpanded(menu.id);
-            const to = normalizeRoute(menu.route);
-            const isLeafActive = !hasChildren && to !== "#" && routePath(to) === location.pathname;
-            return (
-              <li
-                key={menu.id}
-                draggable={isAdmin && !savingOrder}
-                onDragStart={(e) => { if (!isAdmin) return; setDraggedId(menu.id); e.dataTransfer.effectAllowed = "move"; }}
-                onDragOver={(e) => { if (!isAdmin) return; e.preventDefault(); setDragOverId(menu.id); e.dataTransfer.dropEffect = "move"; }}
-                onDragLeave={() => { if (dragOverId === menu.id) setDragOverId(null); }}
-                onDrop={(e) => { e.preventDefault(); void reorderRoots(menu.id); }}
-                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
-                className={"kleo-sidebar-menu-item" + (expanded ? " kleo-sidebar-menu-item--open" : "") + (isLeafActive ? " kleo-sidebar-menu-item--active" : "") + (draggedId === menu.id ? " is-dragging" : "") + (dragOverId === menu.id ? " is-drag-over" : "")}
-              >
-                {hasChildren ? (
-                  <button type="button" onClick={() => toggleExpanded(menu.id)} className="kleo-sidebar-menu-button">
-                    {isAdmin && <GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
-                    <span className="kleo-sidebar-menu-chevron">{expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
-                  </button>
-                ) : (
-                  <NavLink to={to} className={({ isActive }) => "kleo-sidebar-menu-button kleo-sidebar-menu-link" + (isActive ? " active" : "") + (to === "#" ? " pointer-events-none opacity-50" : "")} aria-disabled={to === "#"}>
-                    {isAdmin && <GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
-                  </NavLink>
-                )}
-                {hasChildren && expanded && (
-                  <ul className="kleo-sidebar-submenu">
-                    {menu.children.map((child) => {
-                      const childTo = normalizeRoute(child.route);
-                      const isDisabled = childTo === "#";
-                      const active = routePath(childTo) === location.pathname && (!childTo.includes("?") || childTo.split("?")[1] === location.search.replace(/^\?/, ""));
-                      return <li key={child.id}><NavLink to={childTo} className={() => "kleo-sidebar-submenu-item" + (active ? " active" : "") + (isDisabled ? " pointer-events-none opacity-50" : "")} aria-disabled={isDisabled}>{child.name}</NavLink></li>;
-                    })}
-                  </ul>
-                )}
-              </li>
-            );
-          })}
-        </ul>
-      </nav>
-    </aside>
-  );
-};
-
-function buildMenuTree(raw: RawMenuItem[], role: string | string[] | null): MenuItem[] {
-  if (!raw.length) return [];
-  function canSee(required: string | null | undefined, currentRole: string | string[] | null): boolean {
-    const req = (required || "").trim().toLowerCase();
-    if (!req || req === "all" || req === "*") return true;
-    const roles = roleList(currentRole);
-    if (roles.includes("admin")) return true;
-    return roles.includes(req);
-  }
-  const filtered = raw.filter((item) => canSee(item.required_role, role));
-  if (filtered.length && Array.isArray(filtered[0].submenus)) {
-    const sortFn = (a: RawMenuItem, b: RawMenuItem) => (a.order_index ?? 9999) - (b.order_index ?? 9999);
-    const normalize = (item: RawMenuItem): MenuItem => ({ id: item.id, name: item.name, icon: item.icon ?? undefined, route: item.route ?? undefined, children: (item.submenus || []).sort(sortFn).map(normalize) });
-    return filtered.sort(sortFn).map(normalize);
-  }
-  const orderIndex: Record<number, number> = {};
-  filtered.forEach((item) => { orderIndex[item.id] = item.order_index ?? 9999; });
-  type InternalNode = MenuItem & { parent_id: number | null };
-  const byId = new Map<number, InternalNode>();
-  filtered.forEach((item) => byId.set(item.id, { id: item.id, name: item.name, icon: item.icon ?? undefined, route: item.route ?? undefined, parent_id: item.parent_id ?? null, children: [] }));
-  const roots: InternalNode[] = [];
-  byId.forEach((node) => {
-    if (node.parent_id && byId.has(node.parent_id)) byId.get(node.parent_id)!.children.push(node);
-    else roots.push(node);
-  });
-  const sortFnNode = (a: MenuItem, b: MenuItem) => (orderIndex[a.id] ?? 9999) - (orderIndex[b.id] ?? 9999);
-  const normalizeNode = (node: InternalNode): MenuItem => ({ id: node.id, name: node.name, icon: node.icon, route: node.route, children: node.children.sort(sortFnNode).map((child) => normalizeNode(child as InternalNode)) });
-  return roots.sort(sortFnNode).map(normalizeNode);
-}
-
+const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000/api" : "https://kleoszalon-api-1.onrender.com/api";
+const MENU_CACHE_KEY = "kleo.menu.cache.v3";
+interface RawMenuItem { id:number; name:string; icon?:string|null; route?:string|null; parent_id?:number|null; required_role?:string|null; order_index?:number|null; submenus?:RawMenuItem[]; }
+interface MenuItem { id:number; name:string; icon?:string; route?:string; children:MenuItem[]; }
+interface SidebarProps { user?: { role?: string|string[]|null } | null; }
+const menuIcons:Record<string,LucideIcon>={LayoutDashboard,CalendarDays,Users,Gift,UserCog,WalletCards,Boxes,ChartNoAxesCombined,Building2,Megaphone,Globe2,ShoppingBag,MonitorSmartphone,PlugZap,Settings,ClipboardCheck,BookOpenText,Database};
+function MenuIcon({name}:{name?:string}){const Icon=(name&&menuIcons[name])||Circle;return <Icon className="kleo-sidebar-menu-icon" size={17} strokeWidth={1.8}/>}
+function normalizeRoute(r?:string){if(!r)return "#";let s=r.trim();if(!s.startsWith("/"))s="/"+s;return s.replace(/\/{2,}/g,"/")}
+function routePath(r?:string){const n=normalizeRoute(r);return n==="#"?"#":n.split(/[?#]/,1)[0]}
+function roleList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||""));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||"").split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
+const FALLBACK:MenuItem[]=[
+{id:90001,name:"Irányítópult",icon:"LayoutDashboard",route:"/",children:[]},
+{id:90002,name:"Időpontok és jelenlét",icon:"CalendarDays",children:[{id:90101,name:"Naptár és időpontok",route:"/appointments/calendar",children:[]},{id:90102,name:"Munkaidő és beosztás",route:"/modules/team/timetable",children:[]},{id:90103,name:"Jelenlét",route:"/modules/team/attendance",children:[]}]},
+{id:90003,name:"Ügyfelek és CRM",icon:"Users",children:[{id:90201,name:"Ügyfelek",route:"/modules/clients",children:[]},{id:90202,name:"CRM",route:"/modules/crm",children:[]}]},
+{id:90004,name:"Hűség, bérletek és ajándékkártyák",icon:"Gift",route:"/modules/loyalty",children:[]},
+{id:90005,name:"Csapat és HR",icon:"UserCog",children:[{id:90301,name:"Munkatársak",route:"/employees",children:[]},{id:90302,name:"Bérszámfejtés",route:"/payroll",children:[]}]},
+{id:90006,name:"Működés és minőség",icon:"ClipboardCheck",route:"/modules/operations",children:[]},
+{id:90007,name:"Pénzügy és pénztár",icon:"WalletCards",children:[{id:90401,name:"Pénzügyek",route:"/finance",children:[]},{id:90402,name:"Bér és könyvelés",route:"/payroll-accounting",children:[]}]},
+{id:90008,name:"Raktár és készlet",icon:"Boxes",children:[{id:90501,name:"Termékek",route:"/warehouse/products",children:[]},{id:90502,name:"Készlet",route:"/warehouse",children:[]}]},
+{id:90009,name:"Beszerzés",icon:"ShoppingBag",route:"/warehouse?view=procurement&section=dashboard",children:[]},
+{id:90010,name:"Statisztika és VIR",icon:"ChartNoAxesCombined",children:[{id:90601,name:"Vezetői dashboard",route:"/",children:[]},{id:90602,name:"Részletes mutatók",route:"/reports/top-metrics",children:[]}]},
+{id:90011,name:"Szalonhálózat",icon:"Building2",route:"/modules/network",children:[]},
+{id:90012,name:"Kommunikáció és marketing",icon:"Megaphone",route:"/modules/marketing",children:[]},
+{id:90013,name:"Online foglalás és ügyfélalkalmazás",icon:"Globe2",route:"/modules/online-booking",children:[]},
+{id:90014,name:"Tudásbázis",icon:"BookOpenText",route:"/modules/knowledge",children:[]},
+{id:90015,name:"Webshop és értékesítés",icon:"ShoppingBag",route:"/webshop/admin",children:[]},
+{id:90016,name:"Kijelzők és kioszk",icon:"MonitorSmartphone",route:"/modules/screens",children:[]},
+{id:90017,name:"Integrációk és API",icon:"PlugZap",route:"/modules/integrations",children:[]},
+{id:90018,name:"Törzsadatok",icon:"Database",children:[{id:90701,name:"Szolgáltatások",route:"/masterdata/services",children:[]},{id:90702,name:"Termékek",route:"/masterdata/products",children:[]}]},
+{id:90019,name:"Beállítások és adminisztráció",icon:"Settings",children:[{id:90801,name:"Jogosultságok",route:"/settings/roles",children:[]},{id:90802,name:"Értesítési központ",route:"/dashboard/notifications",children:[]},{id:90803,name:"Auditnapló",route:"/modules/settings/audit-log",children:[]},{id:90804,name:"Chat felügyelet",route:"/modules/settings/chat-supervision",children:[]}]}
+];
+export function Menu({items}:{items:Array<{id:number;name:string;route?:string}>}){return <nav>{items.map(it=><NavLink key={it.id} to={normalizeRoute(it.route)}>{it.name}</NavLink>)}</nav>}
+const Sidebar:React.FC<SidebarProps>=({user})=>{const location=useLocation();const navigate=useNavigate();const [menus,setMenus]=useState<MenuItem[]>(()=>{try{const raw=localStorage.getItem(MENU_CACHE_KEY);const parsed=raw?JSON.parse(raw):null;return Array.isArray(parsed)&&parsed.length?parsed:FALLBACK}catch{return FALLBACK}});const [openIds,setOpenIds]=useState<number[]>([]);const [draggedId,setDraggedId]=useState<number|null>(null);const [dragOverId,setDragOverId]=useState<number|null>(null);const [savingOrder,setSavingOrder]=useState(false);const isAdmin=useMemo(()=>roleList(user?.role).includes("admin"),[user?.role]);
+async function loadMenus(){const token=localStorage.getItem("token")||localStorage.getItem("kleo_token");const config={withCredentials:true,headers:token?{Authorization:`Bearer ${token}`} : undefined};for(const endpoint of ["menus","menu"]){try{const res=await axios.get(`${API_BASE}/${endpoint}`,config);const data=Array.isArray(res.data)?res.data as RawMenuItem[]:[];const tree=buildMenuTree(data,user?.role||null);if(tree.length){setMenus(tree);localStorage.setItem(MENU_CACHE_KEY,JSON.stringify(tree));return}}catch(e){console.warn(`Menü API hiba: ${endpoint}`,e)}}setMenus(prev=>prev.length?prev:FALLBACK)}
+useEffect(()=>{void loadMenus()},[user]);
+const toggle=(id:number)=>setOpenIds(p=>p.includes(id)?p.filter(x=>x!==id):[...p,id]);
+useEffect(()=>{const parents:number[]=[];function walk(items:MenuItem[],ps:number[]=[]){items.forEach(i=>{if(i.route&&routePath(i.route)===location.pathname)parents.push(...ps);if(i.children.length)walk(i.children,[...ps,i.id])})}walk(menus);if(parents.length)setOpenIds(p=>Array.from(new Set([...p,...parents])))},[menus,location.pathname]);
+const handleDateSelect=(date:Date)=>{const iso=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;localStorage.setItem("kleo.selectedDate",iso);navigate(`/appointments/calendar?date=${iso}`)};
+async function reorderRoots(targetId:number){if(!isAdmin||draggedId==null||draggedId===targetId||savingOrder)return;const previous=menus;const from=previous.findIndex(m=>m.id===draggedId),to=previous.findIndex(m=>m.id===targetId);if(from<0||to<0)return;const next=[...previous];const [m]=next.splice(from,1);next.splice(to,0,m);setMenus(next);setDraggedId(null);setSavingOrder(true);try{if(next.some(x=>x.id>=90000))return;const token=localStorage.getItem("token")||localStorage.getItem("kleo_token");const headers=token?{Authorization:`Bearer ${token}`} : undefined;await axios.put(`${API_BASE}/menus/reorder-roots`,{ordered_ids:next.map(x=>x.id)},{withCredentials:true,headers});localStorage.setItem(MENU_CACHE_KEY,JSON.stringify(next))}catch{setMenus(previous)}finally{setSavingOrder(false)}}
+return <aside className="kleo-sidebar app-sidebar"><div className="kleo-sidebar-hero-card"><div className="kleo-sidebar-header"><div className="kleo-sidebar-logo-wrap"><img src={Logo} alt="Kleopátra Szépségszalonok logó" className="kleo-sidebar-logo"/></div><div className="kleo-sidebar-brand"><div className="kleo-sidebar-title">Kleoszalon</div><div className="kleo-sidebar-subtitle">Admin felület</div></div></div><SidebarCalendar onSelectDate={handleDateSelect}/></div>{isAdmin&&<div className="kleo-menu-sort-hint"><GripVertical size={13}/><span>Főmenük húzással rendezhetők</span>{savingOrder&&<b>Mentés…</b>}</div>}<nav className="kleo-sidebar-nav"><ul className="kleo-sidebar-menu">{menus.map(menu=>{const has=menu.children.length>0,expanded=openIds.includes(menu.id),to=normalizeRoute(menu.route);return <li key={menu.id} draggable={isAdmin&&!savingOrder} onDragStart={()=>setDraggedId(menu.id)} onDragOver={e=>{e.preventDefault();setDragOverId(menu.id)}} onDrop={e=>{e.preventDefault();void reorderRoots(menu.id)}} onDragEnd={()=>{setDraggedId(null);setDragOverId(null)}} className={"kleo-sidebar-menu-item"+(expanded?" kleo-sidebar-menu-item--open":"")+(dragOverId===menu.id?" is-drag-over":"")}>{has?<button type="button" onClick={()=>toggle(menu.id)} className="kleo-sidebar-menu-button">{isAdmin&&<GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon}/><span className="kleo-sidebar-menu-label">{menu.name}</span><span className="kleo-sidebar-menu-chevron">{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</span></button>:<NavLink to={to} className="kleo-sidebar-menu-button kleo-sidebar-menu-link">{isAdmin&&<GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon}/><span className="kleo-sidebar-menu-label">{menu.name}</span></NavLink>}{has&&expanded&&<ul className="kleo-sidebar-submenu">{menu.children.map(c=><li key={c.id}><NavLink to={normalizeRoute(c.route)} className="kleo-sidebar-submenu-item">{c.name}</NavLink></li>)}</ul>}</li>})}</ul></nav></aside>};
+function buildMenuTree(raw:RawMenuItem[],role:string|string[]|null):MenuItem[]{if(!raw.length)return[];const canSee=(req:string|null|undefined)=>!req||req==="all"||req==="*"||roleList(role).includes("admin")||roleList(role).includes(req.toLowerCase());const f=raw.filter(i=>canSee(i.required_role));const sort=(a:RawMenuItem,b:RawMenuItem)=>(a.order_index??9999)-(b.order_index??9999);if(f.some(i=>Array.isArray(i.submenus))){const n=(i:RawMenuItem):MenuItem=>({id:i.id,name:i.name,icon:i.icon??undefined,route:i.route??undefined,children:(i.submenus||[]).sort(sort).map(n)});return f.sort(sort).map(n)}const map=new Map<number,MenuItem&{parent_id:number|null}>();f.forEach(i=>map.set(i.id,{id:i.id,name:i.name,icon:i.icon??undefined,route:i.route??undefined,parent_id:i.parent_id??null,children:[]}));const roots:Array<MenuItem&{parent_id:number|null}>=[];map.forEach(n=>n.parent_id&&map.has(n.parent_id)?map.get(n.parent_id)!.children.push(n):roots.push(n));return roots}
 export default Sidebar;
