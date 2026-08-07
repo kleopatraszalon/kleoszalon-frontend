@@ -5,6 +5,7 @@ import"./BookingNotificationAutomation.css";
 
 type Location={id:string;name:string};
 type Settings={confirmation_enabled:boolean;reminder_48h_enabled:boolean;reminder_24h_enabled:boolean;cancellation_enabled:boolean;waitlist_enabled:boolean;review_request_enabled:boolean;review_delay_hours:number};
+type BoolSettingKey=Exclude<keyof Settings,"review_delay_hours">;
 type QueueItem={id:string;event_type:string;recipient:string;subject:string;status:string;scheduled_at:string;sent_at?:string|null;client_name?:string|null;location_name?:string|null};
 const defaults:Settings={confirmation_enabled:true,reminder_48h_enabled:true,reminder_24h_enabled:true,cancellation_enabled:true,waitlist_enabled:true,review_request_enabled:true,review_delay_hours:24};
 const labels:Record<string,string>={booking_created:"Foglalási igény",booking_confirmed:"Visszaigazolás",booking_rescheduled:"Időpont-módosítás",booking_cancelled:"Lemondás",reminder_48h:"48 órás emlékeztető",reminder_24h:"24 órás emlékeztető",review_request:"Értékeléskérés"};
@@ -19,8 +20,8 @@ export default function BookingNotificationAutomation({toast}:{toast?:(message:s
  const save=async()=>{if(!locationId)return;setSaving(true);setError("");try{await api.put("/transactions/booking-communications/settings",{location_id:locationId,...settings});toast?.("Értesítési szabályok mentve.");await load()}catch(e:any){setError(e?.response?.data?.error||e.message||"A beállítások nem menthetők.")}finally{setSaving(false)}};
  const process=async()=>{setLoading(true);try{const r=await api.post("/transactions/booking-communications/process");toast?.(`${Number(r.data?.processed||0)} üzenet feldolgozva.`);await load()}catch(e:any){setError(e?.response?.data?.error||e.message||"A kommunikációs sor nem dolgozható fel.")}finally{setLoading(false)}};
  const counts=useMemo(()=>({pending:queue.filter(x=>x.status==="pending").length,sent:queue.filter(x=>x.status==="sent").length,failed:queue.filter(x=>x.status==="failed").length}),[queue]);
- const toggle=(key:keyof Settings)=>setSettings(s=>({...s,[key]:!s[key]}));
- const rules:[keyof Settings,string,string][]=[
+ const toggle=(key:BoolSettingKey)=>setSettings(s=>({...s,[key]:!s[key]}));
+ const rules:[BoolSettingKey,string,string][]=[
   ["confirmation_enabled","Foglalás visszaigazolása","Azonnal a foglalás létrehozásakor vagy jóváhagyásakor."],
   ["reminder_48h_enabled","48 órás emlékeztető","Két nappal a vendég időpontja előtt."],
   ["reminder_24h_enabled","24 órás emlékeztető","Egy nappal az időpont előtt."],
