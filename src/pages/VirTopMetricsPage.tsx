@@ -1,218 +1,69 @@
 import React, { useEffect, useMemo, useState } from "react";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  CartesianGrid,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  BarChart,
-  Bar,
-} from "recharts";
+import { Bar, BarChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import api from "../api/api";
 import { getCurrentUser, type CurrentUser } from "../api/me";
 import { getLocations } from "../api/locations";
-import {
-  getVirDashboard,
-  getVirRevenueSeries,
-  type VirDashboardSummary,
-  type VirRevenueRow,
-} from "../api/vir";
-import "../styles/vir-altegio.css";
+import { getVirDashboard, getVirRevenueSeries, type VirDashboardSummary, type VirRevenueRow } from "../api/vir";
+import "./VirTopMetricsPage.css";
 
 type LocationRow = { id: string | number; name: string };
 type PeriodKey = "today" | "week" | "month" | "custom";
-type StaffMetric = {
-  employee_id: string | null;
-  employee_name: string;
-  workorder_count: number;
-  revenue: number;
-  avg_ticket: number;
-};
+type StaffMetric = { employee_id:string|null; employee_name:string; workorder_count:number; revenue:number; avg_ticket:number };
 type ManagementSummary = {
-  revenue: {
-    service_revenue: number;
-    product_revenue: number;
-    gross_revenue: number;
-    discounts: number;
-    tips: number;
-    closed_workorders: number;
-    service_share_percent: number;
-    product_share_percent: number;
-  };
-  stock: {
-    inventory_value: number;
-    low_stock_count: number;
-    out_of_stock_count: number;
-    stocked_products: number;
-  };
-  crm: {
-    visits: number;
-    unique_guests: number;
-    guest_revenue: number;
-    avg_guest_spend: number;
-  };
-  staff: StaffMetric[];
+  revenue:{ service_revenue:number; product_revenue:number; gross_revenue:number; discounts:number; tips:number; closed_workorders:number; service_share_percent:number; product_share_percent:number };
+  stock:{ inventory_value:number; low_stock_count:number; out_of_stock_count:number; stocked_products:number };
+  crm:{ visits:number; unique_guests:number; guest_revenue:number; avg_guest_spend:number };
+  staff:StaffMetric[];
 };
 
-function isoDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+const iso=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const periodDates=(period:Exclude<PeriodKey,"custom">)=>{const end=new Date();const start=new Date(end);if(period==="today")return{from:iso(end),to:iso(end)};if(period==="week")start.setDate(end.getDate()-6);else start.setDate(1);return{from:iso(start),to:iso(end)}};
+const huf=(v?:number|null)=>new Intl.NumberFormat("hu-HU",{style:"currency",currency:"HUF",maximumFractionDigits:0}).format(Number(v||0));
+const num=(v?:number|null)=>new Intl.NumberFormat("hu-HU").format(Number(v||0));
+const pct=(v?:number|null)=>`${Number(v||0).toFixed(1)}%`;
+
+function Card({title,value,sub,state}:{title:string;value:string;sub:string;state?:"warning"|"critical"}){return <article className={`topmetrics-card ${state||""}`}><small>{title}</small><strong>{value}</strong><em>{sub}</em></article>}
+
+export default function VirTopMetricsPage(){
+  const initial=periodDates("month");
+  const[period,setPeriod]=useState<PeriodKey>("month");
+  const[from,setFrom]=useState(initial.from);const[to,setTo]=useState(initial.to);
+  const[locationId,setLocationId]=useState("");
+  const[user,setUser]=useState<CurrentUser|null>(null);const[locations,setLocations]=useState<LocationRow[]>([]);
+  const[summary,setSummary]=useState<VirDashboardSummary|null>(null);const[series,setSeries]=useState<VirRevenueRow[]>([]);const[management,setManagement]=useState<ManagementSummary|null>(null);
+  const[loading,setLoading]=useState(false);const[error,setError]=useState("");
+
+  useEffect(()=>{getCurrentUser().then(x=>setUser(x||null)).catch(()=>setUser(null));getLocations().then((rows:any[])=>setLocations((rows||[]).map(x=>({id:x.id,name:x.name})))).catch(()=>setLocations([]))},[]);
+  useEffect(()=>{if(period==="custom")return;const p=periodDates(period);setFrom(p.from);setTo(p.to)},[period]);
+  useEffect(()=>{if(!user)return;const effective=user.role==="admin"?(locationId||undefined):(user.location_id?String(user.location_id):undefined);(async()=>{setLoading(true);setError("");try{const params={from,to,locationId:effective};const[s,ser,m]=await Promise.all([getVirDashboard(params),getVirRevenueSeries(params),api.get<ManagementSummary>("/transactions/cashier/management-summary",{params:{from,to,location_id:effective}}).then(r=>r.data)]);setSummary(s);setSeries(ser);setManagement(m)}catch(e:any){setError(e?.response?.data?.message||e?.message||"A kimutatások betöltése sikertelen.")}finally{setLoading(false)}})()},[user,from,to,locationId]);
+
+  const chartData=useMemo(()=>series.map(r=>({day:r.day?.slice(5)||"",revenue:Number(r.revenue_total||0),paid:Number(r.paid_total||0),appointments:Number(r.appointments_count||0)})),[series]);
+  const staffData=useMemo(()=>(management?.staff||[]).slice(0,10).map(x=>({name:x.employee_name,revenue:Number(x.revenue||0),workorders:Number(x.workorder_count||0)})),[management]);
+  const appointments=Number(summary?.appointments_count||0),completed=Number(summary?.completed_count||0),cancelled=Number(summary?.cancelled_count||0),noShow=Number(summary?.no_show_count||0);
+  const utilization=appointments?completed/appointments*100:0;const completion=appointments?completed/appointments*100:0;const cancellation=Number(summary?.cancellation_rate_percent||0);const noShowRate=Number(summary?.no_show_rate_percent||0);
+  const revenue=management?.revenue;const stock=management?.stock;const crm=management?.crm;
+
+  return <main className="topmetrics-page">
+    <section className="topmetrics-hero"><div><span className="topmetrics-eyebrow">KIMUTATÁSOK / VEZETŐI DASHBOARD</span><h1>Legfőbb mutatók</h1><p>Pénzügyi, vendég-, működési, készlet- és munkatársi KPI-k valós rendszeradatokból.</p></div><div className="topmetrics-filter"><div className="topmetrics-presets"><button className={period==="today"?"active":""} onClick={()=>setPeriod("today")}>Ma</button><button className={period==="week"?"active":""} onClick={()=>setPeriod("week")}>7 nap</button><button className={period==="month"?"active":""} onClick={()=>setPeriod("month")}>Hónap</button></div><label>Kezdőnap<input type="date" value={from} onChange={e=>{setPeriod("custom");setFrom(e.target.value)}}/></label><label>Zárónap<input type="date" value={to} onChange={e=>{setPeriod("custom");setTo(e.target.value)}}/></label>{user?.role==="admin"&&<label>Szalon<select value={locationId} onChange={e=>setLocationId(e.target.value)}><option value="">Összes</option>{locations.map(l=><option key={String(l.id)} value={String(l.id)}>{l.name}</option>)}</select></label>}</div></section>
+    {loading&&<div className="topmetrics-status loading">Adatok frissítése…</div>}{error&&<div className="topmetrics-status error">{error}</div>}
+
+    <section className="topmetrics-section"><header><div><span>PÉNZÜGY</span><h2>Értékesítés és pénzügyi teljesítmény</h2><p>Csak a ténylegesen lezárt és rögzített munkalapokból számolt mutatók.</p></div></header><div className="topmetrics-grid">
+      <Card title="Összes lezárt értékesítés" value={huf(revenue?.gross_revenue)} sub={`${num(revenue?.closed_workorders)} lezárt munkalap`}/>
+      <Card title="Szolgáltatásbevétel" value={huf(revenue?.service_revenue)} sub={`${pct(revenue?.service_share_percent)} bevételrész`}/>
+      <Card title="Termékbevétel" value={huf(revenue?.product_revenue)} sub={`${pct(revenue?.product_share_percent)} bevételrész`}/>
+      <Card title="Átlagos kosárérték" value={huf(summary?.avg_basket)} sub={`${num(appointments)} foglalás alapján`}/>
+      <Card title="Kedvezmények" value={huf(revenue?.discounts)} sub="Lezárt munkalapokon"/>
+      <Card title="Borravaló" value={huf(revenue?.tips)} sub="Lezárt munkalapokon"/>
+      <Card title="Fizetett összeg" value={huf(summary?.paid_total)} sub="Kimutatási időszak"/>
+      <Card title="Lezárt munkalapok" value={num(revenue?.closed_workorders)} sub="Pénzügyi zárással"/>
+    </div><div className="topmetrics-chart-grid"><div className="topmetrics-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={chartData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="day"/><YAxis/><Tooltip formatter={(v:any)=>huf(Number(v||0))}/><Legend/><Line type="monotone" dataKey="revenue" name="Árbevétel" stroke="#7558dd" strokeWidth={3} dot={false}/><Line type="monotone" dataKey="paid" name="Fizetett" stroke="#2f9ea0" strokeWidth={2} dot={false}/></LineChart></ResponsiveContainer></div><div className="topmetrics-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={chartData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="day"/><YAxis/><Tooltip/><Bar dataKey="appointments" name="Foglalások" fill="#8a70e4" radius={[4,4,0,0]}/></BarChart></ResponsiveContainer></div></div></section>
+
+    <section className="topmetrics-section"><header><div><span>VENDÉG ÉS MŰKÖDÉS</span><h2>CRM és időpont-teljesítmény</h2></div></header><div className="topmetrics-grid">
+      <Card title="CRM látogatások" value={num(crm?.visits)} sub={`${num(crm?.unique_guests)} egyedi vendég`}/><Card title="CRM vendégbevétel" value={huf(crm?.guest_revenue)} sub={`Átlag: ${huf(crm?.avg_guest_spend)}`}/><Card title="Átlagos vendégköltés" value={huf(crm?.avg_guest_spend)} sub="CRM látogatások alapján"/><Card title="Egyedi vendégek" value={num(crm?.unique_guests)} sub="Az időszakban"/>
+      <Card title="Foglalások" value={num(appointments)} sub={`${num(completed)} teljesített`}/><Card title="Teljesítési arány" value={pct(completion)} sub={`${num(completed)} / ${num(appointments)}`}/><Card title="Lemondási arány" value={pct(cancellation)} sub={`${num(cancelled)} lemondás`} state={cancellation>10?"warning":undefined}/><Card title="No-show arány" value={pct(noShowRate)} sub={`${num(noShow)} meg nem jelenés`} state={noShowRate>5?"critical":undefined}/><Card title="Operatív kihasználtság" value={pct(utilization)} sub="Teljesített / összes foglalás"/></div></section>
+
+    <section className="topmetrics-section"><header><div><span>RAKTÁR</span><h2>Készletállapot és érték</h2></div></header><div className="topmetrics-grid"><Card title="Készletérték" value={huf(stock?.inventory_value)} sub="Aktuális bekerülési értéken"/><Card title="Készletezett termékek" value={num(stock?.stocked_products)} sub="Aktív készletegyenleg"/><Card title="Alacsony készlet" value={num(stock?.low_stock_count)} sub="Minimum szinten vagy alatta" state={Number(stock?.low_stock_count||0)>0?"warning":undefined}/><Card title="Kifogyott termék" value={num(stock?.out_of_stock_count)} sub="Nulla vagy negatív készlet" state={Number(stock?.out_of_stock_count||0)>0?"critical":undefined}/></div><p className="topmetrics-source-note">A készletérték csak azoknál a termékeknél pontos, amelyekhez a unit_cost mező fel van töltve.</p></section>
+
+    <section className="topmetrics-section"><header><div><span>MUNKATÁRSAK</span><h2>Teljesítmény és lezárt bevétel</h2></div></header><div className="topmetrics-chart-grid"><div className="topmetrics-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={staffData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name"/><YAxis/><Tooltip formatter={(v:any)=>huf(Number(v||0))}/><Bar dataKey="revenue" name="Lezárt bevétel" fill="#7558dd" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div><div className="topmetrics-table-wrap"><table className="topmetrics-table"><thead><tr><th>Munkatárs</th><th>Lezárt munkalap</th><th>Bevétel</th><th>Átlagos kosár</th></tr></thead><tbody>{(management?.staff||[]).map((r,i)=><tr key={`${r.employee_id||"x"}-${i}`}><td><strong>{r.employee_name}</strong></td><td>{num(r.workorder_count)}</td><td>{huf(r.revenue)}</td><td>{huf(r.avg_ticket)}</td></tr>)}{!management?.staff?.length&&<tr><td colSpan={4}><div className="topmetrics-empty">Nincs munkatársi adat a kiválasztott időszakban.</div></td></tr>}</tbody></table></div></div></section>
+  </main>
 }
-
-function getPeriodDates(period: Exclude<PeriodKey, "custom">) {
-  const end = new Date();
-  const start = new Date(end);
-  if (period === "today") return { from: isoDate(end), to: isoDate(end) };
-  if (period === "week") start.setDate(end.getDate() - 6);
-  else start.setDate(1);
-  return { from: isoDate(start), to: isoDate(end) };
-}
-
-function huf(value?: number | null) {
-  return new Intl.NumberFormat("hu-HU", { style: "currency", currency: "HUF", maximumFractionDigits: 0 }).format(Number(value || 0));
-}
-function num(value?: number | null) { return new Intl.NumberFormat("hu-HU").format(Number(value || 0)); }
-function pct(value?: number | null) { return `${Number(value || 0).toFixed(1)}%`; }
-
-function MetricCard({ title, value, sub, alert }: { title: string; value: string; sub?: string; alert?: boolean }) {
-  return <div className="altegio-metric-card" style={alert ? { borderColor: "#f59e0b" } : undefined}>
-    <div className="altegio-metric-card__title">{title}</div>
-    <div className="altegio-metric-card__value">{value}</div>
-    <div className="altegio-metric-card__sub">{sub || ""}</div>
-  </div>;
-}
-
-export default function VirTopMetricsPage() {
-  const initial = getPeriodDates("month");
-  const [period, setPeriod] = useState<PeriodKey>("month");
-  const [from, setFrom] = useState(initial.from);
-  const [to, setTo] = useState(initial.to);
-  const [locationId, setLocationId] = useState("");
-  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
-  const [locations, setLocations] = useState<LocationRow[]>([]);
-  const [summary, setSummary] = useState<VirDashboardSummary | null>(null);
-  const [series, setSeries] = useState<VirRevenueRow[]>([]);
-  const [management, setManagement] = useState<ManagementSummary | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    getCurrentUser().then((user) => setCurrentUser(user ?? null)).catch(() => setCurrentUser(null));
-    getLocations().then((rows: any[]) => setLocations((rows || []).map((loc) => ({ id: loc.id, name: loc.name })))).catch(() => setLocations([]));
-  }, []);
-
-  useEffect(() => {
-    if (period === "custom") return;
-    const next = getPeriodDates(period);
-    setFrom(next.from);
-    setTo(next.to);
-  }, [period]);
-
-  useEffect(() => {
-    if (!currentUser) return;
-    const effectiveLocationId = currentUser.role === "admin" ? (locationId || undefined) : (currentUser.location_id ? String(currentUser.location_id) : undefined);
-    async function load() {
-      setLoading(true); setError("");
-      try {
-        const params = { from, to, locationId: effectiveLocationId };
-        const [virSummary, virSeries, live] = await Promise.all([
-          getVirDashboard(params),
-          getVirRevenueSeries(params),
-          api.get<ManagementSummary>("/transactions/cashier/management-summary", { params: { from, to, location_id: effectiveLocationId } }).then(r => r.data),
-        ]);
-        setSummary(virSummary); setSeries(virSeries); setManagement(live);
-      } catch (e: any) {
-        setError(e?.response?.data?.message || e?.message || "A vezetői mutatók betöltése sikertelen.");
-      } finally { setLoading(false); }
-    }
-    load();
-  }, [currentUser, from, to, locationId]);
-
-  const chartData = useMemo(() => series.map((row) => ({
-    day: row.day?.slice(5) || "",
-    revenue: Number(row.revenue_total || 0),
-    paid: Number(row.paid_total || 0),
-    appointments: Number(row.appointments_count || 0),
-  })), [series]);
-
-  const staffChart = useMemo(() => (management?.staff || []).slice(0, 8).map((row) => ({
-    name: row.employee_name,
-    revenue: Number(row.revenue || 0),
-  })), [management]);
-
-  const appointments = Number(summary?.appointments_count || 0);
-  const completed = Number(summary?.completed_count || 0);
-  const utilization = appointments > 0 ? Math.round(completed / appointments * 1000) / 10 : 0;
-  const noShowRate = Number(summary?.no_show_rate_percent || 0);
-  const cancelRate = Number(summary?.cancellation_rate_percent || 0);
-  const lowStock = Number(management?.stock?.low_stock_count || 0);
-  const outOfStock = Number(management?.stock?.out_of_stock_count || 0);
-
-  return <div className="altegio-main" style={{ padding: 20 }}>
-    <div className="altegio-breadcrumb">Kimutatások / Vezetői dashboard</div>
-    <div className="altegio-header"><div><h1>Legfőbb mutatók</h1><p>Valós pénzügyi, CRM-, munkatársi és készletadatok egy nézetben.</p></div></div>
-
-    <div className="altegio-filterbar">
-      <div className="altegio-filter-field"><label>Időszak</label><div className="altegio-header__actions">
-        <button className={`altegio-tab ${period === "today" ? "is-active" : ""}`} onClick={() => setPeriod("today")}>Ma</button>
-        <button className={`altegio-tab ${period === "week" ? "is-active" : ""}`} onClick={() => setPeriod("week")}>7 nap</button>
-        <button className={`altegio-tab ${period === "month" ? "is-active" : ""}`} onClick={() => setPeriod("month")}>Hónap</button>
-        <button className={`altegio-tab ${period === "custom" ? "is-active" : ""}`} onClick={() => setPeriod("custom")}>Egyedi</button>
-      </div></div>
-      <div className="altegio-filter-field"><label>-tól</label><input type="date" value={from} onChange={(e) => { setPeriod("custom"); setFrom(e.target.value); }}/></div>
-      <div className="altegio-filter-field"><label>-ig</label><input type="date" value={to} onChange={(e) => { setPeriod("custom"); setTo(e.target.value); }}/></div>
-      {currentUser?.role === "admin" && <div className="altegio-filter-field"><label>Szalon</label><select value={locationId} onChange={(e) => setLocationId(e.target.value)}><option value="">Összes</option>{locations.map((loc) => <option key={String(loc.id)} value={String(loc.id)}>{loc.name}</option>)}</select></div>}
-    </div>
-
-    {loading && <div className="altegio-loading">Betöltés...</div>}
-    {error && <div className="altegio-error">{error}</div>}
-
-    <section className="altegio-section-card">
-      <h2>Valós értékesítés</h2>
-      <div className="altegio-metrics-grid altegio-metrics-grid--3">
-        <MetricCard title="Összes lezárt értékesítés" value={huf(management?.revenue.gross_revenue)} sub={`${num(management?.revenue.closed_workorders)} pénzügyileg lezárt munkalap`} />
-        <MetricCard title="Szolgáltatásbevétel" value={huf(management?.revenue.service_revenue)} sub={`${pct(management?.revenue.service_share_percent)} részesedés`} />
-        <MetricCard title="Termékbevétel" value={huf(management?.revenue.product_revenue)} sub={`${pct(management?.revenue.product_share_percent)} részesedés`} />
-        <MetricCard title="Kedvezmények" value={huf(management?.revenue.discounts)} sub="Lezárt munkalapokon" />
-        <MetricCard title="Borravaló" value={huf(management?.revenue.tips)} sub="Lezárt munkalapokon" />
-        <MetricCard title="Átlagos kosárérték" value={huf(summary?.avg_basket)} sub={`${num(appointments)} foglalás`} />
-      </div>
-      <div className="altegio-chart-wrap"><ResponsiveContainer width="100%" height={260}><LineChart data={chartData}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="day"/><YAxis/><Tooltip formatter={(value: any) => huf(Number(value || 0))}/><Legend/><Line type="monotone" dataKey="revenue" name="Árbevétel" stroke="#8b5cf6" strokeWidth={2} dot={false}/><Line type="monotone" dataKey="paid" name="Fizetett" stroke="#06b6d4" strokeWidth={2} dot={false}/></LineChart></ResponsiveContainer></div>
-    </section>
-
-    <section className="altegio-section-card">
-      <h2>Vendég és működési KPI-k</h2>
-      <div className="altegio-metrics-grid altegio-metrics-grid--3">
-        <MetricCard title="CRM látogatások" value={num(management?.crm.visits)} sub={`${num(management?.crm.unique_guests)} egyedi vendég`} />
-        <MetricCard title="CRM vendégbevétel" value={huf(management?.crm.guest_revenue)} sub={`Átlag: ${huf(management?.crm.avg_guest_spend)}`} />
-        <MetricCard title="Kihasználtság" value={pct(utilization)} sub="Teljesített / összes foglalás operatív mutató" />
-        <MetricCard title="No-show" value={pct(noShowRate)} sub={`${num(summary?.no_show_count)} alkalom`} alert={noShowRate > 5} />
-        <MetricCard title="Lemondás" value={pct(cancelRate)} sub={`${num(summary?.cancelled_count)} alkalom`} alert={cancelRate > 10} />
-        <MetricCard title="Teljesített időpont" value={num(completed)} sub={`${num(appointments)} összes foglalásból`} />
-      </div>
-    </section>
-
-    <section className="altegio-section-card">
-      <h2>Készletállapot</h2>
-      <div className="altegio-metrics-grid altegio-metrics-grid--3">
-        <MetricCard title="Készletérték" value={huf(management?.stock.inventory_value)} sub={`${num(management?.stock.stocked_products)} készletezett termék`} />
-        <MetricCard title="Alacsony készlet" value={num(lowStock)} sub="Minimum készletszint alatt vagy azon" alert={lowStock > 0} />
-        <MetricCard title="Kifogyott termék" value={num(outOfStock)} sub="0 készlet" alert={outOfStock > 0} />
-      </div>
-    </section>
-
-    <section className="altegio-section-card">
-      <h2>Munkatárs-teljesítmény</h2>
-      <div className="altegio-chart-wrap"><ResponsiveContainer width="100%" height={260}><BarChart data={staffChart}><CartesianGrid strokeDasharray="3 3"/><XAxis dataKey="name"/><YAxis/><Tooltip formatter={(value: any) => huf(Number(value || 0))}/><Bar dataKey="revenue" name="Lezárt bevétel" fill="#8b5cf6" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div>
-      <div style={{ overflowX: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse" }}><thead><tr><th style={th}>Munkatárs</th><th style={th}>Lezárt munkalap</th><th style={th}>Bevétel</th><th style={th}>Átlagos kosár</th></tr></thead><tbody>{(management?.staff || []).map((row, index) => <tr key={`${row.employee_id || "none"}-${index}`}><td style={td}>{row.employee_name}</td><td style={td}>{num(row.workorder_count)}</td><td style={td}>{huf(row.revenue)}</td><td style={td}>{huf(row.avg_ticket)}</td></tr>)}</tbody></table></div>
-    </section>
-  </div>;
-}
-
-const th: React.CSSProperties = { textAlign: "left", padding: "10px 8px", borderBottom: "1px solid #e5e7eb", opacity: 0.7 };
-const td: React.CSSProperties = { padding: "10px 8px", borderBottom: "1px solid #f3f4f6" };
