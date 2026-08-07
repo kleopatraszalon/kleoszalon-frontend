@@ -49,7 +49,12 @@
   font-size:9px;
   line-height:1.2;
 }
-.kleo-menu-sort-hint span{flex:1;min-width:0}.kleo-menu-sort-hint b{font-size:8px;font-weight:700}.kleo-menu-drag-handle{flex:0 0 auto;color:#806c54;opacity:.72;cursor:grab}.kleo-sidebar-menu-item[draggable="true"]{transition:opacity .14s ease,transform .14s ease,box-shadow .14s ease}.kleo-sidebar-menu-item.is-dragging{opacity:.42;transform:scale(.985)}.kleo-sidebar-menu-item.is-drag-over{box-shadow:inset 3px 0 0 #d5a94f;background:rgba(213,169,79,.08)}
+.kleo-menu-sort-hint span{flex:1;min-width:0}
+.kleo-menu-sort-hint b{font-size:8px;font-weight:700}
+.kleo-menu-drag-handle{display:block;flex:0 0 14px;width:14px;min-width:14px;margin:0;color:#806c54;opacity:.72;cursor:grab}
+.kleo-sidebar-menu-item[draggable="true"]{transition:opacity .14s ease,transform .14s ease,box-shadow .14s ease}
+.kleo-sidebar-menu-item.is-dragging{opacity:.42;transform:scale(.985)}
+.kleo-sidebar-menu-item.is-drag-over{box-shadow:inset 3px 0 0 #d5a94f;background:rgba(213,169,79,.08)}
 
 .app-layout-shell > .kleo-sidebar .kleo-sidebar-nav {
   flex: 1 1 auto;
@@ -62,46 +67,97 @@
   scrollbar-gutter: stable;
 }
 
+.app-layout-shell .kleo-sidebar-menu,
+.app-layout-shell .kleo-sidebar-submenu {
+  list-style:none !important;
+}
+
 .app-layout-shell .kleo-sidebar-menu {
-  gap: 4px !important;
+  display:grid;
+  gap:4px !important;
+  margin:0 !important;
+  padding:0 !important;
 }
 
 .app-layout-shell .kleo-sidebar-menu-item {
   min-width: 0;
+  margin:0 !important;
+  padding:0 !important;
   overflow: hidden;
   border-radius: 10px;
 }
 
 .app-layout-shell .kleo-sidebar-menu-button {
-  min-height: 40px;
-  padding: 9px 11px !important;
-  gap: 10px !important;
-  text-align: left;
+  display:grid !important;
+  grid-template-columns:14px 18px minmax(0,1fr) 16px;
+  align-items:center;
+  width:100%;
+  min-height:40px;
+  margin:0 !important;
+  padding:9px 10px 9px 6px !important;
+  column-gap:8px !important;
+  text-align:left;
+}
+
+.app-layout-shell .kleo-sidebar-menu-link {
+  text-decoration:none;
+}
+
+.app-layout-shell .kleo-sidebar-menu-item:not([draggable="true"]) .kleo-sidebar-menu-button {
+  grid-template-columns:18px minmax(0,1fr) 16px;
+  padding-left:10px !important;
+}
+
+.app-layout-shell .kleo-sidebar-menu-icon {
+  display:block;
+  width:17px;
+  min-width:17px;
+  margin:0;
+  justify-self:center;
 }
 
 .app-layout-shell .kleo-sidebar-menu-label {
-  min-width: 0;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
+  min-width:0;
+  margin:0;
+  line-height:1.3;
+  overflow-wrap:anywhere;
+  justify-self:start;
+  text-align:left;
 }
 
 .app-layout-shell .kleo-sidebar-menu-chevron {
-  flex: 0 0 auto;
+  display:grid;
+  place-items:center;
+  width:16px;
+  min-width:16px;
+  margin:0;
+  justify-self:end;
 }
 
 .app-layout-shell .kleo-sidebar-submenu {
-  display: grid;
-  gap: 3px;
-  margin: 3px 0 8px !important;
-  padding: 0 0 0 8px !important;
+  display:grid;
+  gap:3px;
+  margin:3px 0 8px !important;
+  padding:0 4px 0 38px !important;
+}
+
+.app-layout-shell .kleo-sidebar-submenu > li {
+  margin:0 !important;
+  padding:0 !important;
 }
 
 .app-layout-shell .kleo-sidebar-submenu-item {
-  min-height: 36px;
-  padding: 8px 10px !important;
-  line-height: 1.3;
-  white-space: normal;
-  overflow-wrap: anywhere;
+  display:flex;
+  align-items:center;
+  width:100%;
+  min-height:34px;
+  margin:0 !important;
+  padding:7px 9px !important;
+  border-radius:7px;
+  line-height:1.3;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  text-align:left;
 }
 
 .modern-topbar {
@@ -195,6 +251,7 @@
   .app-layout-main { padding:12px !important; }
   .kleo-menu-sort-hint,.kleo-menu-drag-handle{display:none}
   .kleo-sidebar-menu-item[draggable="true"]{cursor:default}
+  .app-layout-shell .kleo-sidebar-menu-button{grid-template-columns:18px minmax(0,1fr) 16px;padding-left:10px!important}
 }
 
 @media (max-width: 560px) {
