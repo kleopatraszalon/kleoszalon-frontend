@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from "react";
-import { Bell, Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import AiHelpChat from "../components/AiHelpChat";
+import NotificationBell from "../components/NotificationBell";
+import NotificationsPage from "../pages/NotificationsPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
 
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
+  "/dashboard/notifications": "Értesítési központ",
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -52,6 +55,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     navigate("/login", { replace: true });
   };
 
+  const pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
+
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""} ${mobileOpen ? "is-mobile-sidebar-open" : ""}`}>
       <Sidebar user={user} />
@@ -68,12 +73,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <div className="modern-topbar-right">
             <div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>
             <div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div>
-            <button className="topbar-notification"><Bell size={18}/><i/></button>
+            <NotificationBell />
             <div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div>
             <button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button>
           </div>
         </header>
-        <div className="altegio-main app-layout-main">{children}</div>
+        <div className="altegio-main app-layout-main">{pageContent}</div>
       </div>
       <AiHelpChat pageTitle={currentPage} />
     </div>
