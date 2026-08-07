@@ -2,9 +2,10 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   BellRing, CalendarDays, Check, ChevronLeft, ChevronRight, CircleAlert,
-  Clock3, Copy, ExternalLink, Filter, Link2, ListFilter, MessageSquareText,
+  Clock3, Copy, ExternalLink, Filter, Link2, ListFilter,
   LayoutGrid, List, MoreHorizontal, Plus, RefreshCw, Search, Settings2, Users, X,
 } from "lucide-react";
+import BookingNotificationAutomation from "./booking/BookingNotificationAutomation";
 import "./AppointmentsModulePage.css";
 import "./AppointmentsListCalendarToggle.css";
 
@@ -27,7 +28,7 @@ const viewConfig: Record<string, { title: string; subtitle: string }> = {
   list: { title: "Időpontok listája", subtitle: "Minden foglalás egy helyen, gyors állapotkezeléssel" },
   "complex-services": { title: "Komplex szolgáltatások (4+ kéz)", subtitle: "Több munkatársat és erőforrást igénylő szolgáltatások" },
   "group-bookings": { title: "Csoportos foglalások és események", subtitle: "Létszám, várólista és csoportos órarend kezelése" },
-  notifications: { title: "Foglalási értesítések", subtitle: "Automatikus SMS-, e-mail- és push-üzenetek" },
+  notifications: { title: "Foglalási értesítések", subtitle: "Automatikus e-mail szabályok, kommunikációs sor és küldési állapot" },
   attendance: { title: "Lemondások és meg nem jelenések", subtitle: "Kiesések követése és visszatérési szabályok" },
 };
 
@@ -57,7 +58,6 @@ export default function AppointmentsModulePage() {
   const [location, setLocation] = useState("all");
   const [notice, setNotice] = useState("");
   const [channels, setChannels] = useState({ website: true, instagram: true, google: false, direct: true });
-  const [rules, setRules] = useState({ reminder: true, confirmation: true, cancellation: true, feedback: false });
 
   const toast = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2500); };
   const loadSchedule = useCallback(async () => {
@@ -114,7 +114,7 @@ export default function AppointmentsModulePage() {
       {view === "list" && <>{toolbar}<section className="ap-kpis"><article><CalendarDays/><div><strong>{appointments.length}</strong><span>Összes időpont</span></div></article><article><Check/><div><strong>{appointments.filter(a => statusLabel(a.status) === "Teljesítve").length}</strong><span>Teljesítve</span></div></article><article><CircleAlert/><div><strong>{cancelled.length}</strong><span>Lemondás / kiesés</span></div></article><article><Clock3/><div><strong>{formatMoney(revenue)}</strong><span>Napi foglalási érték</span></div></article></section><AppointmentTable items={filtered} loading={loading}/></>}
       {view === "attendance" && <>{toolbar}<section className="ap-kpis"><article><X/><div><strong>{cancelled.filter(a => statusLabel(a.status) === "Lemondva").length}</strong><span>Lemondva</span></div></article><article><CircleAlert/><div><strong>{cancelled.filter(a => statusLabel(a.status) === "Nem jelent meg").length}</strong><span>Nem jelent meg</span></div></article><article><Users/><div><strong>{appointments.length ? Math.round(cancelled.length / appointments.length * 100) : 0}%</strong><span>Kiesési arány</span></div></article><article><BellRing/><div><strong>0</strong><span>Automatikus visszahívás</span></div></article></section><AppointmentTable items={filtered.filter(a => ["Lemondva", "Nem jelent meg"].includes(statusLabel(a.status)))} loading={loading}/></>}
       {view === "online-booking" && <OnlineBooking channels={channels} setChannels={setChannels} toast={toast}/>} 
-      {view === "notifications" && <Notifications rules={rules} setRules={setRules} toast={toast}/>} 
+      {view === "notifications" && <BookingNotificationAutomation toast={toast}/>} 
       {view === "complex-services" && <ServiceSetup complex toast={toast}/>} 
       {view === "group-bookings" && <ServiceSetup complex={false} toast={toast}/>} 
       {notice && <div className="ap-toast">{notice}</div>}
@@ -131,11 +131,6 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
 function OnlineBooking({ channels, setChannels, toast }: any) {
   const rows = [{ key: "website", name: "Weboldali foglalási widget", detail: "Beágyazható Kleopátra foglalási felület", icon: <Link2/> }, { key: "instagram", name: "Instagram és Facebook", detail: "Foglalás gomb a közösségi oldalakon", icon: <ExternalLink/> }, { key: "google", name: "Google üzleti profil", detail: "Közvetlen időpontfoglalási hivatkozás", icon: <Search/> }, { key: "direct", name: "Közvetlen foglalási link", detail: "Megosztható szalon- és munkatársi linkek", icon: <Copy/> }];
   return <div className="ap-two-col"><section className="ap-card"><div className="ap-card-title"><div><h2>Foglalási csatornák</h2><p>Kapcsolja be, ahol vendégeket szeretne fogadni.</p></div></div>{rows.map(row => <div className="ap-setting-row" key={row.key}><i>{row.icon}</i><span><b>{row.name}</b><small>{row.detail}</small></span><Toggle checked={channels[row.key]} onChange={() => setChannels({ ...channels, [row.key]: !channels[row.key] })}/><button><Settings2 size={17}/></button></div>)}</section><aside className="ap-card ap-preview"><div className="ap-phone"><div className="ap-phone-top"/><p>KLEOPÁTRA</p><h3>Foglaljon időpontot</h3><label>Válasszon szalont</label><div className="ap-fake-input">Kleopátra Szépségszalon</div><label>Válasszon szolgáltatást</label><div className="ap-fake-input">Szolgáltatás kiválasztása</div><button onClick={() => toast("A publikus előnézet megnyílik.")}>Tovább</button></div><p>Élő foglalási előnézet</p></aside></div>;
-}
-
-function Notifications({ rules, setRules, toast }: any) {
-  const rows = [{ key: "confirmation", title: "Foglalás visszaigazolása", text: "Azonnal, sikeres foglalás után", channel: "SMS + e-mail" }, { key: "reminder", title: "Időpont-emlékeztető", text: "24 órával az időpont előtt", channel: "SMS + push" }, { key: "cancellation", title: "Lemondás visszaigazolása", text: "Azonnal, lemondás vagy áthelyezés után", channel: "E-mail" }, { key: "feedback", title: "Értékelés kérése", text: "2 órával a szolgáltatás után", channel: "SMS" }];
-  return <section className="ap-card"><div className="ap-card-title"><div><h2>Automatikus értesítési szabályok</h2><p>A késések és meg nem jelenések csökkentésére.</p></div><button className="primary" onClick={() => toast("Új értesítési szabály előkészítve.")}><Plus size={17}/> Új szabály</button></div>{rows.map(row => <div className="ap-rule" key={row.key}><i><MessageSquareText/></i><span><b>{row.title}</b><small>{row.text}</small></span><em>{row.channel}</em><Toggle checked={rules[row.key]} onChange={() => setRules({ ...rules, [row.key]: !rules[row.key] })}/><button><MoreHorizontal/></button></div>)}</section>;
 }
 
 function ServiceSetup({ complex, toast }: { complex: boolean; toast: (message: string) => void }) {
