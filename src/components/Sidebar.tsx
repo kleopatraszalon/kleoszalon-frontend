@@ -1,5 +1,5 @@
 // src/components/Sidebar.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
@@ -15,6 +15,7 @@ import {
   Database,
   Gift,
   Globe2,
+  GripVertical,
   LayoutDashboard,
   Megaphone,
   MonitorSmartphone,
@@ -58,7 +59,7 @@ interface MenuItem {
 }
 
 interface SidebarProps {
-  user?: { role?: string | null } | null;
+  user?: { role?: string | string[] | null } | null;
 }
 
 const menuIcons: Record<string, LucideIcon> = {
@@ -79,9 +80,19 @@ function normalizeRoute(r?: string): string {
   s = s.replace(/\/{2,}/g, "/");
   return s;
 }
+
 function routePath(r?: string): string {
   const normalized = normalizeRoute(r);
   return normalized === "#" ? "#" : normalized.split(/[?#]/, 1)[0];
+}
+
+function roleList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String).map((x) => x.toLowerCase());
+  try {
+    const parsed = JSON.parse(String(raw || ""));
+    if (Array.isArray(parsed)) return parsed.map(String).map((x) => x.toLowerCase());
+  } catch {}
+  return String(raw || "").split(",").map((x) => x.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
 }
 
 export function Menu({ items }: { items: Array<{ id: number; name: string; route?: string; icon?: string }> }) {
@@ -106,17 +117,24 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   const navigate = useNavigate();
   const [menus, setMenus] = useState<MenuItem[]>([]);
   const [openIds, setOpenIds] = useState<number[]>([]);
+  const [draggedId, setDraggedId] = useState<number | null>(null);
+  const [dragOverId, setDragOverId] = useState<number | null>(null);
+  const [savingOrder, setSavingOrder] = useState(false);
+  const isAdmin = useMemo(() => roleList(user?.role).includes("admin"), [user?.role]);
 
-  useEffect(() => {
+  async function loadMenus() {
     const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
-    axios.get(`${API_BASE}/menus`, {
+    const res = await axios.get(`${API_BASE}/menus`, {
       withCredentials: true,
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    }).then((res) => {
-      const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
-      const role = (user && (user as any).role) || null;
-      setMenus(buildMenuTree(data, role));
-    }).catch((err) => console.error("❌ Menü betöltési hiba:", err));
+    });
+    const data = Array.isArray(res.data) ? (res.data as RawMenuItem[]) : [];
+    setMenus(buildMenuTree(data, user?.role || null));
+  }
+
+  useEffect(() => {
+    loadMenus().catch((err) => console.error("❌ Menü betöltési hiba:", err));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const isExpanded = (id: number) => openIds.includes(id);
@@ -147,6 +165,39 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
     navigate(`/appointments/calendar?date=${encodeURIComponent(iso)}`);
   };
 
+  async function reorderRoots(targetId: number) {
+    if (!isAdmin || draggedId == null || draggedId === targetId || savingOrder) {
+      setDraggedId(null);
+      setDragOverId(null);
+      return;
+    }
+    const previous = menus;
+    const from = previous.findIndex((m) => m.id === draggedId);
+    const to = previous.findIndex((m) => m.id === targetId);
+    if (from < 0 || to < 0) return;
+
+    const next = [...previous];
+    const [moved] = next.splice(from, 1);
+    next.splice(to, 0, moved);
+    setMenus(next);
+    setDraggedId(null);
+    setDragOverId(null);
+    setSavingOrder(true);
+
+    try {
+      const token = localStorage.getItem("token") || localStorage.getItem("kleo_token");
+      await axios.put(`${API_BASE}/menus/reorder-roots`, { ordered_ids: next.map((m) => m.id) }, {
+        withCredentials: true,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      });
+    } catch (err) {
+      setMenus(previous);
+      console.error("❌ Menü sorrend mentési hiba:", err);
+    } finally {
+      setSavingOrder(false);
+    }
+  }
+
   return (
     <aside className="kleo-sidebar app-sidebar">
       <div className="kleo-sidebar-hero-card">
@@ -157,6 +208,12 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
         <SidebarCalendar onSelectDate={handleDateSelect} />
       </div>
 
+      {isAdmin && (
+        <div className="kleo-menu-sort-hint">
+          <GripVertical size={13}/><span>Főmenük húzással rendezhetők</span>{savingOrder && <b>Mentés…</b>}
+        </div>
+      )}
+
       <nav className="kleo-sidebar-nav">
         <ul className="kleo-sidebar-menu">
           {menus.map((menu) => {
@@ -165,15 +222,24 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
             const to = normalizeRoute(menu.route);
             const isLeafActive = !hasChildren && to !== "#" && routePath(to) === location.pathname;
             return (
-              <li key={menu.id} className={"kleo-sidebar-menu-item" + (expanded ? " kleo-sidebar-menu-item--open" : "") + (isLeafActive ? " kleo-sidebar-menu-item--active" : "")}>
+              <li
+                key={menu.id}
+                draggable={isAdmin && !savingOrder}
+                onDragStart={(e) => { if (!isAdmin) return; setDraggedId(menu.id); e.dataTransfer.effectAllowed = "move"; }}
+                onDragOver={(e) => { if (!isAdmin) return; e.preventDefault(); setDragOverId(menu.id); e.dataTransfer.dropEffect = "move"; }}
+                onDragLeave={() => { if (dragOverId === menu.id) setDragOverId(null); }}
+                onDrop={(e) => { e.preventDefault(); void reorderRoots(menu.id); }}
+                onDragEnd={() => { setDraggedId(null); setDragOverId(null); }}
+                className={"kleo-sidebar-menu-item" + (expanded ? " kleo-sidebar-menu-item--open" : "") + (isLeafActive ? " kleo-sidebar-menu-item--active" : "") + (draggedId === menu.id ? " is-dragging" : "") + (dragOverId === menu.id ? " is-drag-over" : "")}
+              >
                 {hasChildren ? (
                   <button type="button" onClick={() => toggleExpanded(menu.id)} className="kleo-sidebar-menu-button">
-                    <MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
+                    {isAdmin && <GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
                     <span className="kleo-sidebar-menu-chevron">{expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</span>
                   </button>
                 ) : (
                   <NavLink to={to} className={({ isActive }) => "kleo-sidebar-menu-button kleo-sidebar-menu-link" + (isActive ? " active" : "") + (to === "#" ? " pointer-events-none opacity-50" : "")} aria-disabled={to === "#"}>
-                    <MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
+                    {isAdmin && <GripVertical className="kleo-menu-drag-handle" size={14}/>}<MenuIcon name={menu.icon} /><span className="kleo-sidebar-menu-label">{menu.name}</span>
                   </NavLink>
                 )}
                 {hasChildren && expanded && (
@@ -195,15 +261,14 @@ const Sidebar: React.FC<SidebarProps> = ({ user }) => {
   );
 };
 
-function buildMenuTree(raw: RawMenuItem[], role: string | null): MenuItem[] {
+function buildMenuTree(raw: RawMenuItem[], role: string | string[] | null): MenuItem[] {
   if (!raw.length) return [];
-  function canSee(required: string | null | undefined, role: string | null): boolean {
+  function canSee(required: string | null | undefined, currentRole: string | string[] | null): boolean {
     const req = (required || "").trim().toLowerCase();
     if (!req || req === "all" || req === "*") return true;
-    if (!role) return false;
-    const r = String(role).toLowerCase();
-    if (r === "admin") return true;
-    return req === r;
+    const roles = roleList(currentRole);
+    if (roles.includes("admin")) return true;
+    return roles.includes(req);
   }
   const filtered = raw.filter((item) => canSee(item.required_role, role));
   if (filtered.length && Array.isArray(filtered[0].submenus)) {
