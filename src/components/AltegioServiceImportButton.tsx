@@ -11,6 +11,8 @@ type ImportResult = {
   createdServices?: number;
   updatedServices?: number;
   error?: string;
+  detail?: string;
+  code?: string | null;
 };
 
 const getToken = () =>
@@ -51,9 +53,21 @@ export default function AltegioServiceImportButton() {
         body: form,
       });
 
-      const data = (await res.json().catch(() => ({}))) as ImportResult;
+      const raw = await res.text();
+      let data: ImportResult = {};
+      try {
+        data = raw ? (JSON.parse(raw) as ImportResult) : {};
+      } catch {
+        data = { error: raw || `Import hiba (${res.status})` };
+      }
+
       if (!res.ok || !data.ok) {
-        throw new Error(data.error || `Import hiba (${res.status})`);
+        const parts = [
+          data.error || `Import hiba (${res.status})`,
+          data.code ? `[${data.code}]` : "",
+          data.detail || "",
+        ].filter(Boolean);
+        throw new Error(parts.join(" "));
       }
 
       setMessage(
@@ -85,7 +99,9 @@ export default function AltegioServiceImportButton() {
           fontSize: 12,
           fontWeight: 600,
           color: isError ? "#b42318" : "#357a55",
-          maxWidth: 720,
+          maxWidth: 980,
+          whiteSpace: "normal",
+          lineHeight: 1.45,
         }}>
           {message}
         </span>
