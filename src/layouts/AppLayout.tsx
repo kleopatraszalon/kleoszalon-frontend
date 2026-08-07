@@ -9,6 +9,7 @@ import ServiceHierarchyPanel from "../components/ServiceHierarchyPanel";
 import AccessBoundary from "../components/AccessBoundary";
 import EmployeeServicesPage from "../pages/EmployeeServicesPage";
 import ServicesCatalogPage from "../pages/ServicesCatalogPage";
+import ProductCatalogPage from "../pages/ProductCatalogPage";
 import NotificationsPage from "../pages/NotificationsPage";
 import AccessControlPage from "../pages/AccessControlPage";
 import AuditLogPage from "../pages/AuditLogPage";
@@ -19,7 +20,8 @@ import "./AppLayout.css";
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
-  "/masterdata/services": "Szolgáltatási törzs", "/dashboard/notifications": "Értesítési központ",
+  "/masterdata/services": "Szolgáltatási törzs", "/masterdata/products": "Termékek", "/products": "Termékek", "/warehouse/products": "Termékek",
+  "/dashboard/notifications": "Értesítési központ",
   "/settings/roles": "Jogosultságok és hozzáférések",
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
   "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
@@ -47,12 +49,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const logout = () => { ["token","kleo_token","kleo_role","kleo_location_id","kleo_location_name","kleo_full_name","email","userId"].forEach(k=>localStorage.removeItem(k)); sessionStorage.clear(); navigate("/login",{replace:true}); };
 
   const isMasterServices = location.pathname === "/masterdata/services";
+  const isProducts = ["/masterdata/products","/products","/warehouse/products"].includes(location.pathname);
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
   if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
   if (location.pathname === "/modules/settings/audit-log") pageContent = <AuditLogPage />;
   if (location.pathname === "/modules/settings/chat-supervision") pageContent = <StaffChatAdminPage />;
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
+  if (isProducts) pageContent = <ProductCatalogPage />;
   const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
   const showHierarchy = isMasterServices && serviceView === "categories";
 
