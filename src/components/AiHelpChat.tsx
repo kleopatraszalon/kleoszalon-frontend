@@ -43,7 +43,8 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
     const text = input.trim();
     if (!text || loading) return;
 
-    const nextMessages: ChatMessage[] = [...messages, { role: "user", content: text }].slice(-10);
+    const userMessage: ChatMessage = { role: "user", content: text };
+    const nextMessages: ChatMessage[] = [...messages, userMessage].slice(-10);
     setMessages(nextMessages);
     setInput("");
     setError("");
@@ -60,7 +61,8 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
         },
       });
       const answer = String(response.data?.answer || "Nem érkezett válasz.");
-      setMessages(prev => [...prev, { role: "assistant", content: answer }].slice(-20));
+      const assistantMessage: ChatMessage = { role: "assistant", content: answer };
+      setMessages(prev => [...prev, assistantMessage].slice(-20));
     } catch (err: any) {
       const msg = err?.response?.data?.message || "Az AI támogatás most nem elérhető.";
       setError(msg);
