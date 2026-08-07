@@ -6,7 +6,7 @@ import {
 } from "recharts";
 import {
   Activity, AlertTriangle, Banknote, BriefcaseBusiness, Building2,
-  CalendarOff, CheckCircle2, Clock3, RefreshCw, Settings2, UserRoundX, UsersRound,
+  CalendarOff, CheckCircle2, Clock3, GripVertical, RefreshCw, Save, Settings2, UserRoundX, UsersRound, X,
 } from "lucide-react";
 import api from "../api/api";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -16,6 +16,7 @@ import DashboardTargets from "./dashboard/DashboardTargets";
 import LiveManagementKpis from "./dashboard/LiveManagementKpis";
 import DashboardAdminPanel, { DEFAULT_DASHBOARD_ORDER, DEFAULT_DASHBOARD_SETTINGS, type DashboardSettings } from "./dashboard/DashboardAdminPanel";
 import "./Home.css";
+import "./dashboard/DashboardInlineDrag.css";
 
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
   ? "http://localhost:5000/api"
@@ -65,6 +66,10 @@ export default function Dashboard() {
   const [dashboardSettings, setDashboardSettings] = useState<DashboardSettings>(DEFAULT_DASHBOARD_SETTINGS);
   const [dashboardOrder, setDashboardOrder] = useState<Array<keyof DashboardSettings>>(DEFAULT_DASHBOARD_ORDER);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [layoutEdit, setLayoutEdit] = useState(false);
+  const [dragKey, setDragKey] = useState<keyof DashboardSettings | null>(null);
+  const [layoutSaving, setLayoutSaving] = useState(false);
+  const [layoutNotice, setLayoutNotice] = useState("");
 
   const roles = roleList(user?.role).map(x => x.toLowerCase());
   const isAdmin = roles.includes("admin");
@@ -111,6 +116,41 @@ export default function Dashboard() {
   useEffect(() => { if (user) load(); }, [user, load]);
   useEffect(() => { if (user) loadDashboardLayout(); }, [user, loadDashboardLayout]);
 
+  const moveDashboardWidget = (fromKey: keyof DashboardSettings, toKey: keyof DashboardSettings) => {
+    if (fromKey === toKey) return;
+    setDashboardOrder(current => {
+      const next = [...current];
+      const fromIndex = next.indexOf(fromKey);
+      const toIndex = next.indexOf(toKey);
+      if (fromIndex < 0 || toIndex < 0) return current;
+      next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, fromKey);
+      return next;
+    });
+  };
+
+  const saveInlineLayout = async () => {
+    setLayoutSaving(true); setLayoutNotice("");
+    try {
+      await api.put("/transactions/dashboard-settings", {
+        role_key: "admin",
+        location_id: locationId || null,
+        settings: dashboardSettings,
+        order: dashboardOrder,
+      });
+      setLayoutEdit(false);
+      setLayoutNotice("Az elrendezés mentve.");
+      window.setTimeout(() => setLayoutNotice(""), 3000);
+    } catch (reason: any) {
+      setLayoutNotice(reason?.response?.data?.message || reason?.message || "Az elrendezés nem menthető.");
+    } finally { setLayoutSaving(false); }
+  };
+
+  const cancelInlineLayout = async () => {
+    setLayoutEdit(false); setDragKey(null); setLayoutNotice("");
+    await loadDashboardLayout();
+  };
+
   const setPreset = (days: number) => { const d = new Date(); d.setDate(d.getDate() - (days - 1)); setFrom(iso(d)); setTo(iso(new Date())); };
   const stats = data?.stats || {};
   const revenueMix = [{ name: "Szolgáltatás", value: stats.serviceRevenue || 0 }, { name: "Termék", value: stats.productRevenue || 0 }];
@@ -119,45 +159,16 @@ export default function Dashboard() {
   const renderWidget = (key: keyof DashboardSettings) => {
     if (!data || !dashboardSettings[key]) return null;
     switch (key) {
-      case "executive_overview":
-        return <ExecutiveDashboardExtras stats={stats} alerts={data.alerts} />;
-      case "period_insights":
-        return <DashboardPeriodInsights chartData={data.chartData} />;
-      case "targets":
-        return <DashboardTargets stats={stats} locationKey={String(locationId || user?.location_id || "all")} />;
-      case "live_business":
-        return <LiveManagementKpis from={from} to={to} locationId={isAdmin ? locationId : user?.location_id} appointments={Number(stats.activeAppointments || 0)} completed={Number(stats.completedAppointments || 0)} cancelled={Number(stats.cancelledAppointments || 0)} noShow={Number(stats.noShowCount || 0)} />;
-      case "classic_kpis":
-        return <section className="management-kpis">
-          <Kpi icon={<Banknote/>} label="Összes bevétel" value={money(stats.totalRevenue)} note={`${money(stats.serviceRevenue)} szolgáltatás`} tone="purple"/>
-          <Kpi icon={<Building2/>} label="Átlagos számla" value={money(stats.averageInvoice)} note={`${number(stats.activeAppointments)} időpont`} tone="blue"/>
-          <Kpi icon={<Activity/>} label="Kapacitáskihasználtság" value={pct(stats.averageCapacity)} note={`${pct(stats.completionRate)} teljesítési arány`} tone="green"/>
-          <Kpi icon={<UsersRound/>} label="Új vendégek" value={number(stats.newClients)} note={`${number(stats.totalClients)} vendég a törzsben`} tone="gold"/>
-          <Kpi icon={<CalendarOff/>} label="Betegség és szabadság" value={`${number(Number(stats.sickDays)+Number(stats.leaveDays),1)} nap`} note={`${number(stats.sickDays,1)} betegnap`} tone="pink"/>
-          <Kpi icon={<UserRoundX/>} label="Meg nem jelenés" value={number(stats.noShowCount)} note={`${pct(stats.noShowRate)} no-show arány`} tone="red"/>
-        </section>;
-      case "revenue_mix":
-        return <section className="management-grid management-grid--wide">
-          <article className="management-panel management-panel--trend"><header><div><span>FORGALOM</span><h2>Bevétel alakulása</h2></div><b>{money(stats.totalRevenue)}</b></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={data.chartData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={v => String(v).slice(5)} tick={{fontSize:11}}/><YAxis tickFormatter={v => `${Math.round(Number(v)/1000)}e`} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Legend/><Line type="monotone" dataKey="revenue" name="Összes bevétel" stroke="#7455dc" strokeWidth={3} dot={false}/><Line type="monotone" dataKey="service_revenue" name="Szolgáltatás" stroke="#e96496" strokeWidth={2} dot={false}/></LineChart></ResponsiveContainer></div></article>
-          <article className="management-panel"><header><div><span>BEVÉTELMIX</span><h2>Szolgáltatás és termék</h2></div></header><div className="management-chart management-chart--pie"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={revenueMix} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="82%" paddingAngle={4}>{revenueMix.map((_,i)=><Cell key={i} fill={colors[i]}/>)}</Pie><Tooltip formatter={tooltipMoney}/><Legend/></PieChart></ResponsiveContainer></div></article>
-        </section>;
-      case "location_performance":
-        return <section className="management-grid management-grid--half">
-          <article className="management-panel"><header><div><span>SZALONHÁLÓZAT</span><h2>Bevétel szalononként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByLocation} layout="vertical" margin={{left:20}}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><YAxis type="category" dataKey="name" width={125} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="revenue" name="Bevétel" fill="#7455dc" radius={[0,8,8,0]}/></BarChart></ResponsiveContainer></div></article>
-          <article className="management-panel"><header><div><span>SZAKMAI TELJESÍTMÉNY</span><h2>Bevétel munkakörönként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByPosition.slice(0,8)}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="position_name" tick={{fontSize:10}} interval={0} angle={-18} textAnchor="end" height={65}/><YAxis tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="service_revenue" stackId="a" name="Szolgáltatás" fill="#7455dc"/><Bar dataKey="product_revenue" stackId="a" name="Termék" fill="#ec6597" radius={[7,7,0,0]}/></BarChart></ResponsiveContainer></div></article>
-        </section>;
-      case "hr_performance":
-        return <section className="management-grid management-grid--half">
-          <article className="management-panel management-table-panel"><header><div><span>MUNKAKÖRÖK</span><h2>Szakmai eredményesség</h2></div><BriefcaseBusiness/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Bevétel</th><th>Teljesítés</th><th>Ft/óra</th><th>Kapacitás</th></tr></thead><tbody>{data.revenueByPosition.map((r,i)=><tr key={r.position_name}><td><i style={{background:colors[i%colors.length]}}/>{r.position_name}</td><td><b>{money(r.revenue)}</b></td><td>{number(r.completed)}</td><td>{money(r.revenue_per_hour)}</td><td><span className="capacity-pill">{pct(r.capacity)}</span></td></tr>)}</tbody></table></div></article>
-          <article className="management-panel management-table-panel"><header><div><span>HUMÁN MUTATÓK</span><h2>Betegségek és hiányzások</h2></div><CalendarOff/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Betegnap</th><th>Szabadság</th><th>Igazolatlan</th><th>Hiányzás</th></tr></thead><tbody>{data.absenceByPosition.length ? data.absenceByPosition.map(r=><tr key={r.position_name}><td>{r.position_name}</td><td>{number(r.sick_days,1)}</td><td>{number(Number(r.paid_leave_days)+Number(r.unpaid_leave_days),1)}</td><td className={Number(r.unexcused_days)>0?"danger-text":""}>{number(r.unexcused_days,1)}</td><td><span className="absence-pill">{pct(r.absence_rate)}</span></td></tr>) : <tr><td colSpan={5}>Nincs hiányzási adat az időszakban.</td></tr>}</tbody></table></div></article>
-        </section>;
-      case "top_staff_alerts":
-        return <section className="management-grid management-grid--half">
-          <article className="management-panel management-table-panel"><header><div><span>TOPLISTA</span><h2>Legeredményesebb munkatársak</h2></div><CheckCircle2/></header><div className="management-table-wrap"><table><thead><tr><th>Munkatárs</th><th>Szalon</th><th>Bevétel</th><th>Kapacitás</th></tr></thead><tbody>{data.topEmployees.map((r,i)=><tr key={r.id}><td><span className="rank">{i+1}</span><b>{r.full_name}</b><small>{r.position_name}</small></td><td>{r.location_name}</td><td><b>{money(r.revenue)}</b></td><td>{pct(r.capacity)}</td></tr>)}</tbody></table></div></article>
-          <article className="management-panel management-alerts"><header><div><span>VEZETŐI FIGYELMEZTETÉSEK</span><h2>Teendők és kockázatok</h2></div><Clock3/></header>{data.alerts.length ? data.alerts.map((a,i)=><div key={i} className={`management-alert is-${a.level}`}><AlertTriangle/><span><b>{a.title}</b><small>{a.detail}</small></span></div>) : <div className="management-alert is-success"><CheckCircle2/><span><b>Minden fő mutató rendben</b><small>Az időszakban nincs kiemelt vezetői riasztás.</small></span></div>}</article>
-        </section>;
-      default:
-        return null;
+      case "executive_overview": return <ExecutiveDashboardExtras stats={stats} alerts={data.alerts} />;
+      case "period_insights": return <DashboardPeriodInsights chartData={data.chartData} />;
+      case "targets": return <DashboardTargets stats={stats} locationKey={String(locationId || user?.location_id || "all")} />;
+      case "live_business": return <LiveManagementKpis from={from} to={to} locationId={isAdmin ? locationId : user?.location_id} appointments={Number(stats.activeAppointments || 0)} completed={Number(stats.completedAppointments || 0)} cancelled={Number(stats.cancelledAppointments || 0)} noShow={Number(stats.noShowCount || 0)} />;
+      case "classic_kpis": return <section className="management-kpis"><Kpi icon={<Banknote/>} label="Összes bevétel" value={money(stats.totalRevenue)} note={`${money(stats.serviceRevenue)} szolgáltatás`} tone="purple"/><Kpi icon={<Building2/>} label="Átlagos számla" value={money(stats.averageInvoice)} note={`${number(stats.activeAppointments)} időpont`} tone="blue"/><Kpi icon={<Activity/>} label="Kapacitáskihasználtság" value={pct(stats.averageCapacity)} note={`${pct(stats.completionRate)} teljesítési arány`} tone="green"/><Kpi icon={<UsersRound/>} label="Új vendégek" value={number(stats.newClients)} note={`${number(stats.totalClients)} vendég a törzsben`} tone="gold"/><Kpi icon={<CalendarOff/>} label="Betegség és szabadság" value={`${number(Number(stats.sickDays)+Number(stats.leaveDays),1)} nap`} note={`${number(stats.sickDays,1)} betegnap`} tone="pink"/><Kpi icon={<UserRoundX/>} label="Meg nem jelenés" value={number(stats.noShowCount)} note={`${pct(stats.noShowRate)} no-show arány`} tone="red"/></section>;
+      case "revenue_mix": return <section className="management-grid management-grid--wide"><article className="management-panel management-panel--trend"><header><div><span>FORGALOM</span><h2>Bevétel alakulása</h2></div><b>{money(stats.totalRevenue)}</b></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><LineChart data={data.chartData}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="date" tickFormatter={v => String(v).slice(5)} tick={{fontSize:11}}/><YAxis tickFormatter={v => `${Math.round(Number(v)/1000)}e`} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Legend/><Line type="monotone" dataKey="revenue" name="Összes bevétel" stroke="#7455dc" strokeWidth={3} dot={false}/><Line type="monotone" dataKey="service_revenue" name="Szolgáltatás" stroke="#e96496" strokeWidth={2} dot={false}/></LineChart></ResponsiveContainer></div></article><article className="management-panel"><header><div><span>BEVÉTELMIX</span><h2>Szolgáltatás és termék</h2></div></header><div className="management-chart management-chart--pie"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={revenueMix} dataKey="value" nameKey="name" innerRadius="55%" outerRadius="82%" paddingAngle={4}>{revenueMix.map((_,i)=><Cell key={i} fill={colors[i]}/>)}</Pie><Tooltip formatter={tooltipMoney}/><Legend/></PieChart></ResponsiveContainer></div></article></section>;
+      case "location_performance": return <section className="management-grid management-grid--half"><article className="management-panel"><header><div><span>SZALONHÁLÓZAT</span><h2>Bevétel szalononként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByLocation} layout="vertical" margin={{left:20}}><CartesianGrid strokeDasharray="4 4" horizontal={false}/><XAxis type="number" tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><YAxis type="category" dataKey="name" width={125} tick={{fontSize:11}}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="revenue" name="Bevétel" fill="#7455dc" radius={[0,8,8,0]}/></BarChart></ResponsiveContainer></div></article><article className="management-panel"><header><div><span>SZAKMAI TELJESÍTMÉNY</span><h2>Bevétel munkakörönként</h2></div></header><div className="management-chart"><ResponsiveContainer width="100%" height="100%"><BarChart data={data.revenueByPosition.slice(0,8)}><CartesianGrid strokeDasharray="4 4" vertical={false}/><XAxis dataKey="position_name" tick={{fontSize:10}} interval={0} angle={-18} textAnchor="end" height={65}/><YAxis tickFormatter={v=>`${Math.round(Number(v)/1000)}e`}/><Tooltip formatter={tooltipMoney}/><Bar dataKey="service_revenue" stackId="a" name="Szolgáltatás" fill="#7455dc"/><Bar dataKey="product_revenue" stackId="a" name="Termék" fill="#ec6597" radius={[7,7,0,0]}/></BarChart></ResponsiveContainer></div></article></section>;
+      case "hr_performance": return <section className="management-grid management-grid--half"><article className="management-panel management-table-panel"><header><div><span>MUNKAKÖRÖK</span><h2>Szakmai eredményesség</h2></div><BriefcaseBusiness/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Bevétel</th><th>Teljesítés</th><th>Ft/óra</th><th>Kapacitás</th></tr></thead><tbody>{data.revenueByPosition.map((r,i)=><tr key={r.position_name}><td><i style={{background:colors[i%colors.length]}}/>{r.position_name}</td><td><b>{money(r.revenue)}</b></td><td>{number(r.completed)}</td><td>{money(r.revenue_per_hour)}</td><td><span className="capacity-pill">{pct(r.capacity)}</span></td></tr>)}</tbody></table></div></article><article className="management-panel management-table-panel"><header><div><span>HUMÁN MUTATÓK</span><h2>Betegségek és hiányzások</h2></div><CalendarOff/></header><div className="management-table-wrap"><table><thead><tr><th>Munkakör</th><th>Betegnap</th><th>Szabadság</th><th>Igazolatlan</th><th>Hiányzás</th></tr></thead><tbody>{data.absenceByPosition.length ? data.absenceByPosition.map(r=><tr key={r.position_name}><td>{r.position_name}</td><td>{number(r.sick_days,1)}</td><td>{number(Number(r.paid_leave_days)+Number(r.unpaid_leave_days),1)}</td><td className={Number(r.unexcused_days)>0?"danger-text":""}>{number(r.unexcused_days,1)}</td><td><span className="absence-pill">{pct(r.absence_rate)}</span></td></tr>) : <tr><td colSpan={5}>Nincs hiányzási adat az időszakban.</td></tr>}</tbody></table></div></article></section>;
+      case "top_staff_alerts": return <section className="management-grid management-grid--half"><article className="management-panel management-table-panel"><header><div><span>TOPLISTA</span><h2>Legeredményesebb munkatársak</h2></div><CheckCircle2/></header><div className="management-table-wrap"><table><thead><tr><th>Munkatárs</th><th>Szalon</th><th>Bevétel</th><th>Kapacitás</th></tr></thead><tbody>{data.topEmployees.map((r,i)=><tr key={r.id}><td><span className="rank">{i+1}</span><b>{r.full_name}</b><small>{r.position_name}</small></td><td>{r.location_name}</td><td><b>{money(r.revenue)}</b></td><td>{pct(r.capacity)}</td></tr>)}</tbody></table></div></article><article className="management-panel management-alerts"><header><div><span>VEZETŐI FIGYELMEZTETÉSEK</span><h2>Teendők és kockázatok</h2></div><Clock3/></header>{data.alerts.length ? data.alerts.map((a,i)=><div key={i} className={`management-alert is-${a.level}`}><AlertTriangle/><span><b>{a.title}</b><small>{a.detail}</small></span></div>) : <div className="management-alert is-success"><CheckCircle2/><span><b>Minden fő mutató rendben</b><small>Az időszakban nincs kiemelt vezetői riasztás.</small></span></div>}</article></section>;
+      default: return null;
     }
   };
 
@@ -171,13 +182,21 @@ export default function Dashboard() {
         <label><span>Kezdőnap</span><input type="date" value={from} onChange={e => setFrom(e.target.value)}/></label>
         <label><span>Zárónap</span><input type="date" value={to} onChange={e => setTo(e.target.value)}/></label>
         {isAdmin && <label><span>Szalon</span><select value={locationId} onChange={e => setLocationId(e.target.value)}><option value="">Összes szalon</option>{data?.locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>}
+        {isAdmin && !layoutEdit && <button className="management-refresh dashboard-inline-edit-button" type="button" onClick={() => { setLayoutEdit(true); setLayoutNotice(""); }}><GripVertical size={17}/>Elrendezés</button>}
+        {isAdmin && layoutEdit && <><button className="management-refresh dashboard-inline-save" type="button" onClick={saveInlineLayout} disabled={layoutSaving}><Save size={17}/>{layoutSaving ? "Mentés…" : "Mentés"}</button><button className="management-refresh dashboard-inline-cancel" type="button" onClick={cancelInlineLayout}><X size={17}/>Mégse</button></>}
         {isAdmin && <button className="management-refresh" type="button" onClick={() => setAdminOpen(true)}><Settings2 size={17}/>Dashboard admin</button>}
         <button className="management-refresh" onClick={load} disabled={loading}><RefreshCw size={17} className={loading ? "spin" : ""}/>{loading ? "Frissítés…" : "Frissítés"}</button>
       </div>
     </header>
 
+    {layoutNotice && <div className="dashboard-inline-notice">{layoutNotice}</div>}
+    {layoutEdit && <div className="dashboard-inline-hint"><GripVertical size={18}/><span><b>Elrendezés szerkesztése</b> – fogja meg bármelyik dashboard blokkot, és húzza a kívánt helyre. A sorrend csak a Mentés gomb után válik véglegessé.</span></div>}
     {error && <div className="management-error"><AlertTriangle size={18}/><span><b>Nem sikerült betölteni a kimutatásokat.</b>{error}</span></div>}
-    {loading && !data ? <div className="management-loading"><RefreshCw className="spin"/> Vezetői adatok összeállítása…</div> : data && <>{dashboardOrder.map(key => <React.Fragment key={key}>{renderWidget(key)}</React.Fragment>)}</>}
+    {loading && !data ? <div className="management-loading"><RefreshCw className="spin"/> Vezetői adatok összeállítása…</div> : data && <div className={layoutEdit ? "dashboard-inline-layout is-editing" : "dashboard-inline-layout"}>{dashboardOrder.map(key => {
+      const widget = renderWidget(key);
+      if (!widget) return null;
+      return <div key={key} className={`dashboard-sortable-widget ${dragKey===key?"is-dragging":""}`} draggable={layoutEdit} onDragStart={() => layoutEdit && setDragKey(key)} onDragOver={e => { if(layoutEdit)e.preventDefault(); }} onDrop={() => { if(layoutEdit && dragKey) moveDashboardWidget(dragKey,key); setDragKey(null); }} onDragEnd={() => setDragKey(null)}>{layoutEdit && <div className="dashboard-sortable-handle"><GripVertical size={18}/><span>Fogd és húzd</span></div>}{widget}</div>;
+    })}</div>}
     {isAdmin && <DashboardAdminPanel open={adminOpen} onClose={() => setAdminOpen(false)} value={dashboardSettings} order={dashboardOrder} currentLocationId={locationId} locations={data?.locations || []} onSaved={loadDashboardLayout} />}
   </main>;
 }
