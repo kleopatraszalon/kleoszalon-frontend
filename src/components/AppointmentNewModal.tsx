@@ -10,8 +10,9 @@ type PickerItem = {
   phone?: string | null; email?: string | null; color?: string | null; location_id?: string | null;
   duration_minutes?: number | string | null; base_price?: number | string | null;
   list_price?: number | string | null; promo_price?: number | string | null;
-  service_type_name?: string | null; vip?: boolean | null; is_vip?: boolean | null;
-  vip_status?: string | null; loyalty_points?: number | string | null; points?: number | string | null;
+  service_type_name?: string | null; category_name?: string | null; category?: string | null;
+  vip?: boolean | null; is_vip?: boolean | null; vip_status?: string | null;
+  loyalty_points?: number | string | null; points?: number | string | null;
   visit_count?: number | string | null; appointments_count?: number | string | null;
   last_visit_at?: string | null; last_appointment_at?: string | null;
   favorite_service_name?: string | null; favourite_service_name?: string | null;
@@ -28,6 +29,7 @@ const addMinutesHM = (value: string, duration: number) => minutesToHM(hmToMinute
 const displayName = (item: PickerItem) => item.full_name || item.name || item.title || item.id;
 const serviceDuration = (item: PickerItem) => Math.max(Number(item.duration_minutes || 30), 5);
 const servicePrice = (item: PickerItem) => Number(item.promo_price ?? item.list_price ?? item.base_price ?? 0);
+const serviceGroup = (item: PickerItem) => item.service_type_name || item.category_name || item.category || "Egyéb szolgáltatások";
 const combineISO = (date: string, time: string) => new Date(`${date}T${time}:00`).toISOString();
 
 export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initialDate, initialStartMinutes, initialDurationMinutes = 30 }: Props) {
@@ -45,6 +47,8 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
   const [note, setNote] = useState("");
   const [clientQuery, setClientQuery] = useState("");
   const [serviceQuery, setServiceQuery] = useState("");
+  const [serviceCategory, setServiceCategory] = useState("all");
+  const [serviceToAdd, setServiceToAdd] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
@@ -71,7 +75,18 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
   const totalPrice = useMemo(() => selectedServices.reduce((sum, service) => sum + servicePrice(service), 0), [selectedServices]);
   const endHM = useMemo(() => addMinutesHM(startHM, totalDuration), [startHM, totalDuration]);
   const visibleClients = useMemo(() => clients.filter((client) => `${displayName(client)} ${client.phone || ""}`.toLocaleLowerCase("hu-HU").includes(clientQuery.toLocaleLowerCase("hu-HU"))).slice(0, 8), [clients, clientQuery]);
-  const visibleServices = useMemo(() => services.filter((service) => !selectedServiceIds.includes(service.id) && `${displayName(service)} ${service.service_type_name || ""}`.toLocaleLowerCase("hu-HU").includes(serviceQuery.toLocaleLowerCase("hu-HU"))).slice(0, 12), [services, serviceQuery, selectedServiceIds]);
+  const serviceCategories = useMemo(() => Array.from(new Set(services.map(serviceGroup))).sort((a,b)=>a.localeCompare(b,"hu")), [services]);
+  const selectableServices = useMemo(() => services
+    .filter((service) => !selectedServiceIds.includes(service.id))
+    .filter((service) => serviceCategory === "all" || serviceGroup(service) === serviceCategory)
+    .filter((service) => `${displayName(service)} ${serviceGroup(service)}`.toLocaleLowerCase("hu-HU").includes(serviceQuery.toLocaleLowerCase("hu-HU")))
+    .sort((a,b) => serviceGroup(a).localeCompare(serviceGroup(b),"hu") || displayName(a).localeCompare(displayName(b),"hu")),
+    [services, selectedServiceIds, serviceCategory, serviceQuery]);
+  const groupedServices = useMemo(() => {
+    const groups = new Map<string, PickerItem[]>();
+    selectableServices.forEach(service => { const group = serviceGroup(service); groups.set(group, [...(groups.get(group) || []), service]); });
+    return [...groups.entries()];
+  }, [selectableServices]);
   const filteredEmployees = useMemo(() => employees.filter((employee) => !locationId || !employee.location_id || employee.location_id === locationId), [employees, locationId]);
 
   const checkConflicts = useCallback(async () => {
@@ -87,7 +102,7 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
 
   useEffect(() => { const timer = window.setTimeout(() => void checkConflicts(), 350); return () => window.clearTimeout(timer); }, [checkConflicts]);
 
-  const addService = (service: PickerItem) => { setSelectedServiceIds((current) => [...current, service.id]); setServiceQuery(""); setError(null); };
+  const addService = (service: PickerItem) => { setSelectedServiceIds((current) => [...current, service.id]); setServiceToAdd(""); setError(null); };
   const removeService = (id: string) => setSelectedServiceIds((current) => current.filter((serviceId) => serviceId !== id));
   const canSubmit = Boolean(locationId && employeeId && clientId && selectedServiceIds.length && date && startHM && !conflicts.length && !checking && !saving);
 
@@ -113,7 +128,16 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
           {error && <div className="booking-error">{error}</div>}
           <div className="booking-section"><div className="booking-section-title"><MapPin size={17}/><div><h3>Hely és munkatárs</h3><p>Hol és kinél történjen a szolgáltatás?</p></div></div><div className="booking-two-columns"><label>Telephely<select value={locationId} onChange={(event) => setLocationId(event.target.value)}><option value="">Válasszon telephelyet</option>{locations.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label><label>Munkatárs<select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Válasszon munkatársat</option>{filteredEmployees.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label></div></div>
           <div className="booking-section"><div className="booking-section-title"><UserRound size={17}/><div><h3>Vendég</h3><p>Keresés név vagy telefonszám alapján</p></div></div><label className="booking-search"><Search size={16}/><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Vendég keresése..."/></label><div className="booking-picker-list">{visibleClients.map((client) => <button key={client.id} className={clientId === client.id ? "selected" : ""} onClick={() => setClientId(client.id)}><span className="booking-avatar">{displayName(client).charAt(0)}</span><span><b>{displayName(client)}</b><small>{client.phone || "Nincs telefonszám"}</small></span>{clientId === client.id && <Check size={17}/>}</button>)}</div><ClientBookingInsights client={selectedClient}/></div>
-          <div className="booking-section"><div className="booking-section-title"><Plus size={17}/><div><h3>Szolgáltatások</h3><p>Több szolgáltatás is hozzáadható egy foglaláshoz</p></div></div>{selectedServices.length > 0 && <div className="selected-services">{selectedServices.map((service, index) => <article key={service.id}><span>{index + 1}</span><div><b>{displayName(service)}</b><small>{serviceDuration(service)} perc · {servicePrice(service).toLocaleString("hu-HU")} Ft</small></div><button onClick={() => removeService(service.id)} aria-label="Szolgáltatás eltávolítása"><Trash2 size={16}/></button></article>)}</div>}<label className="booking-search"><Search size={16}/><input value={serviceQuery} onChange={(event) => setServiceQuery(event.target.value)} placeholder="Szolgáltatás hozzáadása..."/></label><div className="service-picker-grid">{visibleServices.map((service) => <button key={service.id} onClick={() => addService(service)}><span><b>{displayName(service)}</b><small>{service.service_type_name || "Szolgáltatás"}</small></span><span><b>{servicePrice(service).toLocaleString("hu-HU")} Ft</b><small>{serviceDuration(service)} perc</small></span><Plus size={16}/></button>)}</div></div>
+          <div className="booking-section booking-services-section"><div className="booking-section-title"><Plus size={17}/><div><h3>Szolgáltatások</h3><p>Kategória szerint csoportosítva, több szolgáltatás is hozzáadható.</p></div></div>
+            {selectedServices.length > 0 && <div className="selected-services">{selectedServices.map((service, index) => <article key={service.id}><span>{index + 1}</span><div><b>{displayName(service)}</b><small>{serviceGroup(service)} · {serviceDuration(service)} perc · {servicePrice(service).toLocaleString("hu-HU")} Ft</small></div><button onClick={() => removeService(service.id)} aria-label="Szolgáltatás eltávolítása"><Trash2 size={16}/></button></article>)}</div>}
+            <div className="service-select-panel">
+              <label><span>Kategória</span><select value={serviceCategory} onChange={(e)=>{setServiceCategory(e.target.value);setServiceToAdd("");}}><option value="all">Összes kategória</option>{serviceCategories.map(category=><option key={category} value={category}>{category}</option>)}</select></label>
+              <label className="service-search-field"><span>Keresés</span><div className="booking-search"><Search size={16}/><input value={serviceQuery} onChange={(event) => setServiceQuery(event.target.value)} placeholder="Szolgáltatás keresése..."/></div></label>
+              <label className="service-main-select"><span>Szolgáltatás</span><select value={serviceToAdd} onChange={(e)=>setServiceToAdd(e.target.value)}><option value="">Válasszon szolgáltatást</option>{groupedServices.map(([group, items])=><optgroup key={group} label={group}>{items.map(service=><option key={service.id} value={service.id}>{displayName(service)} — {serviceDuration(service)} perc — {servicePrice(service).toLocaleString("hu-HU")} Ft</option>)}</optgroup>)}</select></label>
+              <button type="button" className="service-add-button" disabled={!serviceToAdd} onClick={()=>{const service=services.find(item=>item.id===serviceToAdd);if(service)addService(service);}}><Plus size={16}/> Hozzáadás</button>
+            </div>
+            {!selectableServices.length && <div className="service-empty-state">Nincs több választható szolgáltatás a megadott szűrés mellett.</div>}
+          </div>
           <div className="booking-section"><div className="booking-section-title"><CalendarDays size={17}/><div><h3>Időzítés</h3><p>A befejezést a szolgáltatások alapján számítjuk</p></div></div><div className="booking-three-columns"><label>Dátum<input type="date" value={date} onChange={(event) => setDate(event.target.value)}/></label><label>Kezdés<input type="time" step={900} value={startHM} onChange={(event) => setStartHM(event.target.value)}/></label><label>Befejezés<input type="time" value={endHM} readOnly/></label></div>{checking && <p className="booking-checking">Ütközés ellenőrzése…</p>}{conflicts.length > 0 && <div className="booking-conflict">Ez az időpont foglalt. Válasszon másik kezdési időt.</div>}</div>
           <div className="booking-section"><label>Megjegyzés<textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Belső megjegyzés a foglaláshoz..."/></label></div>
         </div>
