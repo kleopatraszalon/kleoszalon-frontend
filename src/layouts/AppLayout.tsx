@@ -17,6 +17,7 @@ import AuditLogPage from "../pages/AuditLogPage";
 import StaffChatAdminPage from "../pages/StaffChatAdminPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import "./AppLayout.css";
+import "./MobileSidebarFix.css";
 
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
