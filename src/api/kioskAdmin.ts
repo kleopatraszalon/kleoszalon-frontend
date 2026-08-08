@@ -4,6 +4,7 @@ export type KioskLocation = { id: string; name: string };
 export type KioskService = {
   id: string;
   name: string;
+  description?: string | null;
   base_price: number | string | null;
   duration_minutes: number | null;
   service_type_id: string | null;
@@ -18,11 +19,23 @@ export type KioskMenu = {
   created_at?: string;
   updated_at?: string;
 };
+export type KioskMenuItem = {
+  serviceId: string;
+  enabled: boolean;
+  order: number;
+  imageUrl?: string;
+  badgeText?: string;
+  featured?: boolean;
+  displayName?: string;
+};
 export type KioskSection = {
   id: string;
   title: string;
+  subtitle?: string;
+  imageUrl?: string;
+  enabled?: boolean;
   order: number;
-  items: { serviceId: string; enabled: boolean; order: number }[];
+  items: KioskMenuItem[];
 };
 export type KioskStats = {
   total_services: number;
@@ -46,6 +59,7 @@ export async function getKioskAdminMenu(locationId: string) {
     sections: KioskSection[];
     services: KioskService[];
     stats?: KioskStats;
+    defaults?: Record<string, any>;
   }>("/admin/kiosk/menu", { params: { locationId } });
   if (!r.data.ok) throw new Error(r.data.error || "kiosk_menu_failed");
   return r.data;
@@ -61,14 +75,14 @@ export async function saveKioskSettings(menuId: string, input: {
   name: string;
   is_active: boolean;
   theme: Record<string, any>;
-  sections: { id: string; title: string; order: number }[];
+  sections: { id: string; title: string; subtitle?: string; imageUrl?: string; enabled?: boolean; order: number }[];
 }) {
   const r = await api.put<ApiOkResponse>(`/admin/kiosk/menu/${menuId}/settings`, input);
   if (!r.data.ok) throw new Error(r.data.error || "kiosk_settings_failed");
   return true;
 }
 
-export async function saveKioskItems(menuId: string, sections: { sectionId: string; items: { serviceId: string; enabled: boolean; order: number }[] }[]) {
+export async function saveKioskItems(menuId: string, sections: { sectionId: string; items: KioskMenuItem[] }[]) {
   const r = await api.put<ApiOkResponse>(`/admin/kiosk/menu/${menuId}/items`, { sections });
   if (!r.data.ok) throw new Error(r.data.error || "kiosk_items_failed");
   return true;
