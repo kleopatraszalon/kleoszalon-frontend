@@ -335,21 +335,50 @@
 
 .executive-checklist-card footer button svg { width: 14px; }
 
+/* Kompakt vezetői checklist: ugyanaz az információ, kisebb dashboard-lábnyom. */
+.executive-checklist-card { border-radius: 14px; }
+.executive-checklist-card > header { gap: 12px; padding: 10px 14px 8px; align-items: center; }
+.executive-checklist-card > header > div:first-child > span { font-size: 8px; }
+.executive-checklist-card h2 { margin: 2px 0 3px; font-size: 14px; }
+.executive-checklist-card header p { font-size: 9px; line-height: 1.35; }
+.executive-checklist-card__summary { gap: 4px; }
+.executive-checklist-card__summary > span { min-width: 48px; padding: 5px 6px; border-radius: 9px; }
+.executive-checklist-card__summary b { font-size: 13px; }
+.executive-checklist-card__summary small { margin-top: 2px; font-size: 6.5px; }
+.executive-checklist-scroll { max-height: 200px; padding: 5px 7px; }
+.executive-checklist-scroll::-webkit-scrollbar { width: 7px; }
+.executive-checklist-row { grid-template-columns: 26px minmax(145px,.85fr) minmax(350px,1.7fr); gap: 6px; min-height: 46px; padding: 5px 7px; margin-bottom: 4px; border-radius: 9px; }
+.executive-checklist-row.is-red,.executive-checklist-row.is-amber,.executive-checklist-row.is-green { border-left-width: 3px; }
+.executive-checklist-row__status { width: 23px; height: 23px; border-radius: 7px; }
+.executive-checklist-row__status svg { width: 12px; height: 12px; }
+.executive-checklist-row__person { gap: 1px; }
+.executive-checklist-row__person b { font-size: 10px; }
+.executive-checklist-row__person small { font-size: 7.5px; }
+.executive-checklist-row__periods { gap: 4px; }
+.checklist-period-pill { gap: 1px 5px; padding: 4px 6px; border-radius: 8px; }
+.checklist-period-pill b { font-size: 6.5px; }
+.checklist-period-pill strong { font-size: 9px; }
+.checklist-period-pill small { font-size: 6.5px; }
+.executive-checklist-empty,.executive-checklist-error { min-height: 70px; padding: 12px; font-size: 9px; }
+.executive-checklist-card footer { padding: 6px 10px; }
+.executive-checklist-card footer button { gap: 5px; padding: 5px 8px; border-radius: 8px; font-size: 8px; }
+.executive-checklist-card footer button svg { width: 12px; }
+
 @media (max-width: 1100px) {
   .executive-extras {
     grid-template-columns: 1fr;
   }
 
   .executive-checklist-row {
-    grid-template-columns: 34px minmax(150px, .7fr) minmax(390px, 1.5fr);
+    grid-template-columns: 26px minmax(135px, .7fr) minmax(330px, 1.5fr);
   }
 }
 
 @media (max-width: 760px) {
-  .executive-checklist-card > header { flex-direction: column; }
+  .executive-checklist-card > header { flex-direction: column; align-items: stretch; }
   .executive-checklist-card__summary { width: 100%; }
   .executive-checklist-card__summary > span { flex: 1; }
-  .executive-checklist-row { grid-template-columns: 34px 1fr; }
+  .executive-checklist-row { grid-template-columns: 26px 1fr; }
   .executive-checklist-row__periods { grid-column: 1 / -1; }
 }
 
