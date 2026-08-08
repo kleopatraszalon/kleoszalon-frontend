@@ -1,6 +1,7 @@
 import React,{useEffect,useMemo,useState}from'react';
 import{Link}from'react-router-dom';
 import{apiFetch}from'../utils/api';
+import WorkOrderNewModalPage from'./WorkOrderNewModalPage';
 
 type WorkOrder={id:string;work_order_number?:string;title:string;status?:string;created_at?:string;locked_at?:string;archived_at?:string;location_name?:string;client_name?:string;employee_name?:string;can_edit?:boolean};
 type Filter='all'|'new'|'open'|'closed';
@@ -15,6 +16,7 @@ export default function WorkOrdersList(){
   const[error,setError]=useState<string|null>(null);
   const[warning,setWarning]=useState<string|null>(null);
   const[filter,setFilter]=useState<Filter>('new');
+  const[newOpen,setNewOpen]=useState(false);
 
   async function load(){
     setLoading(true);setError(null);setWarning(null);
@@ -48,14 +50,14 @@ export default function WorkOrdersList(){
   return <div className="home-container app-shell app-shell--collapsed"><main className="calendar-container">
     <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem',alignItems:'center',gap:12}}>
       <div><h2 style={{fontSize:'1.5rem',fontWeight:700,margin:0}}>Munkalapok</h2><div style={{fontSize:12,color:'#667085',marginTop:4}}>{scopeText}. Az időpontból, online foglalásból és kioskból keletkező munkalapok egy listában vannak.</div></div>
-      {canEdit&&<Link to="/workorders/new" style={{backgroundColor:'#4f46e5',color:'#fff',borderRadius:7,padding:'0.45rem 0.9rem',fontSize:'0.9rem',fontWeight:700,textDecoration:'none'}}>+ Új munkalap</Link>}
+      {canEdit&&<button type="button" onClick={()=>setNewOpen(true)} style={{backgroundColor:'#4f46e5',color:'#fff',border:'0',borderRadius:7,padding:'0.55rem 0.95rem',fontSize:'0.9rem',fontWeight:700,cursor:'pointer'}}>+ Új munkalap</button>}
     </div>
     <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:14}}>{([['new','Új',counts.new],['open','Nyitott',counts.open],['closed','Lezárt',counts.closed],['all','Összes',counts.all]]as any[]).map(([key,label,count])=><button key={key} onClick={()=>setFilter(key)} style={filter===key?activeFilter:filterButton}>{label} <b>{count}</b></button>)}</div>
     {loading&&<p>Betöltés...</p>}
     {warning&&<p style={{color:'#b54708',background:'#fffaeb',padding:'10px 12px',borderRadius:8}}>{warning}</p>}
     {error&&<div style={{color:'#b42318',background:'#fef3f2',padding:'12px',borderRadius:8,display:'flex',justifyContent:'space-between',gap:12,alignItems:'center'}}><span>{error}</span><button onClick={()=>void load()} style={retryButton}>Újrapróbálás</button></div>}
     {!loading&&!error&&<div style={{overflowX:'auto'}}><table style={{width:'100%',borderCollapse:'collapse',fontSize:'0.88rem'}}><thead><tr><th style={th}>Munkalapszám</th><th style={th}>Szalon</th><th style={th}>Vendég</th><th style={th}>Munkatárs</th><th style={th}>Státusz</th><th style={th}>Hozzáférés</th><th style={th}>Létrehozva</th></tr></thead><tbody>{shown.map(wo=><tr key={wo.id}><td style={td}><Link to={`/workorders/${wo.id}`} style={{fontWeight:900,letterSpacing:.25}}>{wo.work_order_number||wo.id}</Link></td><td style={td}>{wo.location_name||'—'}</td><td style={td}>{wo.client_name||'—'}</td><td style={td}>{wo.employee_name||'—'}</td><td style={td}>{statusHu(wo.status)}</td><td style={td}>{wo.locked_at?<span style={locked}>LEZÁRT · ARCHIVÁLT</span>:wo.can_edit?<span style={edit}>SZERKESZTHETŐ</span>:<span style={readonly}>CSAK OLVASHATÓ</span>}</td><td style={td}>{wo.created_at?new Date(wo.created_at).toLocaleString('hu-HU'):'—'}</td></tr>)}{shown.length===0&&<tr><td colSpan={7} style={{padding:'1rem',textAlign:'center'}}>Ebben a státuszcsoportban nincs munkalap.</td></tr>}</tbody></table></div>}
-  </main></div>
+  </main>{newOpen&&<WorkOrderNewModalPage/>}</div>
 }
 
 const th:React.CSSProperties={textAlign:'left',padding:'0.6rem 0.45rem',borderBottom:'1px solid #e5e7eb',whiteSpace:'nowrap'};
