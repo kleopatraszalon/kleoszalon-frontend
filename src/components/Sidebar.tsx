@@ -7,7 +7,7 @@ import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
 
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000/api" : "https://kleoszalon-api-1.onrender.com/api";
-const MENU_CACHE_KEY = "kleo.menu.cache.v3";
+const MENU_CACHE_KEY = "kleo.menu.cache.v4";
 interface RawMenuItem { id:number; name:string; icon?:string|null; route?:string|null; parent_id?:number|null; required_role?:string|null; order_index?:number|null; submenus?:RawMenuItem[]; }
 interface MenuItem { id:number; name:string; icon?:string; route?:string; children:MenuItem[]; }
 interface SidebarProps { user?: { role?: string|string[]|null } | null; }
@@ -30,7 +30,7 @@ const FALLBACK:MenuItem[]=[
 {id:90011,name:"Szalonhálózat",icon:"Building2",route:"/modules/network",children:[]},
 {id:90012,name:"Kommunikáció és marketing",icon:"Megaphone",route:"/modules/marketing",children:[]},
 {id:90013,name:"Online foglalás és ügyfélalkalmazás",icon:"Globe2",route:"/modules/online-booking",children:[]},
-{id:90014,name:"Tudásbázis",icon:"BookOpenText",route:"/modules/knowledge",children:[]},
+{id:90014,name:"Tudásbázis",icon:"BookOpenText",children:[{id:90650,name:"Check listák",route:"/knowledge-base/checklists",children:[]}]},
 {id:90015,name:"Webshop és értékesítés",icon:"ShoppingBag",route:"/webshop/admin",children:[]},
 {id:90016,name:"Kijelzők és kioszk",icon:"MonitorSmartphone",route:"/modules/screens",children:[]},
 {id:90017,name:"Integrációk és API",icon:"PlugZap",route:"/modules/integrations",children:[]},
