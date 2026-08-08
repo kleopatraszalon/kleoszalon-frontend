@@ -11,8 +11,11 @@ const FLOW = [
   { icon: <CreditCard size={18} />, title: "Fizetés és lezárás", text: "Fizetési módok, mentés vagy lezárás" },
 ];
 
-export default function WorkOrderNewModalPage() {
+type Props = { onClose?: () => void };
+
+export default function WorkOrderNewModalPage({ onClose }: Props) {
   const navigate = useNavigate();
+  const close = () => onClose ? onClose() : navigate("/workorders");
 
   return (
     <div className="wo-modal-backdrop" role="presentation">
@@ -23,7 +26,7 @@ export default function WorkOrderNewModalPage() {
             <h1 id="wo-modal-title">Munkalap rögzítése</h1>
             <p>A munkalap teljes folyamata egy ablakban, a vendég érkezésétől a fizetésig.</p>
           </div>
-          <button className="wo-modal-close" type="button" onClick={() => navigate("/workorders")} aria-label="Munkalap ablak bezárása" title="Bezárás">
+          <button className="wo-modal-close" type="button" onClick={close} aria-label="Munkalap ablak bezárása" title="Bezárás">
             <X size={22} />
           </button>
         </header>
