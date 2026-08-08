@@ -1,0 +1,21 @@
+@media (max-width: 900px) {
+  .kleo-sidebar-menu-item[draggable="true"] > .kleo-sidebar-menu-button > svg:first-child {
+    display: none !important;
+  }
+
+  .kleo-sidebar-menu-item[draggable="true"] > .kleo-sidebar-menu-button {
+    grid-template-columns: 20px minmax(0, 1fr) 18px !important;
+  }
+
+  .kleo-sidebar-menu-item[draggable="true"] > .kleo-sidebar-menu-link {
+    grid-template-columns: 20px minmax(0, 1fr) !important;
+  }
+
+  .kleo-sidebar-menu-label {
+    min-width: 0 !important;
+    width: auto !important;
+    white-space: normal !important;
+    overflow-wrap: normal !important;
+    word-break: normal !important;
+  }
+}
