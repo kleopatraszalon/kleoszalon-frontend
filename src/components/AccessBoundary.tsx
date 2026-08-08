@@ -5,7 +5,7 @@ import { useCapabilities } from "../hooks/useCapabilities";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 
 type Rule = { feature?: string; menu?: string; financial?: boolean };
-function roles(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return t.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
+function roles(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase());if(p!=null)return[String(p).toLowerCase()]}catch{}return t.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
 
 function ruleFor(pathname: string, search: string): Rule | null {
   const q = new URLSearchParams(search);
@@ -41,11 +41,19 @@ function ruleFor(pathname: string, search: string): Rule | null {
 export default function AccessBoundary({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { user }=useCurrentUser();
-  const userRoles=roles(user?.role);const elevated=userRoles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));const staff=!elevated&&userRoles.some(r=>["employee","receptionist"].includes(r));
+  const userRoles=roles(user?.role);
+  const customer=userRoles.some(r=>["customer","client","guest","ugyfel","ügyfél","vendeg","vendég"].includes(r));
+  const elevated=userRoles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
+  const staff=!customer&&!elevated&&userRoles.some(r=>["employee","receptionist"].includes(r));
   const selfDashboard=["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(location.pathname);
+  const customerAllowed=selfDashboard||location.pathname.startsWith("/customer/");
   const { loading, error, feature, menu } = useCapabilities();
   const rule = ruleFor(location.pathname, location.search);
 
+  if(customer){
+    if(customerAllowed)return <>{children}</>;
+    return <Denied title="Ez nem ügyfélfunkció" detail="Az ügyfélfiókból csak a saját irányítópult és az időpontfoglalás érhető el."/>;
+  }
   if(staff&&selfDashboard)return <>{children}</>;
   if (!rule) return <>{children}</>;
   if (loading) return <div style={{ padding: 32 }}>Jogosultság ellenőrzése…</div>;
