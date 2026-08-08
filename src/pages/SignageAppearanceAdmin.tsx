@@ -1,0 +1,44 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { Eye, Monitor, Palette, RefreshCw, RotateCcw, Save, Sparkles, Zap } from "lucide-react";
+import { getSignageAppearance, resetSignageAppearance, saveSignageAppearance, type SignageAppearanceConfig } from "../api/signageAppearance";
+import "./SignageAppearanceAdmin.css";
+
+const LIVE = "https://weblap-o3g6.onrender.com/signage";
+const TEMPLATES = [
+  { id:"classic", name:"Klasszikus", tag:"JELENLEGI", text:"A mostani kijelző megjelenés változatlanul megmarad.", accent:"#b69861" },
+  { id:"neon", name:"Neon Pulse", tag:"EXTRÉM", text:"Erős magenta fények, lebegő panelek, dinamikus glow és nagy kontraszt.", accent:"#ec008c" },
+  { id:"luxe", name:"Black Gold Luxe", tag:"PRÉMIUM", text:"Fekete-arany luxus megjelenés, mély árnyékokkal és elegáns tipográfiával.", accent:"#d5b36f" },
+  { id:"glass", name:"Future Glass", tag:"MODERN", text:"Üvegszerű panelek, blur, fénycsíkok és könnyedebb futurisztikus vizuál.", accent:"#c48cff" },
+] as const;
+
+const clone=<T,>(v:T):T=>JSON.parse(JSON.stringify(v));
+
+export default function SignageAppearanceAdmin(){
+  const[cfg,setCfg]=useState<SignageAppearanceConfig|null>(null);const[loading,setLoading]=useState(true);const[saving,setSaving]=useState(false);const[msg,setMsg]=useState("");const[err,setErr]=useState("");const[updatedAt,setUpdatedAt]=useState<string|null>(null);
+  useEffect(()=>{void load()},[]);
+  async function load(){setLoading(true);setErr("");try{const r=await getSignageAppearance();setCfg(clone(r.config));setUpdatedAt(r.updated_at||null)}catch(e:any){setErr(e?.message||"A kijelző kinézet nem tölthető be.")}finally{setLoading(false)}}
+  function set(path:string,value:any){setCfg(prev=>{if(!prev)return prev;const next=clone(prev) as any;const keys=path.split(".");let p=next;for(let i=0;i<keys.length-1;i++)p=p[keys[i]];p[keys[keys.length-1]]=value;return next})}
+  async function save(){if(!cfg)return;setSaving(true);setErr("");try{const r=await saveSignageAppearance(cfg);setCfg(clone(r.config));setUpdatedAt(r.updated_at||new Date().toISOString());setMsg("A kijelző kinézete mentve és azonnal használható.");setTimeout(()=>setMsg(""),3500)}catch(e:any){setErr(e?.message||"A mentés nem sikerült.")}finally{setSaving(false)}}
+  async function reset(){if(!window.confirm("Visszaállítsam a klasszikus kijelző sablont?"))return;setSaving(true);try{const r=await resetSignageAppearance();setCfg(clone(r.config));setUpdatedAt(r.updated_at||new Date().toISOString());setMsg("Klasszikus sablon visszaállítva.")}catch(e:any){setErr(e?.message||"A visszaállítás nem sikerült.")}finally{setSaving(false)}}
+  const active=useMemo(()=>TEMPLATES.find(x=>x.id===cfg?.template)||TEMPLATES[0],[cfg?.template]);
+  if(loading)return <div className="sga-page"><div className="sga-loading">Kijelző sablonok betöltése…</div></div>;
+  if(!cfg)return <div className="sga-page"><div className="sga-alert error">{err||"Nincs konfiguráció."}</div></div>;
+  return <main className="sga-page">
+    <section className="sga-hero"><div><span><Monitor size={15}/> VIR · KIJELZŐ DESIGN STUDIO</span><h1>Kijelző kinézet szerkesztő</h1><p>A jelenlegi design megmarad Klasszikus sablonként, mellette látványosabb sablonok választhatók. A felugró ajánlatok ritmusát is innen állíthatja.</p></div><div className="sga-actions"><button onClick={()=>window.open(LIVE,"_blank")}><Eye size={16}/> Élő kijelző</button><button onClick={()=>void load()}><RefreshCw size={16}/> Frissítés</button><button onClick={()=>void reset()} disabled={saving}><RotateCcw size={16}/> Klasszikus</button><button className="primary" onClick={()=>void save()} disabled={saving}><Save size={16}/>{saving?"Mentés…":"Mentés"}</button></div></section>
+    {(msg||err)&&<div className={`sga-alert ${err?"error":"success"}`}>{err||msg}</div>}
+    <div className="sga-meta">Aktív sablon: <b>{active.name}</b> · Utolsó mentés: {updatedAt?new Date(updatedAt).toLocaleString("hu-HU"):"—"}</div>
+
+    <section className="sga-template-grid">{TEMPLATES.map(t=><button key={t.id} className={`sga-template ${cfg.template===t.id?"active":""}`} onClick={()=>set("template",t.id)} style={{"--sga-accent":t.accent} as React.CSSProperties}><div className={`sga-template-preview ${t.id}`}><i/><i/><i/><b>{t.tag}</b></div><div><strong>{t.name}</strong><span>{t.text}</span></div>{cfg.template===t.id&&<em>Aktív</em>}</button>)}</section>
+
+    <section className="sga-editor-grid">
+      <article className="sga-card"><div className="sga-card-title"><Palette/><div><h2>Színek és felületek</h2><p>Sablonon belüli finomhangolás.</p></div></div><div className="sga-colors"><Color label="Háttér" value={cfg.colors.background} onChange={v=>set("colors.background",v)}/><Color label="Panel" value={cfg.colors.surface} onChange={v=>set("colors.surface",v)}/><Color label="Másodlagos panel" value={cfg.colors.surfaceAlt} onChange={v=>set("colors.surfaceAlt",v)}/><Color label="Szöveg" value={cfg.colors.text} onChange={v=>set("colors.text",v)}/><Color label="Arany" value={cfg.colors.gold} onChange={v=>set("colors.gold",v)}/><Color label="Kiemelés" value={cfg.colors.accent} onChange={v=>set("colors.accent",v)}/></div><Range label={`Lekerekítés · ${cfg.effects.radius}px`} min={0} max={60} value={cfg.effects.radius} onChange={v=>set("effects.radius",v)}/><Range label={`Fényerő / glow · ${cfg.effects.glow}`} min={0} max={80} value={cfg.effects.glow} onChange={v=>set("effects.glow",v)}/><Range label={`Üveghatás / blur · ${cfg.effects.blur}px`} min={0} max={40} value={cfg.effects.blur} onChange={v=>set("effects.blur",v)}/><Toggle label="Ambient háttérfény" checked={cfg.effects.ambient} onChange={v=>set("effects.ambient",v)}/><Toggle label="Finom scanline effekt" checked={cfg.effects.scanlines} onChange={v=>set("effects.scanlines",v)}/></article>
+
+      <article className="sga-card"><div className="sga-card-title"><Zap/><div><h2>Felugró ajánlat</h2><p>Időnként teljes figyelmet kapó ajánlati overlay.</p></div></div><Toggle label="Felugró ajánlatok engedélyezése" checked={cfg.popup.enabled} onChange={v=>set("popup.enabled",v)}/><label className="sga-field"><span>Ajánlat forrása</span><select value={cfg.popup.source} onChange={e=>set("popup.source",e.target.value)}><option value="flash_then_deal">Villám akció, utána heti ajánlat</option><option value="flash">Csak villám akció</option><option value="deal">Csak heti ajánlat</option></select></label><div className="sga-three"><NumberField label="Első megjelenés (mp)" value={cfg.popup.initialDelaySec} min={10} max={900} onChange={v=>set("popup.initialDelaySec",v)}/><NumberField label="Ismétlés (mp)" value={cfg.popup.intervalSec} min={45} max={1800} onChange={v=>set("popup.intervalSec",v)}/><NumberField label="Látható (mp)" value={cfg.popup.durationSec} min={5} max={60} onChange={v=>set("popup.durationSec",v)}/></div><label className="sga-field"><span>Animáció</span><select value={cfg.popup.animation} onChange={e=>set("popup.animation",e.target.value)}><option value="impact">Impact zoom</option><option value="slide">Oldalról beúszó</option><option value="glow">Fényvillanás</option></select></label><Toggle label="Ár megjelenítése az ajánlatban" checked={cfg.popup.showPrice} onChange={v=>set("popup.showPrice",v)}/><div className="sga-popup-demo" style={{background:`radial-gradient(circle at 80% 20%,${cfg.colors.accent}44,transparent 36%),${cfg.colors.background}`,color:cfg.colors.text,borderRadius:cfg.effects.radius}}><span><Sparkles size={15}/> KÜLÖNLEGES AJÁNLAT</span><h3>20% kedvezmény ma</h3><p>A felugró ajánlat rövid időre a teljes kijelző fölé kerül, majd automatikusan eltűnik.</p><strong>csak most</strong></div></article>
+    </section>
+  </main>
+}
+
+function Color({label,value,onChange}:{label:string;value:string;onChange:(v:string)=>void}){return <label className="sga-color"><span>{label}</span><div><input type="color" value={/^#[0-9a-f]{6}$/i.test(value)?value:"#000000"} onChange={e=>onChange(e.target.value)}/><input value={value} onChange={e=>onChange(e.target.value)}/></div></label>}
+function Range({label,min,max,value,onChange}:{label:string;min:number;max:number;value:number;onChange:(v:number)=>void}){return <label className="sga-field"><span>{label}</span><input type="range" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>}
+function Toggle({label,checked,onChange}:{label:string;checked:boolean;onChange:(v:boolean)=>void}){return <label className="sga-toggle"><input type="checkbox" checked={checked} onChange={e=>onChange(e.target.checked)}/><span/><b>{label}</b></label>}
+function NumberField({label,value,min,max,onChange}:{label:string;value:number;min:number;max:number;onChange:(v:number)=>void}){return <label className="sga-field"><span>{label}</span><input type="number" min={min} max={max} value={value} onChange={e=>onChange(Number(e.target.value))}/></label>}
