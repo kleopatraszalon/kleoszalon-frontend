@@ -38,12 +38,29 @@ function ruleFor(pathname: string, search: string): Rule | null {
   return null;
 }
 
+function storeManagerPathAllowed(pathname:string,search:string){
+  const q=new URLSearchParams(search);
+  if(["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(pathname))return true;
+  if(pathname==="/appointments/calendar"||pathname.startsWith("/modules/appointments/"))return true;
+  if(pathname==="/modules/team/timetable"||pathname==="/modules/team/attendance"||pathname==="/timetable/update")return true;
+  if(pathname==="/employees"||pathname.startsWith("/employees/")||pathname==="/hr"||pathname==="/hr/positions")return true;
+  if(pathname.startsWith("/modules/customers/")||pathname==="/modules/clients"||pathname==="/modules/crm")return true;
+  if(pathname==="/workorders"||pathname.startsWith("/workorders/"))return true;
+  if(pathname==="/warehouse"||pathname==="/warehouse/list"||pathname==="/warehouse/products"||pathname==="/logisztika"){
+    if(pathname!=="/warehouse"||q.get("view")!=="procurement")return true;
+    return ["dashboard","suggestions","orders"].includes(q.get("section")||"dashboard");
+  }
+  if(pathname==="/knowledge-base/checklists"||pathname==="/knowledge-base")return true;
+  return false;
+}
+
 export default function AccessBoundary({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { user }=useCurrentUser();
   const userRoles=roles(user?.role);
   const customer=userRoles.some(r=>["customer","client","guest","ugyfel","ügyfél","vendeg","vendég"].includes(r));
-  const elevated=userRoles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
+  const storeManager=userRoles.some(r=>["location_manager","üzletvezető","uzletvezeto","store_manager","branch_manager"].includes(r));
+  const elevated=storeManager||userRoles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
   const staff=!customer&&!elevated&&userRoles.some(r=>["employee","receptionist"].includes(r));
   const selfDashboard=["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(location.pathname);
   const customerAllowed=selfDashboard||location.pathname.startsWith("/customer/");
@@ -53,6 +70,9 @@ export default function AccessBoundary({ children }: { children: React.ReactNode
   if(customer){
     if(customerAllowed)return <>{children}</>;
     return <Denied title="Ez nem ügyfélfunkció" detail="Az ügyfélfiókból csak a saját irányítópult és az időpontfoglalás érhető el."/>;
+  }
+  if(storeManager&&!storeManagerPathAllowed(location.pathname,location.search)){
+    return <Denied title="Ez nem üzletvezetői funkció" detail="Az üzletvezető kizárólag a saját üzlet napi működéséhez tartozó dolgozókat, beosztást, időpontokat, ügyfeleket, munkalapokat, készletet, beszerzést és check listákat kezelheti."/>;
   }
   if(staff&&selfDashboard)return <>{children}</>;
   if (!rule) return <>{children}</>;
