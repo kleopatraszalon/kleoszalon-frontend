@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -27,10 +27,16 @@ const pageNames: Record<string, string> = {
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
   "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
   "/knowledge-base/checklists": "Check listák",
+  "/modules/team/timetable": "Saját beosztás",
+  "/staff/chat": "Munkatársi chat",
 };
+function roleList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return t.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
+  const roles=useMemo(()=>roleList(user?.role),[user?.role]);
+  const isElevated=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
+  const isStaff=!isElevated&&roles.some(r=>["employee","receptionist"].includes(r));
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
@@ -39,8 +45,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const currentPage = location.pathname === "/masterdata/services"
     ? serviceView === "categories" ? "Szolgáltatási kategóriák" : serviceView === "staff" ? "Szakember–szolgáltatás beállítások" : "Szolgáltatások"
     : pageNames[location.pathname] || location.pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ") || "Irányítópult";
-  const fullName = localStorage.getItem("kleo_full_name") || "Adminisztrátor";
-  const salon = localStorage.getItem("kleo_location_name") || "Minden telephely";
+  const fullName = localStorage.getItem("kleo_full_name") || (isStaff?"Munkatárs":"Adminisztrátor");
+  const salon = localStorage.getItem("kleo_location_name") || (isStaff?"Saját telephely":"Minden telephely");
   const today = new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date());
 
   useEffect(() => { localStorage.setItem("kleo.sidebar.collapsed", String(collapsed)); }, [collapsed]);
@@ -52,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isMasterServices = location.pathname === "/masterdata/services";
   const isProducts = ["/masterdata/products","/products","/warehouse/products"].includes(location.pathname);
-  const showChecklistDashboard = ["/", "/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(location.pathname);
+  const showChecklistDashboard = !isStaff && ["/", "/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(location.pathname);
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
   if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
   if (location.pathname === "/modules/settings/audit-log") pageContent = <AuditLogPage />;
@@ -60,14 +66,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   if (isProducts) pageContent = <ProductCatalogPage />;
-  const showImport = location.pathname === "/services" || (isMasterServices && serviceView === "services");
-  const showHierarchy = isMasterServices && serviceView === "categories";
+  const showImport = !isStaff && (location.pathname === "/services" || (isMasterServices && serviceView === "services"));
+  const showHierarchy = !isStaff && isMasterServices && serviceView === "categories";
 
   return <div className={`altegio-page-shell app-layout-shell ${collapsed?"is-sidebar-collapsed":""} ${mobileOpen?"is-mobile-sidebar-open":""}`}>
     <Sidebar user={user}/><button className="sidebar-backdrop" type="button" aria-label="Menü bezárása" onClick={()=>setMobileOpen(false)}/>
     <div className="app-layout-column">
-      <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen||!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{mobileOpen?<X size={20}/>:<Menu size={20}/>}</span></button><div className="topbar-breadcrumb"><span>Kleoszalon VIR</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
-      <div className="modern-topbar-right"><div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div><div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><NotificationBell/><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
+      <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen||!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{mobileOpen?<X size={20}/>:<Menu size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isStaff?"Kleoszalon munkatársi felület":"Kleoszalon VIR"}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
+      <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><NotificationBell/><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
       {showImport&&<AltegioServiceImportButton/>}{showHierarchy&&<ServiceHierarchyPanel/>}
       <div className="altegio-main app-layout-main"><AccessBoundary>{showHierarchy?null:<>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</>}</AccessBoundary></div>
     </div><AiHelpChat pageTitle={currentPage}/>
