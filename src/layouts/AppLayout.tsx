@@ -25,6 +25,7 @@ const pageNames: Record<string, string> = {
   "/settings/roles": "Jogosultságok és hozzáférések",
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
   "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
+  "/knowledge-base/checklists": "Check listák",
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
