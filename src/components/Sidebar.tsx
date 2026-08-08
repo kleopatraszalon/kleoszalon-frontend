@@ -7,7 +7,7 @@ import Logo from "../assets/kleo_logo.png";
 import SidebarCalendar from "./SidebarCalendar";
 
 const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" ? "http://localhost:5000/api" : "https://kleoszalon-api-1.onrender.com/api";
-const MENU_CACHE_KEY = "kleo.menu.cache.v4";
+const MENU_CACHE_KEY = "kleo.menu.cache.v5";
 interface RawMenuItem { id:number; name:string; icon?:string|null; route?:string|null; parent_id?:number|null; required_role?:string|null; order_index?:number|null; submenus?:RawMenuItem[]; }
 interface MenuItem { id:number; name:string; icon?:string; route?:string; children:MenuItem[]; }
 interface SidebarProps { user?: { role?: string|string[]|null } | null; }
@@ -20,7 +20,7 @@ const FALLBACK:MenuItem[]=[
 {id:90001,name:"Irányítópult",icon:"LayoutDashboard",route:"/",children:[]},
 {id:90002,name:"Időpontok és jelenlét",icon:"CalendarDays",children:[{id:90101,name:"Naptár és időpontok",route:"/appointments/calendar",children:[]},{id:90102,name:"Munkaidő és beosztás",route:"/modules/team/timetable",children:[]},{id:90103,name:"Jelenlét",route:"/modules/team/attendance",children:[]}]},
 {id:90003,name:"Ügyfelek és CRM",icon:"Users",children:[{id:90201,name:"Ügyfelek",route:"/modules/clients",children:[]},{id:90202,name:"CRM",route:"/modules/crm",children:[]}]},
-{id:90004,name:"Hűség, bérletek és ajándékkártyák",icon:"Gift",route:"/modules/loyalty",children:[]},
+{id:90004,name:"Hűség, bérletek és ajándékkártyák",icon:"Gift",children:[{id:90240,name:"Áttekintés",route:"/loyalty",children:[]},{id:90241,name:"Vendég egyenlegek",route:"/loyalty/accounts",children:[]},{id:90242,name:"Hűségpontok",route:"/loyalty/points",children:[]},{id:90243,name:"Bérletek",route:"/loyalty/passes",children:[]},{id:90244,name:"Kuponok",route:"/loyalty/coupons",children:[]},{id:90245,name:"Ajándékutalványok",route:"/loyalty/vouchers",children:[]},{id:90246,name:"Hűség tranzakciók",route:"/loyalty/transactions",children:[]}]},
 {id:90005,name:"Csapat és HR",icon:"UserCog",children:[{id:90301,name:"Munkatársak",route:"/employees",children:[]},{id:90302,name:"Bérszámfejtés",route:"/modules/team/payroll",children:[]}]},
 {id:90006,name:"Működés és minőség",icon:"ClipboardCheck",route:"/modules/operations",children:[]},
 {id:90007,name:"Pénzügy és pénztár",icon:"WalletCards",children:[{id:90401,name:"Pénzügyek",route:"/finance",children:[]},{id:90402,name:"Bér és könyvelés",route:"/modules/team/payroll",children:[]}]},
