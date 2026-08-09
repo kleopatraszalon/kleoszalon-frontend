@@ -1,0 +1,6 @@
+import React,{useEffect,useState}from"react";
+import api from"../api";
+import CentralSupplyPanel from"./inventory/CentralSupplyPanel";
+import"./inventory/ProcurementPanel.css";
+type Location={id:string;name?:string;title?:string};const arr=<T,>(v:any):T[]=>Array.isArray(v)?v:Array.isArray(v?.items)?v.items:[];
+export default function CentralSupplyPage(){const[locations,setLocations]=useState<Location[]>([]),[locationId,setLocationId]=useState("");useEffect(()=>{api.get('/api/locations').then(r=>setLocations(arr<Location>(r.data))).catch(()=>{})},[]);return <main style={{padding:24,maxWidth:1500}}><header style={{display:'flex',justifyContent:'space-between',gap:16,alignItems:'end',marginBottom:18}}><div><span style={{fontSize:12,fontWeight:800,letterSpacing:1}}>10. ETAP · RAKTÁR ÉS BESZERZÉS</span><h1 style={{margin:'5px 0'}}>Központi ellátási folyamat</h1><p style={{margin:0,color:'#666'}}>Szalonigény → központi készlet → kiadás → szalon érkeztetés.</p></div><label>Szalon <select value={locationId} onChange={e=>setLocationId(e.target.value)} style={{marginLeft:8,padding:8}}><option value="">Minden szalon</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name||l.title||l.id}</option>)}</select></label></header><CentralSupplyPanel locationId={locationId}/></main>}
