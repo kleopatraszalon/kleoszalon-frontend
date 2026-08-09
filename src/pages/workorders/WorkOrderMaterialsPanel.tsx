@@ -1,5 +1,6 @@
-import React, { useMemo } from "react";
-import { AlertTriangle, CheckCircle2, Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, CheckCircle2, Minus, PackageOpen, Plus, RefreshCw, Trash2 } from "lucide-react";
+import api from "../../api";
 import "./WorkOrderMaterialsPanel.css";
 
 export type WorkOrderMaterial = {
@@ -19,13 +20,28 @@ type Props = {
   disabled?: boolean;
 };
 
+type ReplenishmentRequest={product_id?:string;product_name?:string;status?:string;requested_quantity?:number|string;source?:string};
 const normalizeQuantity = (value: number) => Math.max(0.01, Math.round(value * 100) / 100);
+const statusText:Record<string,string>={requested:"Igényelve",approved:"Jóváhagyva",partially_supplied:"Részben ellátva",supplied:"Teljesítve",cancelled:"Törölve"};
 
 export default function WorkOrderMaterialsPanel({ materials, onChange, disabled }: Props) {
+  const[replenishments,setReplenishments]=useState<ReplenishmentRequest[]>([]);
+  const[replenishmentReady,setReplenishmentReady]=useState(false);
   const total = useMemo(
     () => materials.reduce((sum, item) => sum + Number(item.unitPrice ?? 0) * item.quantity, 0),
     [materials]
   );
+
+  async function loadReplenishments(){
+    try{
+      const r=await api.get('/api/transactions/workorder-materials/replenishment-requests');
+      setReplenishments(Array.isArray(r.data)?r.data:[]);
+      setReplenishmentReady(true);
+    }catch{
+      setReplenishmentReady(false);
+    }
+  }
+  useEffect(()=>{void loadReplenishments()},[]);
 
   const updateQuantity = (productId: WorkOrderMaterial["productId"], quantity: number) => {
     onChange(
@@ -52,6 +68,15 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
         <strong>{materials.length} tétel</strong>
       </header>
 
+      <div className={replenishmentReady?"workorder-materials__stock-ok":"workorder-materials__warning"} style={{marginBottom:12}}>
+        {replenishmentReady?<CheckCircle2/>:<AlertTriangle/>}
+        <span>
+          <b>{replenishmentReady?"Automatikus utánpótlás aktív":"Az utánpótlás állapota nem ellenőrizhető"}</b><br/>
+          A munkalap lezárásakor, ha a készlet a minimumszintre vagy az alá csökken, a rendszer automatikusan központi szalonigényt hoz létre. Ugyanarra a termékre nem készül párhuzamos nyitott igény.
+        </span>
+        <button type="button" onClick={()=>void loadReplenishments()} style={{marginLeft:"auto",border:0,background:"transparent",cursor:"pointer"}} aria-label="Utánpótlási állapot frissítése"><RefreshCw size={16}/></button>
+      </div>
+
       {materials.length === 0 ? (
         <div className="workorder-materials__empty">
           <PackageOpen />
@@ -66,6 +91,7 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
             const remaining = stock == null ? null : stock - item.quantity;
             const low = remaining != null && !insufficient && remaining <= Math.max(item.quantity, 1);
             const lineTotal = Number(item.unitPrice ?? 0) * item.quantity;
+            const openRequest=replenishments.find(r=>String(r.product_id||'')===String(item.productId)&&!["supplied","cancelled"].includes(String(r.status||'')));
 
             return (
               <article key={String(item.productId)} className={insufficient ? "is-warning" : ""}>
@@ -76,6 +102,7 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
                     <small>
                       {stock == null ? "Készletadat nem érhető el" : `Jelenlegi készlet: ${stock.toLocaleString("hu-HU")} ${item.unit || "db"}`}
                     </small>
+                    {openRequest&&<small><b>Központi igény: {statusText[String(openRequest.status)]||openRequest.status} · {Number(openRequest.requested_quantity||0).toLocaleString('hu-HU')} {item.unit||'db'}</b></small>}
                   </span>
                 </div>
 
@@ -110,8 +137,8 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
                   <div className={insufficient ? "workorder-materials__warning" : "workorder-materials__stock-ok"}>
                     {insufficient ? <AlertTriangle /> : <CheckCircle2 />}
                     {insufficient
-                      ? `Készlethiány: még ${(item.quantity-stock).toLocaleString("hu-HU")} ${item.unit || "db"} szükséges.`
-                      : `Felhasználás után marad: ${Math.max(0,remaining || 0).toLocaleString("hu-HU")} ${item.unit || "db"}${low ? " · alacsony készlet" : ""}.`}
+                      ? `Készlethiány: még ${(item.quantity-stock).toLocaleString("hu-HU")} ${item.unit || "db"} szükséges. A munkalap addig nem zárható le.`
+                      : `Felhasználás után marad: ${Math.max(0,remaining || 0).toLocaleString("hu-HU")} ${item.unit || "db"}${low ? " · alacsony készlet; lezáráskor az utánpótlás automatikusan ellenőrződik" : ""}.`}
                   </div>
                 )}
               </article>
