@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
 
+      - name: Menu route audit
+        run: node scripts/check-menu-routes.js
+
       - name: Build frontend
         env:
           CI: false
