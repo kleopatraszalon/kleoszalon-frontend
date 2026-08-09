@@ -1,5 +1,6 @@
 import React,{useMemo}from'react';
 import{CreditCard,Landmark,Plus,Trash2,WalletCards}from'lucide-react';
+import'./WorkOrderPaymentPanel.css';
 
 export type PaymentMethod='cash'|'card'|'transfer'|'other';
 export type PaymentDraft={id:number;payment_method:PaymentMethod;amount:string;note:string;destination?:string};
