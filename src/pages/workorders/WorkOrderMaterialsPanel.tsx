@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { AlertTriangle, Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Minus, PackageOpen, Plus, Trash2 } from "lucide-react";
 import "./WorkOrderMaterialsPanel.css";
 
 export type WorkOrderMaterial = {
@@ -9,6 +9,8 @@ export type WorkOrderMaterial = {
   unit?: string | null;
   unitPrice?: number | null;
   availableStock?: number | null;
+  required?: boolean;
+  recommendedQuantity?: number | null;
 };
 
 type Props = {
@@ -43,9 +45,9 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
     <section className="workorder-materials" aria-label="Anyagfelhasználás">
       <header className="workorder-materials__header">
         <div>
-          <span>ANYAGFELHASZNÁLÁS</span>
-          <h2>Felhasznált termékek</h2>
-          <p>A tényleges mennyiségek alapján készíthető elő a későbbi automatikus készletcsökkentés.</p>
+          <span>ANYAG / KÉSZLET</span>
+          <h2>Tényleges anyagfelhasználás</h2>
+          <p>A rögzített mennyiség kerül levonásra a szalon készletéből a munkalap végleges lezárásakor.</p>
         </div>
         <strong>{materials.length} tétel</strong>
       </header>
@@ -54,13 +56,15 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
         <div className="workorder-materials__empty">
           <PackageOpen />
           <b>Nincs kiválasztott anyag</b>
-          <span>A munkalap terméklistájából adj hozzá felhasznált anyagot.</span>
+          <span>A „Tételek kiválasztása” ablak Termékhasználat fülén adj hozzá felhasznált anyagot.</span>
         </div>
       ) : (
         <div className="workorder-materials__list">
           {materials.map((item) => {
             const stock = item.availableStock == null ? null : Number(item.availableStock);
             const insufficient = stock != null && item.quantity > stock;
+            const remaining = stock == null ? null : stock - item.quantity;
+            const low = remaining != null && !insufficient && remaining <= Math.max(item.quantity, 1);
             const lineTotal = Number(item.unitPrice ?? 0) * item.quantity;
 
             return (
@@ -68,9 +72,9 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
                 <div className="workorder-materials__identity">
                   <PackageOpen />
                   <span>
-                    <b>{item.name}</b>
+                    <b>{item.name}{item.required ? " · kötelező" : ""}</b>
                     <small>
-                      {stock == null ? "Készletadat nem érhető el" : `Elérhető: ${stock.toLocaleString("hu-HU")} ${item.unit || "db"}`}
+                      {stock == null ? "Készletadat nem érhető el" : `Jelenlegi készlet: ${stock.toLocaleString("hu-HU")} ${item.unit || "db"}`}
                     </small>
                   </span>
                 </div>
@@ -102,9 +106,12 @@ export default function WorkOrderMaterialsPanel({ materials, onChange, disabled 
                   <Trash2 />
                 </button>
 
-                {insufficient && (
-                  <div className="workorder-materials__warning">
-                    <AlertTriangle /> A megadott mennyiség meghaladja a nyilvántartott készletet.
+                {stock != null && (
+                  <div className={insufficient ? "workorder-materials__warning" : "workorder-materials__stock-ok"}>
+                    {insufficient ? <AlertTriangle /> : <CheckCircle2 />}
+                    {insufficient
+                      ? `Készlethiány: még ${(item.quantity-stock).toLocaleString("hu-HU")} ${item.unit || "db"} szükséges.`
+                      : `Felhasználás után marad: ${Math.max(0,remaining || 0).toLocaleString("hu-HU")} ${item.unit || "db"}${low ? " · alacsony készlet" : ""}.`}
                   </div>
                 )}
               </article>
