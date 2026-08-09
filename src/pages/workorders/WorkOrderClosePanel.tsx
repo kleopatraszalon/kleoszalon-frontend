@@ -1,5 +1,6 @@
 import React from'react';
 import{Archive,CheckCircle2,FileCheck2,LockKeyhole,PackageCheck,ReceiptText,UsersRound}from'lucide-react';
+import'./WorkOrderClosePanel.css';
 
 type Props={ready:boolean;saving?:boolean;workOrderNumber?:string;onFinalize:()=>void};
 const items=[
