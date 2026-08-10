@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../api";
+import {useCurrentUser} from "../hooks/useCurrentUser";
 import ProcurementPanel from "./inventory/ProcurementPanel";
 import ProcurementWorkflowPanel from "./inventory/ProcurementWorkflowPanel";
+import InventoryControlDashboard from "./inventory/InventoryControlDashboard";
 import "./Logisztika.css";
 
 type Location={id:string;name?:string;title?:string};
@@ -10,34 +12,47 @@ type Product={id:string;name:string;internal_code?:string|null;brand?:string|nul
 type Balance={id:string|number;product_id:string;product_name:string;internal_code?:string|null;brand?:string|null;location_id:string|null;quantity:number|string;min_quantity:number|string;unit_cost:number|string;stock_value:number|string;updated_at:string};
 type Movement={id:string|number;product_name:string;movement_type:string;quantity:number|string;balance_after:number|string|null;unit_cost?:number|string|null;stock_value_after?:number|string|null;work_order_id?:string|number|null;note?:string|null;created_at:string};
 type MovementType="opening"|"receipt"|"adjustment";
-const labels:Record<string,string>={opening:"Nyitókészlet",receipt:"Bevételezés",adjustment:"Korrekció",work_order_consumption:"Munkalap felhasználás",work_order_reversal:"Munkalap visszaforgatás"};
+const labels:Record<string,string>={opening:"Nyitókészlet",receipt:"Bevételezés",adjustment:"Korrekció",work_order_consumption:"Munkalap felhasználás",work_order_reversal:"Munkalap visszaforgatás",transfer_in:"Központi beérkezés",transfer_out:"Központi kiadás"};
 const arr=<T,>(v:any):T[]=>Array.isArray(v)?v:Array.isArray(v?.items)?v.items:Array.isArray(v?.data)?v.data:[];
 const huf=(v:unknown)=>`${Number(v||0).toLocaleString("hu-HU",{maximumFractionDigits:0})} Ft`;
 const q=(v:unknown)=>Number(v||0).toLocaleString("hu-HU",{maximumFractionDigits:3});
+const roleList=(raw:any)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||''));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[\[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
+const ADMIN=["admin","administrator","rendszergazda","superadmin","super_admin"];
 
 export default function Logisztika(){
  const route=useLocation();
+ const{user,loading:userLoading}=useCurrentUser();
  const routeParams=useMemo(()=>new URLSearchParams(route.search),[route.search]);
  const procurementRequested=routeParams.get("view")==="procurement";
  const procurementSection=routeParams.get("section")||"dashboard";
+ const roles=useMemo(()=>roleList(user?.role),[user?.role]);
+ const isAdmin=roles.some(r=>ADMIN.includes(r));
+ const ownLocation=user?.location_id?String(user.location_id):"";
  const[locations,setLocations]=useState<Location[]>([]),[products,setProducts]=useState<Product[]>([]),[balances,setBalances]=useState<Balance[]>([]),[movements,setMovements]=useState<Movement[]>([]);
- const[locationId,setLocationId]=useState(""),[tab,setTab]=useState<"stock"|"movements"|"procurement">(procurementRequested?"procurement":"stock"),[search,setSearch]=useState(""),[error,setError]=useState(""),[success,setSuccess]=useState(""),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false);
+ const[locationId,setLocationId]=useState(""),[tab,setTab]=useState<"stock"|"movements"|"procurement">(procurementRequested?"procurement":"stock"),[search,setSearch]=useState(""),[error,setError]=useState(""),[success,setSuccess]=useState(""),[loading,setLoading]=useState(false),[inventoryRefreshKey,setInventoryRefreshKey]=useState(0);
  const[editingId,setEditingId]=useState<string|number|null>(null),[settingsForm,setSettingsForm]=useState({min_quantity:"",unit_cost:""});
  const[form,setForm]=useState({product_id:"",movement_type:"receipt" as MovementType,quantity:"",unit_cost:"",min_quantity:"",note:""});
  const locationQuery=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";
+ const visibleLocations=useMemo(()=>isAdmin?locations:locations.filter(l=>String(l.id)===ownLocation),[isAdmin,locations,ownLocation]);
+ const selectedLocationName=locations.find(l=>String(l.id)===locationId)?.name||locations.find(l=>String(l.id)===locationId)?.title||user?.location_name||"";
  async function loadRefs(){const[l,p]=await Promise.all([api.get("/api/locations"),api.get("/api/products?include_inactive=1")]);setLocations(arr<Location>(l.data));setProducts(arr<Product>(p.data))}
- async function loadInventory(){setLoading(true);setError("");try{const[b,m]=await Promise.all([api.get(`/api/transactions/inventory${locationQuery}`),api.get(`/api/transactions/inventory/movements${locationId?`?location_id=${encodeURIComponent(locationId)}&limit=200`:"?limit=200"}`)]);setBalances(arr<Balance>(b.data));setMovements(arr<Movement>(m.data))}catch(e:any){setError(e?.response?.data?.message||"A készletadatok betöltése nem sikerült.")}finally{setLoading(false)}}
- useEffect(()=>{loadRefs().catch(()=>setError("A törzsadatok betöltése nem sikerült."))},[]);useEffect(()=>{void loadInventory()},[locationId]); // eslint-disable-line react-hooks/exhaustive-deps
+ async function loadInventory(){setLoading(true);setError("");try{const[b,m]=await Promise.all([api.get(`/api/transactions/inventory${locationQuery}`),api.get(`/api/transactions/inventory/movements${locationId?`?location_id=${encodeURIComponent(locationId)}&limit=200`:"?limit=200"}`)]);setBalances(arr<Balance>(b.data));setMovements(arr<Movement>(m.data));setInventoryRefreshKey(k=>k+1)}catch(e:any){setError(e?.response?.data?.message||"A készletadatok betöltése nem sikerült.")}finally{setLoading(false)}}
+ useEffect(()=>{loadRefs().catch(()=>setError("A törzsadatok betöltése nem sikerült."))},[]);
+ useEffect(()=>{if(!userLoading&&!isAdmin&&ownLocation&&locationId!==ownLocation)setLocationId(ownLocation)},[userLoading,isAdmin,ownLocation,locationId]);
+ useEffect(()=>{if(!userLoading&&(isAdmin||Boolean(ownLocation)))void loadInventory()},[locationId,userLoading,isAdmin,ownLocation]); // eslint-disable-line react-hooks/exhaustive-deps
  useEffect(()=>{if(procurementRequested)setTab("procurement")},[procurementRequested,procurementSection]);
  const filtered=useMemo(()=>{const s=search.trim().toLowerCase();return !s?balances:balances.filter(x=>`${x.product_name} ${x.internal_code||""} ${x.brand||""}`.toLowerCase().includes(s))},[balances,search]);
  const totalUnits=balances.reduce((a,x)=>a+Number(x.quantity||0),0),totalValue=balances.reduce((a,x)=>a+Number(x.stock_value||0),0),low=balances.filter(x=>Number(x.quantity)>0&&Number(x.quantity)<=Number(x.min_quantity)).length,out=balances.filter(x=>Number(x.quantity)<=0).length;
  async function saveMovement(e:React.FormEvent){e.preventDefault();setError("");setSuccess("");const quantity=Number(form.quantity),unitCost=form.unit_cost===""?null:Number(form.unit_cost),minQuantity=form.min_quantity===""?null:Number(form.min_quantity);if(!form.product_id)return setError("Válassz terméket.");if(!Number.isFinite(quantity))return setError("A mennyiség csak szám lehet.");if(unitCost!==null&&(!Number.isFinite(unitCost)||unitCost<0))return setError("A beszerzési ár hibás.");if(minQuantity!==null&&(!Number.isFinite(minQuantity)||minQuantity<0))return setError("A minimum készlet hibás.");setSaving(true);try{await api.post("/api/transactions/inventory/movements",{product_id:form.product_id,location_id:locationId||null,movement_type:form.movement_type,quantity,unit_cost:unitCost,min_quantity:minQuantity,note:form.note.trim()||null});setSuccess("A készletmozgás sikeresen rögzítve.");setForm(x=>({...x,quantity:"",unit_cost:"",min_quantity:"",note:""}));await loadInventory()}catch(e:any){setError(e?.response?.data?.message||"A mentés nem sikerült.")}finally{setSaving(false)}}
+ const[saving,setSaving]=useState(false);
  function startEdit(r:Balance){setEditingId(r.id);setSettingsForm({min_quantity:String(r.min_quantity??0),unit_cost:String(r.unit_cost??0)})}
  async function saveSettings(r:Balance){const min=Number(settingsForm.min_quantity),cost=Number(settingsForm.unit_cost);if(!Number.isFinite(min)||min<0||!Number.isFinite(cost)||cost<0)return setError("A készletparaméterek hibásak.");setSaving(true);try{await api.patch(`/api/transactions/inventory/balances/${r.id}/settings`,{min_quantity:min,unit_cost:cost});setEditingId(null);setSuccess("A készletparaméterek frissültek.");await loadInventory()}catch(e:any){setError(e?.response?.data?.message||"A mentés nem sikerült.")}finally{setSaving(false)}}
  const sectionLabel:Record<string,string>={dashboard:"Beszerzési dashboard",suggestions:"Rendelési javaslatok",approvals:"Jóváhagyásra vár",orders:"Beszerzési rendelések",suppliers:"Beszállítók",prices:"Beszállítói árak",performance:"Beszállítói teljesítmény",deviations:"Eltérések"};
  return <div className="inventory-page">
-  <header className="inventory-header"><div><span className="inventory-eyebrow">LOGISZTIKA / RAKTÁR</span><h1>{tab==="procurement"?sectionLabel[procurementSection]||"Beszerzés":"Készlet és beszerzés"}</h1><p>{tab==="procurement"?"Beszerzési javaslatok, beszállítók, jóváhagyások, rendelések és teljesítmény külön, áttekinthető nézetekben.":"Készletezés, értékelés, automatikus utánrendelés, jóváhagyás, beszerzési rendelés és bevételezés egy folyamatban."}</p></div><div className="inventory-location"><label>Telephely</label><select value={locationId} onChange={e=>setLocationId(e.target.value)}><option value="">Központi készlet</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name||l.title||l.id}</option>)}</select></div></header>
+  <header className="inventory-header"><div><span className="inventory-eyebrow">LOGISZTIKA / RAKTÁR</span><h1>{tab==="procurement"?sectionLabel[procurementSection]||"Beszerzés":"Készlet és beszerzés"}</h1><p>{tab==="procurement"?"Beszerzési javaslatok, beszállítók, jóváhagyások, rendelések és teljesítmény külön, áttekinthető nézetekben.":"Készletezés, munkalap-anyagfogyás, automatikus utánrendelés, jóváhagyás, beszerzési rendelés és bevételezés egy folyamatban."}</p></div><div className="inventory-location"><label>Telephely</label><select value={locationId} onChange={e=>setLocationId(e.target.value)} disabled={!isAdmin||userLoading}>{isAdmin&&<option value="">Központi készlet</option>}{visibleLocations.map(l=><option key={l.id} value={l.id}>{l.name||l.title||l.id}</option>)}</select></div></header>
+  {!isAdmin&&!userLoading&&<div className="inventory-alert success">Saját telephely nézet: <b>{selectedLocationName||"a bejelentkezett felhasználó szalonja"}</b>. Más szalon készlete ebből a nézetből nem választható.</div>}
   {error&&<div className="inventory-alert error">{error}</div>}{success&&<div className="inventory-alert success">{success}</div>}
+  {(isAdmin||Boolean(ownLocation))&&<InventoryControlDashboard locationId={locationId} refreshKey={inventoryRefreshKey}/>} 
   <section className="inventory-kpis inventory-kpis--five"><div><strong>{balances.length}</strong><span>Készletezett termék</span></div><div><strong>{q(totalUnits)}</strong><span>Összes mennyiség</span></div><div><strong>{huf(totalValue)}</strong><span>Készletérték</span></div><div><strong>{low}</strong><span>Minimum alatt</span></div><div><strong>{out}</strong><span>Kifogyott</span></div></section>
   <div className="inventory-main-tabs"><button className={tab==="stock"?"active":""} onClick={()=>setTab("stock")}>Készlet</button><button className={tab==="movements"?"active":""} onClick={()=>setTab("movements")}>Mozgástörténet</button><button className={tab==="procurement"?"active":""} onClick={()=>setTab("procurement")}>Beszerzés</button></div>
   {tab==="procurement"?<><ProcurementWorkflowPanel locationId={locationId} section={procurementSection} onChanged={loadInventory}/><ProcurementPanel locationId={locationId} section={procurementSection} onInventoryChanged={loadInventory}/></>:<section className="inventory-grid">
