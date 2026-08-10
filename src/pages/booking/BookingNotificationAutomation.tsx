@@ -1,13 +1,13 @@
 import React,{useEffect,useMemo,useState}from"react";
-import{BellRing,Mail,Play,RefreshCw,Save}from"lucide-react";
+import{BellRing,Mail,MessageSquareText,Play,RefreshCw,Save}from"lucide-react";
 import api from"../../api/api";
 import"./BookingNotificationAutomation.css";
 
 type Location={id:string;name:string};
-type Settings={confirmation_enabled:boolean;reminder_48h_enabled:boolean;reminder_24h_enabled:boolean;cancellation_enabled:boolean;waitlist_enabled:boolean;review_request_enabled:boolean;review_delay_hours:number};
+type Settings={email_channel_enabled:boolean;sms_channel_enabled:boolean;confirmation_enabled:boolean;reminder_48h_enabled:boolean;reminder_24h_enabled:boolean;cancellation_enabled:boolean;waitlist_enabled:boolean;review_request_enabled:boolean;review_delay_hours:number};
 type BoolSettingKey=Exclude<keyof Settings,"review_delay_hours">;
-type QueueItem={id:string;event_type:string;recipient:string;subject:string;status:string;scheduled_at:string;sent_at?:string|null;client_name?:string|null;location_name?:string|null};
-const defaults:Settings={confirmation_enabled:true,reminder_48h_enabled:true,reminder_24h_enabled:true,cancellation_enabled:true,waitlist_enabled:true,review_request_enabled:true,review_delay_hours:24};
+type QueueItem={id:string;channel:string;event_type:string;recipient:string;subject:string;status:string;scheduled_at:string;sent_at?:string|null;client_name?:string|null;location_name?:string|null};
+const defaults:Settings={email_channel_enabled:true,sms_channel_enabled:false,confirmation_enabled:true,reminder_48h_enabled:true,reminder_24h_enabled:true,cancellation_enabled:true,waitlist_enabled:true,review_request_enabled:true,review_delay_hours:24};
 const labels:Record<string,string>={booking_created:"Foglalási igény",booking_confirmed:"Visszaigazolás",booking_rescheduled:"Időpont-módosítás",booking_cancelled:"Lemondás",reminder_48h:"48 órás emlékeztető",reminder_24h:"24 órás emlékeztető",review_request:"Értékeléskérés"};
 
 export default function BookingNotificationAutomation({toast}:{toast?:(message:string)=>void}){
@@ -22,6 +22,8 @@ export default function BookingNotificationAutomation({toast}:{toast?:(message:s
  const counts=useMemo(()=>({pending:queue.filter(x=>x.status==="pending").length,sent:queue.filter(x=>x.status==="sent").length,failed:queue.filter(x=>x.status==="failed").length}),[queue]);
  const toggle=(key:BoolSettingKey)=>setSettings(s=>({...s,[key]:!s[key]}));
  const rules:[BoolSettingKey,string,string][]=[
+  ["email_channel_enabled","E-mail csatorna","Foglalási üzenetek küldése a vendég e-mail címére."],
+  ["sms_channel_enabled","SMS csatorna","SMS küldés a konfigurált SMS gateway-en keresztül, a vendég értesítési preferenciája szerint."],
   ["confirmation_enabled","Foglalás visszaigazolása","Azonnal a foglalás létrehozásakor vagy jóváhagyásakor."],
   ["reminder_48h_enabled","48 órás emlékeztető","Két nappal a vendég időpontja előtt."],
   ["reminder_24h_enabled","24 órás emlékeztető","Egy nappal az időpont előtt."],
@@ -30,10 +32,10 @@ export default function BookingNotificationAutomation({toast}:{toast?:(message:s
   ["review_request_enabled","Értékelés kérése","A látogatás teljesítése után automatikusan."],
  ];
  return <div className="booking-comms">
-  <header className="booking-comms__toolbar"><div><span>AUTOMATIKUS VENDÉGKOMMUNIKÁCIÓ</span><h2>Foglalási értesítések</h2><p>Visszaigazolás, emlékeztető, lemondás és értékeléskérés egy központi sorból.</p></div><div><select value={locationId} onChange={e=>setLocationId(e.target.value)}><option value="">Válasszon telephelyet</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select><button onClick={process} disabled={loading}><Play size={15}/> Sor futtatása</button><button className="primary" onClick={save} disabled={saving||!locationId}><Save size={15}/>{saving?"Mentés…":"Mentés"}</button></div></header>
+  <header className="booking-comms__toolbar"><div><span>AUTOMATIKUS VENDÉGKOMMUNIKÁCIÓ</span><h2>Foglalási értesítések</h2><p>Visszaigazolás, emlékeztető, lemondás és értékeléskérés e-mail/SMS kommunikációs sorból.</p></div><div><select value={locationId} onChange={e=>setLocationId(e.target.value)}><option value="">Válasszon telephelyet</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select><button onClick={process} disabled={loading}><Play size={15}/> Sor futtatása</button><button className="primary" onClick={save} disabled={saving||!locationId}><Save size={15}/>{saving?"Mentés…":"Mentés"}</button></div></header>
   {error&&<div className="booking-comms__error">{error}</div>}
   <section className="booking-comms__kpis"><article><BellRing/><b>{counts.pending}</b><span>ütemezve</span></article><article><Mail/><b>{counts.sent}</b><span>elküldve</span></article><article><RefreshCw/><b>{counts.failed}</b><span>hibás</span></article></section>
-  <div className="booking-comms__grid"><section className="booking-comms__rules"><h3>Automatikus szabályok</h3>{rules.map(([key,title,detail])=><div className="booking-comms__rule" key={String(key)}><span><b>{title}</b><small>{detail}</small></span><button className={settings[key]?"on":""} onClick={()=>toggle(key)}><i/></button></div>)}<label className="booking-comms__delay"><span>Értékeléskérés késleltetése</span><input type="number" min={0} max={168} value={settings.review_delay_hours} onChange={e=>setSettings(s=>({...s,review_delay_hours:Number(e.target.value||0)}))}/><em>óra</em></label></section>
-  <section className="booking-comms__queue"><header><div><h3>Kommunikációs sor</h3><p>A legutóbbi 300 esemény.</p></div><button onClick={load}><RefreshCw size={14}/> Frissítés</button></header>{loading&&!queue.length?<p className="booking-comms__empty">Betöltés…</p>:queue.length?queue.slice(0,80).map(item=><article key={item.id}><span className={`status-${item.status}`}>{item.status}</span><div><b>{labels[item.event_type]||item.event_type}</b><small>{item.client_name||item.recipient} · {item.recipient}</small></div><time>{new Date(item.scheduled_at).toLocaleString("hu-HU")}</time></article>):<p className="booking-comms__empty">Még nincs kommunikációs esemény.</p>}</section></div>
+  <div className="booking-comms__grid"><section className="booking-comms__rules"><h3>Csatornák és automatikus szabályok</h3>{rules.map(([key,title,detail])=><div className="booking-comms__rule" key={String(key)}><span><b>{title}</b><small>{detail}</small></span><button className={settings[key]?"on":""} onClick={()=>toggle(key)}><i/></button></div>)}<label className="booking-comms__delay"><span>Értékeléskérés késleltetése</span><input type="number" min={0} max={168} value={settings.review_delay_hours} onChange={e=>setSettings(s=>({...s,review_delay_hours:Number(e.target.value||0)}))}/><em>óra</em></label></section>
+  <section className="booking-comms__queue"><header><div><h3>Kommunikációs sor</h3><p>A legutóbbi 300 esemény, e-mail és SMS csatornával.</p></div><button onClick={load}><RefreshCw size={14}/> Frissítés</button></header>{loading&&!queue.length?<p className="booking-comms__empty">Betöltés…</p>:queue.length?queue.slice(0,80).map(item=><article key={item.id}><span className={`status-${item.status}`}>{item.status}</span><div><b>{item.channel==="sms"?<MessageSquareText size={12}/>:<Mail size={12}/>} {labels[item.event_type]||item.event_type}</b><small>{item.client_name||item.recipient} · {item.recipient}</small></div><time>{new Date(item.scheduled_at).toLocaleString("hu-HU")}</time></article>):<p className="booking-comms__empty">Még nincs kommunikációs esemény.</p>}</section></div>
  </div>;
 }
