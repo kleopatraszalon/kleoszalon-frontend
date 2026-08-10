@@ -5,6 +5,7 @@ import {
   UserRoundCheck, UserRoundX, UsersRound,
 } from "lucide-react";
 import api from "../../api/api";
+import { useCurrentUser } from "../../hooks/useCurrentUser";
 import AppointmentTerminationModal from "./AppointmentTerminationModal";
 import "./BookingOperationsPanel.css";
 
@@ -20,9 +21,13 @@ type Props = { appointments: BookingOperationAppointment[]; employeeCount: numbe
 const normalizeStatus=(value?:string|null)=>String(value||"confirmed").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
 const minutesBetween=(start:string,end:string)=>Math.max(0,(new Date(end).getTime()-new Date(start).getTime())/60000);
 const timeText=(value:string)=>new Date(value).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
+const roleList=(raw:unknown)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const parsed=JSON.parse(String(raw||''));if(Array.isArray(parsed))return parsed.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[\[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
+const EDITOR_ROLES=new Set(['admin','administrator','rendszergazda','superadmin','super_admin','receptionist','recepciós','recepcios','reception','location_manager','üzletvezető','uzletvezeto','store_manager','branch_manager']);
 
 export default function BookingOperationsPanel({ appointments, employeeCount, onOpenAppointment }: Props) {
   const navigate=useNavigate();
+  const{user}=useCurrentUser() as any;
+  const canEditBooking=useMemo(()=>roleList(user?.role).some(role=>EDITOR_ROLES.has(role)),[user?.role]);
   const[waitlist,setWaitlist]=useState<WaitItem[]>([]),[breaks,setBreaks]=useState<BreakItem[]>([]),[opsError,setOpsError]=useState(""),[arrivalBusy,setArrivalBusy]=useState<string|null>(null);
   const[links,setLinks]=useState<Record<string,WorkOrderLink>>({});
   const[termination,setTermination]=useState<{item:BookingOperationAppointment;mode:'cancelled'|'no_show'}|null>(null);
@@ -31,7 +36,7 @@ export default function BookingOperationsPanel({ appointments, employeeCount, on
 
   const appointmentKey=useMemo(()=>appointments.map(item=>item.id).sort().join(','),[appointments]);
   useEffect(()=>{
-    if(!appointmentKey)return;
+    if(!appointmentKey||!canEditBooking)return;
     let active=true;
     void(async()=>{
       try{
@@ -48,10 +53,11 @@ export default function BookingOperationsPanel({ appointments, employeeCount, on
       }
     })();
     return()=>{active=false};
-  },[appointmentKey]);
+  },[appointmentKey,canEditBooking]);
 
   const setWaitStatus=async(id:string,status:string)=>{try{await api.patch(`/transactions/booking-operations/waitlist/${id}`,{status});await loadOps()}catch(e:any){setOpsError(e?.response?.data?.error||"A várólista nem módosítható.")}};
   const arriveAndOpen=async(item:BookingOperationAppointment)=>{
+    if(!canEditBooking)return;
     setOpsError("");setArrivalBusy(item.id);
     try{
       const response=await api.post(`/transactions/booking-workorder/appointments/${item.id}/arrive`,{});
@@ -61,6 +67,11 @@ export default function BookingOperationsPanel({ appointments, employeeCount, on
       navigate(`/workorders/${encodeURIComponent(workOrderId)}`);
     }catch(e:any){setOpsError(e?.response?.data?.error||e?.response?.data?.message||e?.message||"A vendég érkeztetése nem sikerült.")}
     finally{setArrivalBusy(null)}
+  };
+  const openWorkOrder=async(item:BookingOperationAppointment)=>{
+    const workOrderId=String(links[item.id]?.work_order_id||item.work_order_id||'');
+    if(workOrderId){navigate(`/workorders/${encodeURIComponent(workOrderId)}`);return}
+    await arriveAndOpen(item);
   };
   const summary = useMemo(() => {
     const now=Date.now(),activeStatuses=new Set(["confirmed","pending","arrived","in_progress","booked"]),cancelledStatuses=new Set(["cancelled","canceled"]),noShowStatuses=new Set(["no_show","noshow"]);
@@ -76,9 +87,9 @@ export default function BookingOperationsPanel({ appointments, employeeCount, on
     <header className="booking-operations__header"><div><span>FOGLALÁSI IRÁNYÍTÓKÖZPONT</span><h2>Napi működési áttekintés</h2><p>Kapacitás, vendégállapotok, várólista és technikai szünetek egy helyen.</p></div><div className="booking-operations__capacity"><Gauge/><strong>{summary.utilization}%</strong><small>tervezett kapacitás</small></div></header>
     <div className="booking-operations__metrics"><article><CalendarCheck2/><div><strong>{appointments.length}</strong><span>összes foglalás</span></div></article><article><UserRoundCheck/><div><strong>{summary.completed.length}</strong><span>befejezett</span></div></article><article><Clock3/><div><strong>{Math.round(summary.plannedMinutes/6)/10}</strong><span>tervezett óra</span></div></article><article><UsersRound/><div><strong>{waitlist.length}</strong><span>várólistán</span></div></article><article><UserRoundX/><div><strong>{summary.noShow.length}</strong><span>nem jelent meg</span></div></article></div>
     {opsError&&<div className="booking-operations__operror">{opsError}</div>}
-    <div className="booking-operations__content"><article className="booking-operations__upcoming"><header><div><span>KÖVETKEZŐ VENDÉGEK</span><h3>Aktuális sorrend</h3></div><b>{summary.active.length} aktív</b></header>{summary.upcoming.length?summary.upcoming.map(item=>{const link=links[item.id];const hasWorkOrder=Boolean(link?.work_order_id||item.work_order_id);const status=normalizeStatus(item.status);return <div key={item.id} className="booking-operations__arrivalrow" style={{display:"grid",gridTemplateColumns:"80px minmax(0,1fr) auto",gap:8,alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(0,0,0,.06)"}}><time>{timeText(item.start_time)}</time><button type="button" onClick={()=>onOpenAppointment?.(item.id)} style={{border:0,background:"transparent",textAlign:"left",padding:0,cursor:"pointer"}}><b>{item.client_name||item.title||"Vendég"}</b><small style={{display:"block"}}>{status} · {Math.round(minutesBetween(item.start_time,item.end_time))} perc{link?.work_order_number?` · ${link.work_order_number}`:''}</small></button><div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}><button type="button" disabled={arrivalBusy===item.id} onClick={()=>void arriveAndOpen(item)} style={{border:"1px solid #d6d0dc",borderRadius:10,padding:"7px 10px",background:hasWorkOrder?'#f7f3ff':'#fff',fontWeight:700,cursor:"pointer"}}>{arrivalBusy===item.id?"Nyitás…":hasWorkOrder||status==="arrived"||status==="in_progress"?"Munkalap":"Megérkezett + munkalap"}</button><button type="button" onClick={()=>setTermination({item,mode:'cancelled'})} style={{border:'1px solid #e3d2d2',borderRadius:10,padding:'7px 10px',background:'#fff8f8',fontWeight:700,cursor:'pointer'}}>Lemondás</button><button type="button" onClick={()=>setTermination({item,mode:'no_show'})} style={{border:'1px solid #e1d6c6',borderRadius:10,padding:'7px 10px',background:'#fffaf1',fontWeight:700,cursor:'pointer'}}>Nem jelent meg</button></div></div>}):<p className="booking-operations__empty">Nincs további aktív foglalás.</p>}</article>
+    <div className="booking-operations__content"><article className="booking-operations__upcoming"><header><div><span>KÖVETKEZŐ VENDÉGEK</span><h3>Aktuális sorrend</h3></div><b>{summary.active.length} aktív</b></header>{summary.upcoming.length?summary.upcoming.map(item=>{const link=links[item.id];const hasWorkOrder=Boolean(link?.work_order_id||item.work_order_id);const status=normalizeStatus(item.status);const arrived=['arrived','in_progress'].includes(status);return <div key={item.id} className="booking-operations__arrivalrow" style={{display:"grid",gridTemplateColumns:"80px minmax(0,1fr) auto",gap:8,alignItems:"center",padding:"8px 0",borderBottom:"1px solid rgba(0,0,0,.06)"}}><time>{timeText(item.start_time)}</time><button type="button" onClick={()=>onOpenAppointment?.(item.id)} style={{border:0,background:"transparent",textAlign:"left",padding:0,cursor:"pointer"}}><b>{item.client_name||item.title||"Vendég"}</b><small style={{display:"block"}}>{status} · {Math.round(minutesBetween(item.start_time,item.end_time))} perc{link?.work_order_number?` · ${link.work_order_number}`:''}</small></button>{canEditBooking?<div style={{display:'flex',gap:6,flexWrap:'wrap',justifyContent:'flex-end'}}><button type="button" disabled={arrivalBusy===item.id} onClick={()=>void(arrived?openWorkOrder(item):arriveAndOpen(item))} style={{border:"1px solid #d6d0dc",borderRadius:10,padding:"7px 10px",background:hasWorkOrder?'#f7f3ff':'#fff',fontWeight:700,cursor:"pointer"}}>{arrivalBusy===item.id?"Nyitás…":arrived?"Munkalap":"Megérkezett + munkalap"}</button><button type="button" onClick={()=>setTermination({item,mode:'cancelled'})} style={{border:'1px solid #e3d2d2',borderRadius:10,padding:'7px 10px',background:'#fff8f8',fontWeight:700,cursor:'pointer'}}>Lemondás</button><button type="button" onClick={()=>setTermination({item,mode:'no_show'})} style={{border:'1px solid #e1d6c6',borderRadius:10,padding:'7px 10px',background:'#fffaf1',fontWeight:700,cursor:'pointer'}}>Nem jelent meg</button></div>:<small style={{color:'#74695f'}}>Csak olvasható</small>}</div>}):<p className="booking-operations__empty">Nincs további aktív foglalás.</p>}</article>
       <aside className="booking-operations__alerts"><header><AlertTriangle/><div><span>OPERATÍV JELZÉSEK</span><h3>Figyelmet igényel</h3></div><button className="booking-operations__refresh" onClick={loadOps} title="Frissítés"><RefreshCw size={14}/></button></header>{summary.warnings.length?summary.warnings.map(w=><p key={w}>{w}</p>):<p className="is-ok">Nincs kiemelt működési kockázat.</p>}<div className="booking-operations__statusline"><span><i className="is-confirmed"/> Aktív: {summary.active.length}</span><span><i className="is-cancelled"/> Lemondott: {summary.cancelled.length}</span><span>Technikai szünet: {breaks.length}</span></div></aside></div>
-    {(waitlist.length>0||breaks.length>0)&&<div className="booking-operations__secondary"><article><header><span>VÁRÓLISTA</span><b>{waitlist.length}</b></header>{waitlist.slice(0,5).map(w=><div className="booking-operations__waitrow" key={w.id}><span><b>{w.client_name}</b><small>{w.phone||w.email||"Nincs elérhetőség"}{w.employee_name?` · ${w.employee_name}`:""}</small></span><div><button onClick={()=>setWaitStatus(w.id,"contacted")}>Kapcsolatfelvétel</button><button onClick={()=>setWaitStatus(w.id,"booked")}>Foglalva</button></div></div>)}{!waitlist.length&&<small>Nincs várakozó vendég.</small>}</article><article><header><span>KÖVETKEZŐ TECHNIKAI SZÜNETEK</span><b>{breaks.length}</b></header>{breaks.slice(0,5).map(b=><div className="booking-operations__breakrow" key={b.id}><b>{b.employee_name||"Munkatárs"}</b><small>{new Date(b.start_time).toLocaleString("hu-HU")} – {timeText(b.end_time)} · {b.title}</small></div>)}{!breaks.length&&<small>Nincs rögzített szünet.</small>}</article></div>}
-    <AppointmentTerminationModal appointment={termination?.item||null} mode={termination?.mode||null} onClose={()=>setTermination(null)} onDone={()=>window.location.reload()}/>
+    {(waitlist.length>0||breaks.length>0)&&<div className="booking-operations__secondary"><article><header><span>VÁRÓLISTA</span><b>{waitlist.length}</b></header>{waitlist.slice(0,5).map(w=><div className="booking-operations__waitrow" key={w.id}><span><b>{w.client_name}</b><small>{w.phone||w.email||"Nincs elérhetőség"}{w.employee_name?` · ${w.employee_name}`:""}</small></span>{canEditBooking&&<div><button onClick={()=>setWaitStatus(w.id,"contacted")}>Kapcsolatfelvétel</button><button onClick={()=>setWaitStatus(w.id,"booked")}>Foglalva</button></div>}</div>)}{!waitlist.length&&<small>Nincs várakozó vendég.</small>}</article><article><header><span>KÖVETKEZŐ TECHNIKAI SZÜNETEK</span><b>{breaks.length}</b></header>{breaks.slice(0,5).map(b=><div className="booking-operations__breakrow" key={b.id}><b>{b.employee_name||"Munkatárs"}</b><small>{new Date(b.start_time).toLocaleString("hu-HU")} – {timeText(b.end_time)} · {b.title}</small></div>)}{!breaks.length&&<small>Nincs rögzített szünet.</small>}</article></div>}
+    {canEditBooking&&<AppointmentTerminationModal appointment={termination?.item||null} mode={termination?.mode||null} onClose={()=>setTermination(null)} onDone={()=>window.location.reload()}/>} 
   </section>;
 }
