@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
@@ -16,6 +16,14 @@ import AccessControlPage from "../pages/AccessControlPage";
 import AuditLogPage from "../pages/AuditLogPage";
 import StaffChatAdminPage from "../pages/StaffChatAdminPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import {
+  clearAuthenticatedSession,
+  getLastActivityAt,
+  hasStoredAuthToken,
+  IDLE_TIMEOUT_MS,
+  LAST_ACTIVITY_KEY,
+  markSessionActivity,
+} from "../utils/authSession";
 import "./AppLayout.css";
 import "./MobileSidebarFix.css";
 
@@ -50,12 +58,100 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const salon = localStorage.getItem("kleo_location_name") || (isStaff?"Saját telephely":"Minden telephely");
   const today = new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date());
 
+  const logout = useCallback((reason?: "idle") => {
+    clearAuthenticatedSession();
+    if (reason === "idle") {
+      try { sessionStorage.setItem("kleo_logout_reason", "idle"); } catch {}
+    }
+    navigate(reason === "idle" ? "/login?reason=idle" : "/login", { replace: true });
+  }, [navigate]);
+
   useEffect(() => { localStorage.setItem("kleo.sidebar.collapsed", String(collapsed)); }, [collapsed]);
   useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
   useEffect(() => { if (!mobileOpen) return; const p=document.body.style.overflow; document.body.style.overflow="hidden"; return()=>{document.body.style.overflow=p}; }, [mobileOpen]);
 
+  // VIR specifikáció: 5 perc felhasználói tétlenség után automatikus kijelentkezés.
+  // Az aktivitás időbélyege localStorage-ban közös a böngészőfülek között, így az
+  // egyik fülben végzett munka nem jelentkezteti ki tévesen a másik aktív fület.
+  useEffect(() => {
+    if (!hasStoredAuthToken()) return;
+
+    let timer: number | undefined;
+    let lastWriteAt = 0;
+    let fallbackActivityAt = Date.now();
+
+    const currentLastActivity = () => getLastActivityAt() ?? fallbackActivityAt;
+
+    const expireIfIdle = () => {
+      if (!hasStoredAuthToken()) {
+        logout();
+        return;
+      }
+      const elapsed = Date.now() - currentLastActivity();
+      if (elapsed >= IDLE_TIMEOUT_MS) {
+        logout("idle");
+        return;
+      }
+      schedule();
+    };
+
+    const schedule = () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      const elapsed = Date.now() - currentLastActivity();
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
+      timer = window.setTimeout(expireIfIdle, remaining + 50);
+    };
+
+    const registerActivity = () => {
+      const now = Date.now();
+      fallbackActivityAt = now;
+      // A folyamatos egér/scroll események miatt legfeljebb másodpercenként írunk storage-ba.
+      if (now - lastWriteAt >= 1000) {
+        markSessionActivity(now);
+        lastWriteAt = now;
+      }
+      schedule();
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === LAST_ACTIVITY_KEY) {
+        schedule();
+        return;
+      }
+      if ((event.key === "kleo_token" || event.key === "token") && !hasStoredAuthToken()) {
+        logout();
+      }
+    };
+
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") registerActivity();
+    };
+
+    if (!getLastActivityAt()) markSessionActivity(fallbackActivityAt);
+    schedule();
+
+    const passive: AddEventListenerOptions = { passive: true };
+    window.addEventListener("pointerdown", registerActivity, passive);
+    window.addEventListener("keydown", registerActivity);
+    window.addEventListener("touchstart", registerActivity, passive);
+    window.addEventListener("scroll", registerActivity, passive);
+    window.addEventListener("focus", registerActivity);
+    window.addEventListener("storage", onStorage);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      window.removeEventListener("pointerdown", registerActivity);
+      window.removeEventListener("keydown", registerActivity);
+      window.removeEventListener("touchstart", registerActivity);
+      window.removeEventListener("scroll", registerActivity);
+      window.removeEventListener("focus", registerActivity);
+      window.removeEventListener("storage", onStorage);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [logout]);
+
   const toggleSidebar = () => window.matchMedia("(max-width: 900px)").matches ? setMobileOpen(v=>!v) : setCollapsed(v=>!v);
-  const logout = () => { ["token","kleo_token","kleo_role","kleo_location_id","kleo_location_name","kleo_full_name","email","userId"].forEach(k=>localStorage.removeItem(k)); sessionStorage.clear(); navigate("/login",{replace:true}); };
 
   const isMasterServices = location.pathname === "/masterdata/services";
   const isProducts = ["/masterdata/products","/products","/warehouse/products"].includes(location.pathname);
@@ -74,7 +170,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <Sidebar user={user}/><button className="sidebar-backdrop" type="button" aria-label="Menü bezárása" onClick={()=>setMobileOpen(false)}/>
     <div className="app-layout-column">
       <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen||!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{mobileOpen?<X size={20}/>:<Menu size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isStaff?"Kleoszalon munkatársi felület":"Kleoszalon VIR"}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
-      <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><NotificationBell/><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={logout} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
+      <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><NotificationBell/><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
       {showImport&&<AltegioServiceImportButton/>}{showHierarchy&&<ServiceHierarchyPanel/>}
       <div className="altegio-main app-layout-main"><AccessBoundary>{showHierarchy?null:<>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</>}</AccessBoundary></div>
     </div><AiHelpChat pageTitle={currentPage}/>
