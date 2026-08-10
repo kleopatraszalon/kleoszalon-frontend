@@ -10,6 +10,8 @@ type Props={
   payableTotal:number;
   loyaltyCredit:number;
   payments:PaymentDraft[];
+  alreadyPaid?:number;
+  loyaltyTender?:number;
   disabled?:boolean;
   onAdd:()=>void;
   onChange:(id:number,key:keyof PaymentDraft,value:string)=>void;
@@ -25,20 +27,23 @@ const destinations:Record<PaymentMethod,string[]>={
 };
 const methodLabel:Record<PaymentMethod,string>={cash:'Készpénz',card:'Bankkártya',transfer:'Átutalás',other:'Egyéb'};
 
-export default function WorkOrderPaymentPanel({grossTotal,payableTotal,loyaltyCredit,payments,disabled,onAdd,onChange,onRemove}:Props){
-  const paid=useMemo(()=>payments.reduce((sum,p)=>sum+Math.max(0,Number(p.amount||0)),0),[payments]);
+export default function WorkOrderPaymentPanel({grossTotal,payableTotal,loyaltyCredit,payments,alreadyPaid=0,loyaltyTender=0,disabled,onAdd,onChange,onRemove}:Props){
+  const draftPaid=useMemo(()=>payments.reduce((sum,p)=>sum+Math.max(0,Number(p.amount||0)),0),[payments]);
+  const paid=Number(alreadyPaid||0)+Number(loyaltyTender||0)+draftPaid;
   const difference=Math.round((paid-payableTotal)*100)/100;
   const ready=!disabled&&Math.abs(difference)<.01;
   return <section className={`wo-payment ${disabled?'is-disabled':''}`}>
     <div className="wo-payment__head">
-      <div><span>6. LÉPÉS</span><h2><CreditCard/> Fizetés</h2><p>A munkalap több fizetési módra bontható. A Lezárás csak 0 Ft eltérésnél engedélyezett.</p></div>
+      <div><span>6. LÉPÉS</span><h2><CreditCard/> Fizetés</h2><p>A munkalap több fizetési módra bontható. Meglévő részfizetés, wallet vagy utalvány esetén ezek is beleszámítanak az egyeztetésbe.</p></div>
       <div className={`wo-payment__state ${ready?'is-ready':''}`}><b>{ready?'Fizetés rendben':'Egyeztetés szükséges'}</b><small>Eltérés: {money(difference)}</small></div>
     </div>
     <div className="wo-payment__totals">
       <div><small>Bruttó munkalap</small><b>{money(grossTotal)}</b></div>
       <div><small>Kedvezmény / hűség / bérlet</small><b>-{money(loyaltyCredit)}</b></div>
       <div className="is-primary"><small>Fizetendő</small><b>{money(payableTotal)}</b></div>
-      <div><small>Rögzített fizetés</small><b>{money(paid)}</b></div>
+      <div><small>Korábban rögzített</small><b>{money(alreadyPaid)}</b></div>
+      <div><small>Wallet / utalvány</small><b>{money(loyaltyTender)}</b></div>
+      <div><small>Új fizetési sorok</small><b>{money(draftPaid)}</b></div>
       <div className={Math.abs(difference)<.01?'is-ok':'is-error'}><small>Eltérés</small><b>{money(difference)}</b></div>
     </div>
     <div className="wo-payment__toolbar"><div><WalletCards/><span>Kevert fizetés</span></div><button type="button" disabled={disabled} onClick={onAdd}><Plus/> Fizetési sor</button></div>
