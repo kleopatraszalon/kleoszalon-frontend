@@ -26,6 +26,11 @@ jobs:
       - name: Menu route audit
         run: node scripts/check-menu-routes.js
 
+      - name: Frontend tests
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
+
       - name: Build frontend
         env:
           CI: false
