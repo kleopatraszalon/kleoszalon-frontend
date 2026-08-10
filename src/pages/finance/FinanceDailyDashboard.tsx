@@ -4,14 +4,15 @@ import api from"../../api";
 import"./FinanceDailyDashboard.css";
 
 type Dashboard={business_date:string;scope:{is_admin:boolean;location_id:string|null};kpis:any;payments:Array<{method:string;label:string;amount:number}>;locations:any[];staff:any[];commissions:any[];closings:any[];trend:any[]};
+type Props={refreshKey?:number};
 const fmt=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;
 const today=()=>new Date().toISOString().slice(0,10);
 
-export default function FinanceDailyDashboard(){
+export default function FinanceDailyDashboard({refreshKey=0}:Props){
  const[date,setDate]=useState(today()),[data,setData]=useState<Dashboard|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState("");
  const locationId=localStorage.getItem("kleo_location_id")||"";
  async function load(){setLoading(true);setError("");try{const q=new URLSearchParams({date});if(locationId)q.set("location_id",locationId);const r=await api.get(`/api/transactions/finance-dashboard?${q.toString()}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||"A napi pénzügyi dashboard nem tölthető be.")}finally{setLoading(false)}}
- useEffect(()=>{void load()},[date,locationId]);
+ useEffect(()=>{void load()},[date,locationId,refreshKey]);
  const paymentMax=useMemo(()=>Math.max(1,...(data?.payments||[]).map(x=>Number(x.amount||0))),[data]);
  const trendMax=useMemo(()=>Math.max(1,...(data?.trend||[]).map(x=>Number(x.revenue||0))),[data]);
  const openCommission=useMemo(()=>data?.commissions?.reduce((sum,x)=>sum+Number(x.base_amount||0)+Number(x.tip_amount||0),0)||0,[data]);
