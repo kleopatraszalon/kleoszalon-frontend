@@ -1,7 +1,7 @@
 // src/pages/Login.tsx
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
 
@@ -87,11 +87,13 @@ function PasswordInput({
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const idleLogout = searchParams.get("reason") === "idle";
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
@@ -167,6 +169,24 @@ const LoginPage: React.FC = () => {
             Egyetlen belépési felület ügyfeleknek, munkatársaknak és adminisztrátoroknak. A rendszer automatikusan a megfelelő jogosultságot és telephelyet használja.
           </p>
 
+          {idleLogout && (
+            <div
+              role="status"
+              aria-live="polite"
+              style={{
+                marginBottom: 12,
+                border: "1px solid #d5c4a4",
+                borderRadius: 8,
+                padding: "9px 11px",
+                background: "#fffaf2",
+                color: "#5d5a55",
+                fontSize: 13,
+                lineHeight: 1.4,
+              }}
+            >
+              Biztonsági okból 5 perc tétlenség után automatikusan kijelentkeztettünk. A folytatáshoz jelentkezz be újra.
+            </div>
+          )}
           {error && <div className="login-error">{error}</div>}
 
           <form onSubmit={handleLogin}>
