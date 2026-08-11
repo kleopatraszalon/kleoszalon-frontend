@@ -28,11 +28,17 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
  const state=effectiveLocked?'Lezárt és archivált':ready?(financiallyClosed?'Pénzügyileg lezárt · archiválásra kész':'Lezárásra kész'):financiallyClosed?'Pénzügyileg lezárt · véglegesítésre kész':'Fizetés egyeztetése szükséges';
  const action=financiallyClosed?'Munkalap végleges lezárása':'Fizetés és munkalap végleges lezárása';
  const canFinalize=ready||financiallyClosed;
+ const ensureArchive=async(id:string)=>{
+  const res=await fetch(withBase(`/api/transactions/workorder-finalization/workorders/${encodeURIComponent(id)}/finalize`),{method:'POST',credentials:'include',headers:{...authHeaders(),'Content-Type':'application/json'},body:'{}'});
+  if(!res.ok)throw new Error(await errorMessage(res));
+  return res.json();
+ };
  const downloadPdf=async()=>{
   if(!effectiveLocked)return setDocumentError('A PDF a munkalap végleges lezárása és archiválása után tölthető le.');
   const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
   setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
   try{
+   await ensureArchive(id);
    const res=await fetch(withBase(`/api/transactions/workorder-finalization/workorders/${encodeURIComponent(id)}/pdf`),{credentials:'include',headers:authHeaders()});
    if(!res.ok)throw new Error(await errorMessage(res));
    const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${workOrderNumber||'lezart-munkalap'}.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setDocumentNotice('A lezárt munkalap PDF elkészült és letöltésre került.');
@@ -43,6 +49,7 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
   const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
   setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
   try{
+   await ensureArchive(id);
    const res=await fetch(withBase(`/api/transactions/workorder-finalization/workorders/${encodeURIComponent(id)}/email`),{method:'POST',credentials:'include',headers:{...authHeaders(),'Content-Type':'application/json'},body:'{}'});
    if(!res.ok)throw new Error(await errorMessage(res));
    const data=await res.json();
