@@ -70,7 +70,7 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
   <div className="wo-close__head"><div><span>7. LÉPÉS</span><h2><CheckCircle2/> Lezárás</h2><p>{effectiveLocked?'A munkalap lezárt és archivált; a PDF letölthető vagy újraküldhető e-mailben.':'A végleges lezárás után a munkalap pénzügyi, készlet-, archiválási és dokumentumküldési folyamata befejeződik.'}</p></div><div className="wo-close__state"><b>{state}</b>{workOrderNumber&&<small>{workOrderNumber}</small>}</div></div>
   <div className="wo-close__grid">{items.map(([Icon,title,text])=><article key={title}><Icon/><div><b>{title}</b><p>{text}</p></div></article>)}</div>
   <div className="wo-close__warning"><LockKeyhole/><span><b>Végleges művelet.</b> Lezárás után a munkalap csak visszavonási/audit folyamattal korrigálható, közvetlen szerkesztéssel nem.</span></div>
-  {!effectiveLocked&&<div className="wo-close__warning"><FileCheck2/><span><b>PDF és e-mail:</b> a két dokumentumgomb a sikeres végleges lezárás és archiválás után automatikusan aktívvá válik.</span></div>}
+  {!effectiveLocked&&<div className="wo-close__warning"><FileCheck2/><span><b>PDF és e-mail:</b> a két dokumentumgomb már látható, és a sikeres végleges lezárás és archiválás után automatikusan aktívvá válik.</span></div>}
   {documentNotice&&<div className="wo-close__warning"><CheckCircle2/><span>{documentNotice}</span></div>}
   {documentError&&<div className="wo-close__warning"><span><b>Dokumentumküldés:</b> {documentError}</span></div>}
   <div className="wo-close__actions">
