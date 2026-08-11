@@ -23,11 +23,13 @@ async function errorMessage(res:Response){
 }
 
 export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financiallyClosed=false,locked=false,onFinalize}:Props){
- const[documentBusy,setDocumentBusy]=useState(false);const[documentNotice,setDocumentNotice]=useState('');const[documentError,setDocumentError]=useState('');
- const state=locked?'Lezárt és archivált':ready?(financiallyClosed?'Pénzügyileg lezárt · archiválásra kész':'Lezárásra kész'):'Fizetés egyeztetése szükséges';
+ const[documentBusy,setDocumentBusy]=useState(false);const[documentNotice,setDocumentNotice]=useState('');const[documentError,setDocumentError]=useState('');const[localLocked,setLocalLocked]=useState(false);
+ const effectiveLocked=locked||localLocked;
+ const state=effectiveLocked?'Lezárt és archivált':ready?(financiallyClosed?'Pénzügyileg lezárt · archiválásra kész':'Lezárásra kész'):financiallyClosed?'Pénzügyileg lezárt · véglegesítésre kész':'Fizetés egyeztetése szükséges';
  const action=financiallyClosed?'Munkalap végleges lezárása':'Fizetés és munkalap végleges lezárása';
+ const canFinalize=ready||financiallyClosed;
  const downloadPdf=async()=>{
-  if(!locked)return setDocumentError('A PDF a munkalap végleges lezárása és archiválása után tölthető le.');
+  if(!effectiveLocked)return setDocumentError('A PDF a munkalap végleges lezárása és archiválása után tölthető le.');
   const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
   setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
   try{
@@ -37,7 +39,7 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
   }catch(e:any){setDocumentError(e?.message||'A PDF letöltése nem sikerült.')}finally{setDocumentBusy(false)}
  };
  const resendEmail=async()=>{
-  if(!locked)return setDocumentError('E-mailben csak a véglegesen lezárt és archivált munkalap küldhető el.');
+  if(!effectiveLocked)return setDocumentError('E-mailben csak a véglegesen lezárt és archivált munkalap küldhető el.');
   const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
   setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
   try{
@@ -49,17 +51,32 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
    else setDocumentError(data?.mail?.error||'Az e-mail küldése nem sikerült.');
   }catch(e:any){setDocumentError(e?.message||'Az e-mail újraküldése nem sikerült.')}finally{setDocumentBusy(false)}
  };
- return <section className={`wo-close ${ready?'is-ready':'is-locked'}`}>
-  <div className="wo-close__head"><div><span>7. LÉPÉS</span><h2><CheckCircle2/> Lezárás</h2><p>{locked?'A munkalap lezárt és archivált; a PDF letölthető vagy újraküldhető e-mailben.':'A végleges lezárás után a munkalap pénzügyi, készlet-, archiválási és dokumentumküldési folyamata befejeződik.'}</p></div><div className="wo-close__state"><b>{state}</b>{workOrderNumber&&<small>{workOrderNumber}</small>}</div></div>
+ const directFinalize=async()=>{
+  const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
+  setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
+  try{
+   const res=await fetch(withBase(`/api/transactions/workorder-finalization/workorders/${encodeURIComponent(id)}/finalize`),{method:'POST',credentials:'include',headers:{...authHeaders(),'Content-Type':'application/json'},body:'{}'});
+   if(!res.ok)throw new Error(await errorMessage(res));
+   const data=await res.json();setLocalLocked(true);
+   const mail=data?.delivery?.mail;
+   if(data?.pdf_ready&&mail?.sent)setDocumentNotice(`A munkalap lezárva, a PDF elkészült és automatikusan elküldve: ${(mail.recipients||[]).join(', ')}`);
+   else if(data?.pdf_ready&&mail?.logged)setDocumentNotice('A munkalap lezárva és a PDF elkészült. Az SMTP nincs bekapcsolva, ezért az e-mail csak naplózásra került.');
+   else if(data?.pdf_ready)setDocumentNotice('A munkalap lezárva és a PDF elkészült. Az e-mail küldési állapot külön ellenőrizhető.');
+   else setDocumentError(data?.delivery?.mail?.error||'A munkalap lezárult, de a PDF/e-mail feldolgozás hibát jelzett.');
+  }catch(e:any){setDocumentError(e?.message||'A végleges lezárás nem sikerült.')}finally{setDocumentBusy(false)}
+ };
+ const handleFinalize=()=>{if(financiallyClosed&&!ready)void directFinalize();else onFinalize()};
+ return <section className={`wo-close ${canFinalize?'is-ready':'is-locked'}`}>
+  <div className="wo-close__head"><div><span>7. LÉPÉS</span><h2><CheckCircle2/> Lezárás</h2><p>{effectiveLocked?'A munkalap lezárt és archivált; a PDF letölthető vagy újraküldhető e-mailben.':'A végleges lezárás után a munkalap pénzügyi, készlet-, archiválási és dokumentumküldési folyamata befejeződik.'}</p></div><div className="wo-close__state"><b>{state}</b>{workOrderNumber&&<small>{workOrderNumber}</small>}</div></div>
   <div className="wo-close__grid">{items.map(([Icon,title,text])=><article key={title}><Icon/><div><b>{title}</b><p>{text}</p></div></article>)}</div>
   <div className="wo-close__warning"><LockKeyhole/><span><b>Végleges művelet.</b> Lezárás után a munkalap csak visszavonási/audit folyamattal korrigálható, közvetlen szerkesztéssel nem.</span></div>
-  {!locked&&<div className="wo-close__warning"><FileCheck2/><span><b>PDF és e-mail:</b> a két dokumentumgomb már látható, de csak a sikeres végleges lezárás és archiválás után válik aktívvá.</span></div>}
+  {!effectiveLocked&&<div className="wo-close__warning"><FileCheck2/><span><b>PDF és e-mail:</b> a két dokumentumgomb a sikeres végleges lezárás és archiválás után automatikusan aktívvá válik.</span></div>}
   {documentNotice&&<div className="wo-close__warning"><CheckCircle2/><span>{documentNotice}</span></div>}
   {documentError&&<div className="wo-close__warning"><span><b>Dokumentumküldés:</b> {documentError}</span></div>}
   <div className="wo-close__actions">
-   {!locked&&<button type="button" disabled={!ready||saving} onClick={onFinalize}>{saving?'Lezárás folyamatban…':action}</button>}
-   <button type="button" disabled={!locked||documentBusy} title={locked?'Lezárt munkalap PDF letöltése':'Végleges lezárás után érhető el'} onClick={()=>void downloadPdf()}><Download size={16}/>{documentBusy&&locked?'Feldolgozás…':'PDF letöltése'}</button>
-   <button type="button" disabled={!locked||documentBusy} title={locked?'Lezárt munkalap PDF újraküldése e-mailben':'Végleges lezárás után érhető el'} onClick={()=>void resendEmail()}><Mail size={16}/>PDF újraküldése e-mailben</button>
+   {!effectiveLocked&&<button type="button" disabled={!canFinalize||saving||documentBusy} onClick={handleFinalize}>{saving||documentBusy?'Lezárás folyamatban…':action}</button>}
+   <button type="button" disabled={!effectiveLocked||documentBusy} title={effectiveLocked?'Lezárt munkalap PDF letöltése':'Végleges lezárás után érhető el'} onClick={()=>void downloadPdf()}><Download size={16}/>{documentBusy&&effectiveLocked?'Feldolgozás…':'PDF letöltése'}</button>
+   <button type="button" disabled={!effectiveLocked||documentBusy} title={effectiveLocked?'Lezárt munkalap PDF újraküldése e-mailben':'Végleges lezárás után érhető el'} onClick={()=>void resendEmail()}><Mail size={16}/>PDF újraküldése e-mailben</button>
   </div>
  </section>
 }
