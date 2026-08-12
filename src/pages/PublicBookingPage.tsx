@@ -34,6 +34,8 @@ export default function PublicBookingPage(){
  const recognitionRef=useRef<any>(null);
  const contactValid=Boolean(guest.full_name.trim()&&(guest.phone.trim()||guest.email.trim()));
 
+ useEffect(()=>{try{const saved=JSON.parse(localStorage.getItem("kleopatra_guest_profile")||"null");if(saved&&typeof saved==="object")setGuest({full_name:String(saved.full_name||""),phone:String(saved.phone||""),email:String(saved.email||""),marketing_consent:Boolean(saved.marketing_consent)})}catch{}},[]);
+
  useEffect(()=>{api.get("/public/marketing/booking/catalog").then(r=>setLocations((r.data?.locations||[]).map((x:any)=>({id:String(x.id),name:x.name})))).catch(()=>setError("A szalonok jelenleg nem tölthetők be."))},[]);
  useEffect(()=>{setSelectedSlot(null);setConfirmOpen(false);setSlots([]);if(!locationId){setServices([]);setEmployees([]);setSettings(null);return}let active=true;setLoading(true);setError("");api.get("/public/marketing/booking/catalog",{params:{location_id:locationId}}).then(r=>{if(!active)return;const ss=(r.data?.services||[]).map((x:any)=>({...x,id:String(x.id)})),ee=(r.data?.employees||[]).map((x:any)=>({...x,id:String(x.id)}));setServices(ss);setEmployees(ee);setSettings(r.data?.settings||null);const okS=new Set(ss.map((x:Service)=>x.id));setSelectedServiceIds(ids=>ids.filter(id=>okS.has(id)));const okE=new Set(ee.map((x:Employee)=>x.id));setEmployeeId(id=>okE.has(id)?id:"")}).catch((e:any)=>active&&setError(e?.response?.data?.error||"A foglalási katalógus nem tölthető be.")).finally(()=>active&&setLoading(false));return()=>{active=false}},[locationId]);
 
