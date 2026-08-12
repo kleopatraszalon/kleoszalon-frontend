@@ -7,6 +7,8 @@ const ProductsList=lazy(()=>import("./pages/ProductsList"));
 const WebshopAdmin=lazy(()=>import("./pages/WebshopAdmin"));
 const HrPositionsPage=lazy(()=>import("./pages/HrPositionsPage"));
 const HrDevelopmentPage=lazy(()=>import("./pages/HrDevelopmentPage"));
+const OperationsQualityPage=lazy(()=>import("./pages/OperationsQualityPage"));
+const NewsletterPage=lazy(()=>import("./pages/NewsletterPage"));
 const LoyaltyProgramPage=lazy(()=>import("./pages/LoyaltyProgramPage"));
 const LoyaltyModulePage=lazy(()=>import("./pages/LoyaltyModulePage"));
 const ClientDuplicateReviewPage=lazy(()=>import("./pages/ClientDuplicateReviewPage"));
@@ -19,6 +21,9 @@ const router=createBrowserRouter([
 {path:"/hr/positions",element:R(MANAGEMENT,<HrPositionsPage/>)},
 {path:"/hr/applications",element:R(MANAGEMENT,<HrDevelopmentPage/>)},{path:"/spec/training",element:R(MANAGEMENT,<HrDevelopmentPage/>)},{path:"/hr/evaluations",element:R(MANAGEMENT,<HrDevelopmentPage/>)},
 {path:"/modules/team/recruitment",element:<Navigate to="/hr/applications" replace/>},{path:"/modules/team/training",element:<Navigate to="/spec/training" replace/>},{path:"/modules/team/evaluations",element:<Navigate to="/hr/evaluations" replace/>},
+{path:"/extra/tasks",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/spec/maintenance",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/extra/documents",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/spec/internal-email",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/marketing/complaints",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/operations/audits",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/operations/incidents",element:R(MANAGEMENT,<OperationsQualityPage/>)},
+{path:"/extra/chat",element:<Navigate to="/staff/chat" replace/>},
+{path:"/marketing/newsletter",element:R(MANAGEMENT,<NewsletterPage/>)},
 {path:"/modules/customers/loyalty-program",element:R(MANAGEMENT,<LoyaltyProgramPage/>)},
 {path:"/modules/loyalty/*",element:R(MANAGEMENT,<LoyaltyModulePage/>)},
 {path:"/modules/appointments/:view",element:A(<AppointmentsModulePage/>)},{path:"/modules/team/payroll",element:R(MANAGEMENT,<PayrollPage/>)},{path:"/modules/team/roles",element:R(ADMIN,<AccessControlPage/>)},{path:"/admin/access-control",element:R(ADMIN,<AccessControlPage/>)},{path:"/settings/roles",element:R(ADMIN,<ModulePlaceholderPage/>)},{path:"/modules/settings/audit-log",element:R(MANAGEMENT,<ModulePlaceholderPage/>)},{path:"/modules/settings/chat-supervision",element:R(MANAGEMENT,<ModulePlaceholderPage/>)},{path:"/hr/positions",element:A(<EmployeesList/>)},{path:"/modules/team/import",element:R(MANAGEMENT,<StaffImportPage/>)},{path:"/modules/customers/duplicate-review",element:A(<ClientDuplicateReviewPage/>)},{path:"/modules/customers/:view",element:A(<ClientsCRMPage/>)},
