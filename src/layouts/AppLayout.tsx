@@ -1,20 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
-import AiHelpChat from "../components/AiHelpChat";
-import NotificationBell from "../components/NotificationBell";
-import AltegioServiceImportButton from "../components/AltegioServiceImportButton";
-import ServiceHierarchyPanel from "../components/ServiceHierarchyPanel";
 import AccessBoundary from "../components/AccessBoundary";
-import DashboardChecklistCard from "../components/DashboardChecklistCard";
-import EmployeeServicesPage from "../pages/EmployeeServicesPage";
-import ServicesCatalogPage from "../pages/ServicesCatalogPage";
-import ProductCatalogPage from "../pages/ProductCatalogPage";
-import NotificationsPage from "../pages/NotificationsPage";
-import AccessControlPage from "../pages/AccessControlPage";
-import AuditLogPage from "../pages/AuditLogPage";
-import StaffChatAdminPage from "../pages/StaffChatAdminPage";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import {
   clearAuthenticatedSession,
@@ -26,6 +14,29 @@ import {
 } from "../utils/authSession";
 import "./AppLayout.css";
 import "./MobileSidebarFix.css";
+
+const AiHelpChat=lazy(()=>import("../components/AiHelpChat"));
+const NotificationBell=lazy(()=>import("../components/NotificationBell"));
+const AltegioServiceImportButton=lazy(()=>import("../components/AltegioServiceImportButton"));
+const ServiceHierarchyPanel=lazy(()=>import("../components/ServiceHierarchyPanel"));
+const DashboardChecklistCard=lazy(()=>import("../components/DashboardChecklistCard"));
+const EmployeeServicesPage=lazy(()=>import("../pages/EmployeeServicesPage"));
+const ServicesCatalogPage=lazy(()=>import("../pages/ServicesCatalogPage"));
+const ProductCatalogPage=lazy(()=>import("../pages/ProductCatalogPage"));
+const NotificationsPage=lazy(()=>import("../pages/NotificationsPage"));
+const AccessControlPage=lazy(()=>import("../pages/AccessControlPage"));
+const AuditLogPage=lazy(()=>import("../pages/AuditLogPage"));
+const StaffChatAdminPage=lazy(()=>import("../pages/StaffChatAdminPage"));
+const Deferred=({children}:{children:React.ReactNode})=><Suspense fallback={null}>{children}</Suspense>;
+function IdleAiHelpChat({pageTitle}:{pageTitle:string}){
+  const[ready,setReady]=useState(false);
+  useEffect(()=>{
+    const w=window as any;
+    const id=w.requestIdleCallback?w.requestIdleCallback(()=>setReady(true),{timeout:2500}):window.setTimeout(()=>setReady(true),1800);
+    return()=>w.cancelIdleCallback?w.cancelIdleCallback(id):window.clearTimeout(id);
+  },[]);
+  return ready?<Deferred><AiHelpChat pageTitle={pageTitle}/></Deferred>:null;
+}
 
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
@@ -170,9 +181,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <Sidebar user={user}/><button className="sidebar-backdrop" type="button" aria-label="Menü bezárása" onClick={()=>setMobileOpen(false)}/>
     <div className="app-layout-column">
       <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen||!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{mobileOpen?<X size={20}/>:<Menu size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isStaff?"Kleoszalon munkatársi felület":"Kleoszalon VIR"}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
-      <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><NotificationBell/><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
-      {showImport&&<AltegioServiceImportButton/>}{showHierarchy&&<ServiceHierarchyPanel/>}
-      <div className="altegio-main app-layout-main"><AccessBoundary>{showHierarchy?null:<>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</>}</AccessBoundary></div>
-    </div><AiHelpChat pageTitle={currentPage}/>
+      <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><Deferred><NotificationBell/></Deferred><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
+      <Deferred>{showImport&&<AltegioServiceImportButton/>}{showHierarchy&&<ServiceHierarchyPanel/>}</Deferred>
+      <div className="altegio-main app-layout-main"><AccessBoundary>{showHierarchy?null:<Suspense fallback={<div style={{padding:"1rem"}}>Betöltés…</div>}>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</Suspense>}</AccessBoundary></div>
+    </div><IdleAiHelpChat pageTitle={currentPage}/>
   </div>;
 }
