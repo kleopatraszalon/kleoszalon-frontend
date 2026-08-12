@@ -20,6 +20,39 @@ type HookResult = {
   refresh: () => Promise<void>;
 };
 
+let cachedUser: CurrentUser | null | undefined;
+let userRequest: Promise<CurrentUser | null> | null = null;
+
+async function requestCurrentUser(): Promise<CurrentUser | null> {
+  if (cachedUser !== undefined) return cachedUser;
+  if (userRequest) return userRequest;
+  userRequest = (async () => {
+    const token = typeof window !== "undefined"
+      ? localStorage.getItem("kleo_token") || localStorage.getItem("token")
+      : null;
+    if (!token) return null;
+    const res = await fetch(withBase("me"), {
+      method: "GET",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const json = await res.json().catch(() => ({} as any));
+    const payload = json?.user ?? json?.data ?? json;
+    if (!payload) throw new Error("Üres vagy értelmezhetetlen válasz a /me végponttól");
+    return {
+      id: payload.id ?? payload.user_id ?? payload.userId ?? null,
+      full_name: payload.full_name ?? payload.name ?? null,
+      email: payload.email ?? null,
+      role: payload.role ?? null,
+      location_id: payload.location_id ?? null,
+      location_name: payload.location_name ?? payload.location ?? null,
+    };
+  })();
+  try { cachedUser = await userRequest; return cachedUser; }
+  finally { userRequest = null; }
+}
+
 /**
  * Aktuális bejelentkezett user lekérése.
  * A token-t localStorage-ből olvassa, a backend felé pedig:
@@ -30,8 +63,8 @@ type HookResult = {
  * az '/api' részt a withBase teszi hozzá.
  */
 export function useCurrentUser(): HookResult {
-  const [user, setUser] = useState<CurrentUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<CurrentUser | null>(() => cachedUser ?? null);
+  const [loading, setLoading] = useState(cachedUser === undefined);
   const [authError, setAuthError] = useState<string | null>(null);
 
   const fetchUser = useCallback(async () => {
@@ -39,10 +72,7 @@ export function useCurrentUser(): HookResult {
     setAuthError(null);
 
     try {
-      const token =
-        typeof window !== "undefined"
-          ? localStorage.getItem("kleo_token") || localStorage.getItem("token")
-          : null;
+      const token = typeof window !== "undefined" ? localStorage.getItem("kleo_token") || localStorage.getItem("token") : null;
 
       if (!token) {
         setUser(null);
@@ -51,63 +81,13 @@ export function useCurrentUser(): HookResult {
         return;
       }
 
-      // Csak relatív útvonalak, NINCS "api/" prefix!
-      const endpoints = ["me"];
-
-      let lastErr: any = null;
-      let found: CurrentUser | null = null;
-
-      for (const ep of endpoints) {
-        try {
-          const res = await fetch(withBase(ep), {
-            method: "GET",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            credentials: "include",
-          });
-
-          if (!res.ok) {
-            lastErr = new Error(`HTTP ${res.status} ${res.statusText}`);
-            continue;
-          }
-
-          const json = await res.json().catch(() => ({} as any));
-          const payload = json?.user ?? json?.data ?? json;
-
-          if (!payload) {
-            lastErr = new Error("Üres vagy értelmezhetetlen válasz a /me végponttól");
-            continue;
-          }
-
-          const normalized: CurrentUser = {
-            id: payload.id ?? payload.user_id ?? payload.userId ?? null,
-            full_name: payload.full_name ?? payload.name ?? null,
-            email: payload.email ?? null,
-            role: payload.role ?? null,
-            location_id: payload.location_id ?? null,
-            location_name: payload.location_name ?? payload.location ?? null,
-          };
-
-          found = normalized;
-          lastErr = null;
-          break;
-        } catch (e) {
-          lastErr = e;
-        }
-      }
-
+      const found = await requestCurrentUser();
       if (found) {
         setUser(found);
         setAuthError(null);
       } else {
         setUser(null);
-        setAuthError(
-          lastErr
-            ? String(lastErr)
-            : "Nem sikerült betölteni a felhasználói adatokat."
-        );
+        setAuthError("Nem sikerült betölteni a felhasználói adatokat.");
       }
     } catch (e) {
       setUser(null);
@@ -126,6 +106,6 @@ export function useCurrentUser(): HookResult {
     loading,
     authError,
     error: authError,
-    refresh: fetchUser,
+    refresh: async () => { cachedUser = undefined; await fetchUser(); },
   };
 }
