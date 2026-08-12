@@ -1,0 +1,2 @@
+import fs from"fs";import path from"path";const source=fs.readFileSync(path.join(__dirname,"CustomerBookingPage.tsx"),"utf8");
+test("registered app booking offers related services and promotions",()=>{expect(source).toContain("/public/marketing/booking/recommendations");expect(source).toContain("Személyre szabott ajánlatok és akciók");expect(source).toContain("Aktuális katalógus és akciók alapján");expect(source).toContain("addRecommendation");expect(source).toContain("Hozzáadom")});
