@@ -1,13 +1,15 @@
 import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
-import{CalendarDays,CheckCircle2,ChevronLeft,ChevronRight,Clock3,MapPin,Mic,MicOff,RefreshCw,Scissors,UserRound,Volume2,X}from"lucide-react";
+import{CalendarDays,CheckCircle2,ChevronLeft,ChevronRight,Clock3,MapPin,Mic,MicOff,RefreshCw,Scissors,Sparkles,Tag,UserRound,Volume2,X}from"lucide-react";
 import api from"../api/api";
 import"./CustomerBookingPage.css";
+import"./PublicBookingRecommendations.css";
 
 type Location={id:string;name:string};
 type Service={id:string;name:string;duration_minutes:number;price:number|string;category_name?:string};
 type Employee={id:string;full_name:string;photo_url?:string|null;color?:string|null};
 type Slot={employee_id:string;employee_name:string;start:string;end:string};
 type Customer={full_name:string;email?:string|null;phone?:string|null};
+type Recommendation={type:"service"|"promotion";service_id:string|null;title:string;message:string;name?:string;price?:number;duration_minutes?:number;ai_generated:boolean};
 type VoicePeriod="morning"|"afternoon"|"evening"|null;
 type VoiceResponse={
  ok:boolean;
@@ -49,6 +51,7 @@ export default function CustomerBookingPage(){
  const[voiceTranscript,setVoiceTranscript]=useState("");
  const[voiceResult,setVoiceResult]=useState<VoiceResponse|null>(null);
  const[voiceUsed,setVoiceUsed]=useState(false);
+ const[recommendations,setRecommendations]=useState<Recommendation[]>([]),[recommendationsLoading,setRecommendationsLoading]=useState(false),[recommendationsAi,setRecommendationsAi]=useState(false);
  const recognitionRef=useRef<any>(null);
  const cells=useMemo(()=>monthCells(month),[month]);
 
@@ -83,6 +86,7 @@ export default function CustomerBookingPage(){
   finally{setLoading(false)}
  },[locationId,selectedDate,selectedServiceIds,employeeId]);
  useEffect(()=>{void loadAvailability()},[loadAvailability]);
+ useEffect(()=>{setRecommendations([]);setRecommendationsAi(false);if(!locationId||!selectedServiceIds.length)return;let active=true;const timer=window.setTimeout(()=>{setRecommendationsLoading(true);api.get("/public/marketing/booking/recommendations",{params:{location_id:locationId,service_ids:selectedServiceIds.join(",")}}).then(r=>{if(!active)return;setRecommendations(Array.isArray(r.data?.recommendations)?r.data.recommendations:[]);setRecommendationsAi(Boolean(r.data?.ai_used))}).catch(()=>active&&setRecommendations([])).finally(()=>active&&setRecommendationsLoading(false))},350);return()=>{active=false;window.clearTimeout(timer)}},[locationId,selectedServiceIds]);
 
  const selectedServices=useMemo(()=>services.filter(s=>selectedServiceIds.includes(s.id)),[services,selectedServiceIds]);
  const totalDuration=selectedServices.reduce((sum,s)=>sum+Number(s.duration_minutes||0),0);
@@ -103,6 +107,7 @@ export default function CustomerBookingPage(){
 
  const chooseLocation=(id:string)=>{setVoiceUsed(false);setVoiceResult(null);setLocationId(id);setSelectedServiceIds([]);setEmployeeId("");setSelectedSlot(null)};
  const toggleService=(id:string)=>{setVoiceUsed(false);setVoiceResult(null);setSelectedServiceIds(ids=>ids.includes(id)?ids.filter(x=>x!==id):[...ids,id]);setSelectedSlot(null)};
+ const addRecommendation=(item:Recommendation)=>{if(!item.service_id)return;setSelectedServiceIds(ids=>ids.includes(item.service_id as string)?ids:[...ids,item.service_id as string]);setSelectedSlot(null);setNotice(`${item.name||"Az ajánlott szolgáltatás"} hozzáadva a foglaláshoz.`)};
  const chooseEmployee=(id:string)=>{setVoiceUsed(false);setVoiceResult(null);setEmployeeId(id===employeeId?"":id);setSelectedSlot(null)};
  const shiftMonth=(delta:number)=>setMonth(m=>new Date(m.getFullYear(),m.getMonth()+delta,1));
 
@@ -155,6 +160,7 @@ export default function CustomerBookingPage(){
   </header>
   {voiceTranscript&&<div className="cb-voice-transcript"><Mic/><div><b>Ezt értettem:</b><span>„{voiceTranscript}”</span></div>{voiceResult?.spoken_follow_up&&<button onClick={()=>speak(voiceResult.spoken_follow_up)} title="Visszakérdezés felolvasása"><Volume2/></button>}</div>}
   {error&&<div className="cb-message is-error">{error}</div>}{notice&&<div className="cb-message is-success"><CheckCircle2/>{notice}</div>}
+  {selectedServiceIds.length>0&&(recommendationsLoading||recommendations.length>0)&&<section className="pb-recommendations cb-member-recommendations"><header><div><Sparkles/><span><b>Személyre szabott ajánlatok és akciók</b><small>{recommendationsAi?"AI-val megfogalmazva · ellenőrzött katalógusból":"Aktuális katalógus és akciók alapján"}</small></span></div></header>{recommendationsLoading&&!recommendations.length?<div className="pb-recommend-loading"><RefreshCw className="spin"/> Ajánlatok keresése…</div>:<div className="pb-recommend-list">{recommendations.map((r,i)=><article key={`${r.type}-${r.service_id||i}`} className={r.type}><span className="pb-recommend-icon">{r.type==="promotion"?<Tag/>:<Sparkles/>}</span><div><small>{r.title}</small><b>{r.name||"Aktuális kedvezmény"}</b><p>{r.message}</p>{r.type==="service"&&<em>{r.duration_minutes} perc · {money(r.price)}</em>}</div>{r.type==="service"&&r.service_id&&<button onClick={()=>addRecommendation(r)}>Hozzáadom</button>}</article>)}</div>}</section>}
   <section className="cb-layout">
    <aside className="cb-filters">
     <label><span>1. Szalon</span><select value={locationId} onChange={e=>chooseLocation(e.target.value)}><option value="">Válassz szalont</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
