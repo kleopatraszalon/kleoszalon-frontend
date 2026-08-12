@@ -24,7 +24,7 @@ function ruleFor(pathname: string, search: string): Rule | null {
   if (pathname === "/employees" || pathname.startsWith("/employees/")) return { feature: "hr", menu: "team.employees" };
   if (pathname === "/timetable/update") return { feature: "hr", menu: "team.schedule" };
   if (pathname === "/hr/vacations" || pathname === "/masterdata/vacation-types") return { feature: "hr", menu: "team.vacations" };
-  if (pathname === "/modules/team/payroll") return { feature: "hr", menu: "team.payroll", financial: true };
+  if (pathname === "/modules/team/payroll") return { feature: "payroll", menu: "finance.payroll", financial: true };
   if (pathname === "/modules/team/performance" || pathname === "/hr/evaluations") return { feature: "hr", menu: "team.performance" };
   if (pathname === "/hr" || pathname.startsWith("/hr/")) return { feature: "hr", menu: "team" };
   if (pathname === "/products" || pathname === "/warehouse/products") return { feature: "inventory", menu: "inventory.products" };
