@@ -9,7 +9,7 @@ type ClientTag={id:string;name:string;color:string};
 type Client={id:string;name:string;phone?:string;email?:string;location_id?:string;location_name?:string;birth_date?:string;gender?:string;city?:string;address?:string;notes?:string;preferred_contact?:string;marketing_consent?:boolean;is_active:boolean;source?:string;created_at?:string;updated_at?:string;visits:number;no_shows:number;last_visit?:string;next_visit?:string;tags:ClientTag[]};
 type Stats={total:number;active:number;new_this_month:number;with_no_show:number};
 type FormTemplate={id:string;title:string;description?:string;form_type:string;is_active:boolean;response_count:number};
-type Detail={client:any;appointments:any[];notes:any[];tags:ClientTag[];forms:any[]};
+type Detail={client:any;appointments:any[];notes:any[];tags:ClientTag[];forms:any[];loyalty?:{tier_name?:string;color?:string;discount_percent?:number;paid_total?:number;visit_count?:number}|null;consents?:any[]};
 type Duplicate={email_key?:string;phone_key?:string;clients:Array<{id:string;name:string;email?:string;phone?:string}>};
 type AltegioImportResult={ok:boolean;rows:number;inserted:number;updated:number;skipped:number;tagged:number};
 
@@ -18,7 +18,7 @@ async function api<T>(path:string,options:RequestInit={}):Promise<T>{const respo
 const fmtDate=(value?:string)=>value?new Intl.DateTimeFormat("hu-HU",{year:"numeric",month:"short",day:"numeric"}).format(new Date(value)):"—";
 const initials=(name:string)=>name.split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const groupKey=(name:string)=>{const c=(name||"").trim().charAt(0).toLocaleUpperCase("hu-HU");return /^[A-ZÁÉÍÓÖŐÚÜŰ]$/.test(c)?c:"#"};
-const blankClient={name:"",phone:"",email:"",location_id:localStorage.getItem("kleo_location_id")||"",birth_date:"",gender:"",city:"",address:"",notes:"",preferred_contact:"phone",marketing_consent:false,is_active:true};
+const blankClient={name:"",phone:"",email:"",location_id:localStorage.getItem("kleo_location_id")||"",birth_date:"",gender:"",city:"",address:"",notes:"",preferred_contact:"phone",marketing_consent:false,email_consent:false,sms_consent:false,phone_consent:false,consent_source:"admin",privacy_notice_version:"2026-08",customer_type:"normal",barcode:"",source:"manual",is_active:true};
 const tabs=[{key:"list",label:"Ügyféltörzs",icon:Users},{key:"profiles",label:"Adatlapok és előzmények",icon:UserRound},{key:"forms",label:"Kérdőívek és nyilatkozatok",icon:ClipboardList},{key:"segments",label:"Címkék és szegmensek",icon:Tag},{key:"import",label:"Import és duplikációk",icon:Merge}];
 
 export default function ClientsCRMPage(){
