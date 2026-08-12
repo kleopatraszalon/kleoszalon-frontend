@@ -9,6 +9,7 @@ const HrPositionsPage=lazy(()=>import("./pages/HrPositionsPage"));
 const HrDevelopmentPage=lazy(()=>import("./pages/HrDevelopmentPage"));
 const OperationsQualityPage=lazy(()=>import("./pages/OperationsQualityPage"));
 const NewsletterPage=lazy(()=>import("./pages/NewsletterPage"));
+const DailyActionsPage=lazy(()=>import("./pages/DailyActionsPage"));const KleopatraMobileApp=lazy(()=>import("./pages/KleopatraMobileApp"));
 const LoyaltyProgramPage=lazy(()=>import("./pages/LoyaltyProgramPage"));
 const LoyaltyModulePage=lazy(()=>import("./pages/LoyaltyModulePage"));
 const ClientDuplicateReviewPage=lazy(()=>import("./pages/ClientDuplicateReviewPage"));
@@ -24,6 +25,7 @@ const router=createBrowserRouter([
 {path:"/extra/tasks",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/spec/maintenance",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/extra/documents",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/spec/internal-email",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/marketing/complaints",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/operations/audits",element:R(MANAGEMENT,<OperationsQualityPage/>)},{path:"/operations/incidents",element:R(MANAGEMENT,<OperationsQualityPage/>)},
 {path:"/extra/chat",element:<Navigate to="/staff/chat" replace/>},
 {path:"/marketing/newsletter",element:R(MANAGEMENT,<NewsletterPage/>)},
+{path:"/marketing/daily-deals",element:R(MANAGEMENT,<DailyActionsPage/>)},{path:"/kleopatra-app",element:<KleopatraMobileApp/>},
 {path:"/modules/customers/loyalty-program",element:R(MANAGEMENT,<LoyaltyProgramPage/>)},
 {path:"/modules/loyalty/*",element:R(MANAGEMENT,<LoyaltyModulePage/>)},
 {path:"/modules/appointments/:view",element:A(<AppointmentsModulePage/>)},{path:"/modules/team/payroll",element:R(MANAGEMENT,<PayrollPage/>)},{path:"/modules/team/roles",element:R(ADMIN,<AccessControlPage/>)},{path:"/admin/access-control",element:R(ADMIN,<AccessControlPage/>)},{path:"/settings/roles",element:R(ADMIN,<ModulePlaceholderPage/>)},{path:"/modules/settings/audit-log",element:R(MANAGEMENT,<ModulePlaceholderPage/>)},{path:"/modules/settings/chat-supervision",element:R(MANAGEMENT,<ModulePlaceholderPage/>)},{path:"/hr/positions",element:A(<EmployeesList/>)},{path:"/modules/team/import",element:R(MANAGEMENT,<StaffImportPage/>)},{path:"/modules/customers/duplicate-review",element:A(<ClientDuplicateReviewPage/>)},{path:"/modules/customers/:view",element:A(<ClientsCRMPage/>)},
