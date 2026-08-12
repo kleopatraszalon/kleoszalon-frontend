@@ -27,6 +27,7 @@ function ruleFor(pathname: string, search: string): Rule | null {
   if (pathname === "/hr/vacations" || pathname === "/masterdata/vacation-types") return { feature: "hr", menu: "team.vacations" };
   if (pathname === "/modules/team/payroll") return { feature: "payroll", menu: "finance.payroll", financial: true };
   if (pathname === "/modules/team/performance" || pathname === "/hr/evaluations") return { feature: "hr", menu: "team.performance" };
+  if (pathname === "/modules/customers/loyalty-program") return { feature: "loyalty", menu: "customers.loyalty_program" };
   if (pathname === "/hr" || pathname.startsWith("/hr/")) return { feature: "hr", menu: "team" };
   if (pathname === "/products" || pathname === "/warehouse/products") return { feature: "inventory", menu: "inventory.products" };
   if (pathname === "/warehouse/list" || pathname === "/logisztika") return { feature: "inventory", menu: "inventory.stock" };
