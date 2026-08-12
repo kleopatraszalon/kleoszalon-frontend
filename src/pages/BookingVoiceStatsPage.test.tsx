@@ -9,7 +9,7 @@ describe("BookingVoiceStatsPage stage1e contract",()=>{
     const wildcard=app.indexOf('/appointments/*');
     expect(route).toBeGreaterThanOrEqual(0);
     expect(wildcard).toBeGreaterThan(route);
-    expect(app).toContain('R(MANAGEMENT,<BookingVoiceStatsPage/>)');
+    expect(app).toMatch(/element\s*:\s*R\(\s*MANAGEMENT\s*,\s*<BookingVoiceStatsPage\s*\/>\s*\)/);
   });
   test("page exposes voice analytics, AI, locations and privacy-safe recent events",()=>{
     const page=read("src/pages/BookingVoiceStatsPage.tsx");
