@@ -22,6 +22,7 @@ function ruleFor(pathname: string, search: string): Rule | null {
   if (pathname === "/workorders" || pathname.startsWith("/workorders/")) return { feature: "finance", menu: "finance.workorders", financial: true };
   if (pathname === "/penzugy" || pathname === "/finance" || pathname.startsWith("/modules/finance")) return { feature: "finance", menu: "finance", financial: true };
   if (pathname === "/employees" || pathname.startsWith("/employees/")) return { feature: "hr", menu: "team.employees" };
+  if (pathname === "/hr/positions") return { feature: "hr", menu: "team.positions" };
   if (pathname === "/timetable/update") return { feature: "hr", menu: "team.schedule" };
   if (pathname === "/hr/vacations" || pathname === "/masterdata/vacation-types") return { feature: "hr", menu: "team.vacations" };
   if (pathname === "/modules/team/payroll") return { feature: "payroll", menu: "finance.payroll", financial: true };
