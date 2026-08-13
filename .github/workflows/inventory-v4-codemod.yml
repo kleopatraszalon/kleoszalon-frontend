@@ -1,0 +1,37 @@
+name: Inventory v4 codemod
+on:
+  push:
+    branches: [feature/inventory-operations-v4-20260813]
+permissions:
+  contents: write
+jobs:
+  codemod:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/inventory-operations-v4-20260813
+      - name: Wire inventory operations route
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('src/App.tsx')
+          s=p.read_text()
+          imp='const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));\n'
+          if 'InventoryOperationsPage' not in s:
+              anchor='const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));\n'
+              s=s.replace(anchor,anchor+imp,1)
+          route='  { path: "/warehouse/operations", element: A(<InventoryOperationsPage />) },\n'
+          if 'path: "/warehouse/operations"' not in s:
+              anchor='  { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },\n'
+              s=s.replace(anchor,anchor+route,1)
+          p.write_text(s)
+          PY
+      - name: Commit route wiring
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "kleopatraszalon"
+          git config user.email "birtalan.zoltan1975@gmail.com"
+          git add src/App.tsx
+          git commit -m "chore(inventory): wire v4 operations route"
+          git push origin HEAD:feature/inventory-operations-v4-20260813
