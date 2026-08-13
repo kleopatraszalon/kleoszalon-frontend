@@ -81,9 +81,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => { setMobileOpen(false); }, [location.pathname, location.search]);
   useEffect(() => { if (!mobileOpen) return; const p=document.body.style.overflow; document.body.style.overflow="hidden"; return()=>{document.body.style.overflow=p}; }, [mobileOpen]);
 
-  // VIR specifikáció: 5 perc felhasználói tétlenség után automatikus kijelentkezés.
-  // Az aktivitás időbélyege localStorage-ban közös a böngészőfülek között, így az
-  // egyik fülben végzett munka nem jelentkezteti ki tévesen a másik aktív fület.
   useEffect(() => {
     if (!hasStoredAuthToken()) return;
 
@@ -116,7 +113,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const registerActivity = () => {
       const now = Date.now();
       fallbackActivityAt = now;
-      // A folyamatos egér/scroll események miatt legfeljebb másodpercenként írunk storage-ba.
       if (now - lastWriteAt >= 1000) {
         markSessionActivity(now);
         lastWriteAt = now;
@@ -171,19 +167,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
   if (location.pathname === "/modules/settings/audit-log") pageContent = <AuditLogPage />;
   if (location.pathname === "/modules/settings/chat-supervision") pageContent = <StaffChatAdminPage />;
+  if (isMasterServices && serviceView === "categories") pageContent = <ServiceHierarchyPanel />;
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   if (isProducts) pageContent = <ProductCatalogPage />;
   const showImport = !isStaff && (location.pathname === "/services" || (isMasterServices && serviceView === "services"));
-  const showHierarchy = !isStaff && isMasterServices && serviceView === "categories";
 
   return <div className={`altegio-page-shell app-layout-shell ${collapsed?"is-sidebar-collapsed":""} ${mobileOpen?"is-mobile-sidebar-open":""}`}>
     <Sidebar user={user}/><button className="sidebar-backdrop" type="button" aria-label="Menü bezárása" onClick={()=>setMobileOpen(false)}/>
     <div className="app-layout-column">
       <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title="Menü nyitása vagy bezárása" aria-label="Menü nyitása vagy bezárása" aria-expanded={mobileOpen||!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{mobileOpen?<X size={20}/>:<Menu size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isStaff?"Kleoszalon munkatársi felület":"Kleoszalon VIR"}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
       <div className="modern-topbar-right">{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder="Gyorskeresés…"/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>Telephely</small><b>{salon}</b></span></div><Deferred><NotificationBell/></Deferred><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title="Kijelentkezés" aria-label="Kijelentkezés"><LogOut size={16}/><span>Kijelentkezés</span></button></div></header>
-      <Deferred>{showImport&&<AltegioServiceImportButton/>}{showHierarchy&&<ServiceHierarchyPanel/>}</Deferred>
-      <div className="altegio-main app-layout-main"><AccessBoundary>{showHierarchy?null:<Suspense fallback={<div style={{padding:"1rem"}}>Betöltés…</div>}>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</Suspense>}</AccessBoundary></div>
+      <Deferred>{showImport&&<AltegioServiceImportButton/>}</Deferred>
+      <div className="altegio-main app-layout-main"><AccessBoundary><Suspense fallback={<div style={{padding:"1rem"}}>Betöltés…</div>}>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</Suspense></AccessBoundary></div>
     </div><IdleAiHelpChat pageTitle={currentPage}/>
   </div>;
 }
