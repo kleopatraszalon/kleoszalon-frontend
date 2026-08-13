@@ -148,8 +148,9 @@ export default function DailyActionsPage() {
       const r = await api.post(
         `/transactions/daily-actions/${campaign.id}/publish`,
       );
+      const pushState=!r.data.push_configured?" A telefonos push nincs konfigurálva a szerveren.":r.data.active_devices===0?" Nincs még értesítésre feliratkozott telefon.":r.data.push_failures?` ${r.data.push_failures} készüléknél átmeneti küldési hiba történt.`:"";
       setNotice(
-        `Közzétéve: ${r.data.email} e-mail, ${r.data.sms} SMS, ${r.data.push} push.`,
+        `Közzétéve: ${r.data.email} e-mail, ${r.data.sms} SMS, ${r.data.push}/${r.data.active_devices||0} telefonos értesítés.${pushState}`,
       );
       await load();
     } catch (e) {
