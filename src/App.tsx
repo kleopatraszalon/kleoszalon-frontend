@@ -6,10 +6,9 @@ import {
 } from "react-router-dom";
 import "./styles/kleo-theme.css";
 import AppLayout from "./layouts/AppLayout";
+import BrandLoadingScreen from "./components/BrandLoadingScreen";
 import { hasStoredRole } from "./utils/roles";
 const ProductsList = lazy(() => import("./pages/ProductsList"));
-const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));
-const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));
 const WebshopAdmin = lazy(() => import("./pages/WebshopAdmin"));
 const HrPositionsPage = lazy(() => import("./pages/HrPositionsPage"));
 const HrDevelopmentPage = lazy(() => import("./pages/HrDevelopmentPage"));
@@ -260,8 +259,6 @@ const router = createBrowserRouter([
   { path: "/logisztika", element: A(<Logisztika />) },
   { path: "/warehouse", element: A(<Logisztika />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },
-  { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },
-  { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },
   { path: "/warehouse/products", element: A(<ProductsList />) },
   { path: "/warehouse/products/*", element: A(<ProductsList />) },
   { path: "/products", element: A(<ProductsList />) },
@@ -393,7 +390,7 @@ const router = createBrowserRouter([
 ]);
 export default function App() {
   return (
-    <Suspense fallback={<div style={{ padding: "2rem" }}>Betöltés…</div>}>
+    <Suspense fallback={<BrandLoadingScreen/>}>
       <RouterProvider router={router} />
     </Suspense>
   );
