@@ -29,6 +29,7 @@ const RoleDashboardPage = lazy(() => import("./pages/RoleDashboardPage"));
 const Bejelentkezesek = lazy(() => import("./pages/Bejelentkezesek"));
 const Munkalapok = lazy(() => import("./pages/Munkalapok"));
 const Penzugy = lazy(() => import("./pages/Penzugy"));
+const FinanceWorkspacePage = lazy(() => import("./pages/finance/FinanceWorkspacePage"));
 const Logisztika = lazy(() => import("./pages/Logisztika"));
 const CentralSupplyPage = lazy(() => import("./pages/CentralSupplyPage"));
 const Register = lazy(() => import("./pages/Register"));
@@ -249,13 +250,14 @@ const router = createBrowserRouter([
   { path: "/modules/customers/:view", element: A(<ClientsCRMPage />) },
   { path: "/bejelentkezesek", element: A(<Bejelentkezesek />) },
   { path: "/munkalapok", element: A(<Munkalapok />) },
-  { path: "/penzugy", element: A(<Penzugy />) },
-  { path: "/finance", element: A(<Penzugy />) },
+  { path: "/penzugy", element: A(<FinanceWorkspacePage />) },
+  { path: "/finance", element: A(<FinanceWorkspacePage />) },
+  { path: "/finance/checkout", element: A(<Penzugy />) },
   {
     path: "/finance/nav-online-invoice",
     element: R(ADMIN, <NavOnlineInvoicePage />),
   },
-  { path: "/finance/*", element: A(<Penzugy />) },
+  { path: "/finance/*", element: A(<FinanceWorkspacePage />) },
   { path: "/logisztika", element: A(<Logisztika />) },
   { path: "/warehouse", element: A(<Logisztika />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },

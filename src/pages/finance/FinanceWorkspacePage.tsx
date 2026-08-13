@@ -56,7 +56,7 @@ export default function FinanceWorkspacePage(){
   }catch(e:any){setError(e?.response?.data?.message||"A mentés nem sikerült.")}finally{setLoading(false)}}
  async function cancelMovement(id:string){const reason=window.prompt("Sztornó indoka:","Téves pénzügyi művelet");if(!reason)return;try{await api.post(`${BASE}/movements/${id}/cancel`,{reason});setNotice("A művelet auditált sztornója elkészült.");refresh()}catch(e:any){setError(e?.response?.data?.message||"A sztornó nem sikerült.")}}
  async function syncSuppliers(){try{const r=await api.post(`${BASE}/partners/sync-suppliers`,{});setNotice(`${Number(r.data?.synced||0)} beszállító partnerfrissítése elkészült.`);refresh()}catch(e:any){setError(e?.response?.data?.message||"A beszállítók szinkronja nem sikerült.")}}
- async function saveSettings(){try{await api.patch(`${BASE}/settings`,settings);setNotice("A pénzügyi beállítások mentve.");refresh()}catch(e:any){setError(e?.response?.data?.message||"A beállítások mentése nem sikerült.")}}
+ async function saveSettings(){try{await api.patch(`${BASE}/settings${q(scoped)}`,settings);setNotice("A pénzügyi beállítások mentve.");refresh()}catch(e:any){setError(e?.response?.data?.message||"A beállítások mentése nem sikerült.")}}
 
  const totals=dashboard.totals||{},trend=dashboard.trend||[],mix=dashboard.payment_mix||[];
  return <div className="fin5-page">
