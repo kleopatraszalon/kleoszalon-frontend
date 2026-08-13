@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Bell, CheckCheck, MessageCircle, PackageX, RefreshCw, Sparkles, WalletCards, X } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, FileWarning, MessageCircle, PackageX, RefreshCw, ShieldAlert, Sparkles, Truck, WalletCards, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import AlertRuleManagementPanel from "../components/AlertRuleManagementPanel";
 import "./NotificationsPage.css";
 
 type NotificationItem = {
   key: string;
-  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder";
+  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder" | "supplier_expiry" | "employee_document" | "complaint_sla";
   severity: "info" | "warning" | "critical";
   title: string;
   detail: string;
@@ -20,6 +21,9 @@ const iconFor = (type: NotificationItem["type"]) => {
   if (type === "stock") return <PackageX/>;
   if (type === "ai") return <Sparkles/>;
   if (type === "finance" || type === "workorder") return <WalletCards/>;
+  if (type === "supplier_expiry") return <Truck/>;
+  if (type === "employee_document") return <FileWarning/>;
+  if (type === "complaint_sla") return <ShieldAlert/>;
   return <AlertTriangle/>;
 };
 
@@ -68,9 +72,11 @@ export default function NotificationsPage() {
 
   return <main className="notify-page">
     <section className="notify-hero">
-      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Chat, készlet, no-show, teendők, AI-költség és pénzügyi rendellenességek egy helyen.</p></div>
+      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Lejáratok, SLA, készlet, no-show, teendők és pénzügyi rendellenességek egy helyen.</p></div>
       <div className="notify-actions"><button onClick={load}><RefreshCw className={loading ? "spin" : ""}/>Frissítés</button><button onClick={markAll} disabled={!unread}><CheckCheck/>Mind olvasott</button></div>
     </section>
+
+    <AlertRuleManagementPanel/>
 
     <section className="notify-stats">
       <article><Bell/><div><small>Összes aktív</small><strong>{items.length}</strong></div></article>
