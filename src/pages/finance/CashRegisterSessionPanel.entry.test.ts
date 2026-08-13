@@ -30,7 +30,7 @@ test('register-to-register transfer and manual income expense are available',()=
  expect(panel).toContain('Hivatkozási / bizonylatszám');
 });
 
-test('checkout uses configured payment methods registers card brands fees and refunds',()=>{
+test('checkout uses configured payment methods registers card brands fees refunds and split tender',()=>{
  expect(finance).toContain('/api/transactions/cashier/payment-methods');
  expect(finance).toContain('/api/transactions/cashier/registers');
  expect(finance).toContain('payment_method_code');
@@ -38,6 +38,8 @@ test('checkout uses configured payment methods registers card brands fees and re
  expect(finance).toContain('Tranzakciós díj');
  expect(finance).toContain('/refund');
  expect(finance).toContain('Fizetések és visszatérítések');
+ expect(finance).toContain('+ Fizetési mód hozzáadása');
+ expect(finance).toContain('wallet, pont, kupon, bérlet és ajándékutalvány');
 });
 
 test('finance workspace keeps restricted cashier mode and role-specific menu',()=>{
