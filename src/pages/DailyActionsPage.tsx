@@ -117,17 +117,16 @@ export default function DailyActionsPage() {
       setError(m(e));
     }
   }
+  async function persist() {
+    const p = {...form,description_html:editor.current?.innerHTML||form.description_html};
+    const r = selected?await api.patch(`/transactions/daily-actions/${selected.id}`,p):await api.post("/transactions/daily-actions",p);
+    setSelected(r.data);
+    return r.data;
+  }
   async function save() {
-    setBusy(true);
+    setBusy(true);setError("");setNotice("");
     try {
-      const p = {
-        ...form,
-        description_html: editor.current?.innerHTML || form.description_html,
-      };
-      const r = selected
-        ? await api.patch(`/transactions/daily-actions/${selected.id}`, p)
-        : await api.post("/transactions/daily-actions", p);
-      setSelected(r.data);
+      await persist();
       setNotice("Az akció elmentve.");
       await load();
     } catch (e) {
@@ -137,17 +136,17 @@ export default function DailyActionsPage() {
     }
   }
   async function publish() {
-    if (!selected) return setError("Közzététel előtt mentse az akciót.");
     if (
       !window.confirm(
-        `Közzéteszi és kiküldi ${stats.count || selected.recipient_count || 0} vendégnek?`,
+        `Közzéteszi és kiküldi ${stats.count || selected?.recipient_count || 0} vendégnek?`,
       )
     )
       return;
-    setBusy(true);
+    setBusy(true);setError("");setNotice("");
     try {
+      const campaign=await persist();
       const r = await api.post(
-        `/transactions/daily-actions/${selected.id}/publish`,
+        `/transactions/daily-actions/${campaign.id}/publish`,
       );
       setNotice(
         `Közzétéve: ${r.data.email} e-mail, ${r.data.sms} SMS, ${r.data.push} push.`,
