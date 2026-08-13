@@ -34,6 +34,7 @@ const Penzugy = lazy(() => import("./pages/Penzugy"));
 const Logisztika = lazy(() => import("./pages/Logisztika"));
 const CentralSupplyPage = lazy(() => import("./pages/CentralSupplyPage"));
 const CentralMasterDataPage = lazy(() => import("./pages/CentralMasterDataPage"));
+const SystemSettingsPage = lazy(() => import("./pages/SystemSettingsPage"));
 const Register = lazy(() => import("./pages/Register"));
 const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
 const WorkOrderNewModalPage = lazy(
@@ -392,7 +393,7 @@ const router = createBrowserRouter([
   { path: "/finance/transactions", element: A(<Penzugy />) },
   { path: "/finance/invoices/out", element: A(<Penzugy />) },
   { path: "/finance/invoices/in", element: A(<Penzugy />) },
-  { path: "/settings", element: A(<ModulePlaceholderPage />) },
+  { path: "/settings", element: R(MANAGEMENT, <SystemSettingsPage />) },
   { path: "/knowledge-base/checklists", element: A(<ChecklistsPage />) },
   { path: "/knowledge-base/library", element: A(<KnowledgeBasePage />) },
   { path: "/knowledge-base/processes", element: A(<KnowledgeBasePage />) },
