@@ -1,12 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Bell, CheckCheck, MessageCircle, PackageX, RefreshCw, Sparkles, WalletCards, X } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, FileWarning, MessageCircle, PackageX, RefreshCw, ShieldAlert, Sparkles, Truck, WalletCards, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import OperationalAlertSummary from "../components/OperationalAlertSummary";
 import "./NotificationsPage.css";
 
 type NotificationItem = {
   key: string;
-  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder";
+  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder" | "loyalty" | "supplier_expiry" | "employee_document" | "complaint_sla";
   severity: "info" | "warning" | "critical";
   title: string;
   detail: string;
@@ -20,8 +21,15 @@ const iconFor = (type: NotificationItem["type"]) => {
   if (type === "stock") return <PackageX/>;
   if (type === "ai") return <Sparkles/>;
   if (type === "finance" || type === "workorder") return <WalletCards/>;
+  if (type === "supplier_expiry") return <Truck/>;
+  if (type === "employee_document") return <FileWarning/>;
+  if (type === "complaint_sla") return <ShieldAlert/>;
   return <AlertTriangle/>;
 };
+const labelFor = (type: NotificationItem["type"]) => ({
+  chat:"chat",stock:"készlet",no_show:"no-show",task:"teendő",ai:"AI",finance:"pénzügy",workorder:"munkalap",loyalty:"hűségprogram",
+  supplier_expiry:"beszállítói lejárat",employee_document:"dolgozói dokumentum",complaint_sla:"panasz SLA",
+}[type] || type.replace("_", " "));
 
 export default function NotificationsPage() {
   const navigate = useNavigate();
@@ -68,7 +76,7 @@ export default function NotificationsPage() {
 
   return <main className="notify-page">
     <section className="notify-hero">
-      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Chat, készlet, no-show, teendők, AI-költség és pénzügyi rendellenességek egy helyen.</p></div>
+      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Chat, készlet, no-show, teendők, pénzügy, beszállítói lejáratok, dolgozói dokumentumok és panasz-SLA egy helyen.</p></div>
       <div className="notify-actions"><button onClick={load}><RefreshCw className={loading ? "spin" : ""}/>Frissítés</button><button onClick={markAll} disabled={!unread}><CheckCheck/>Mind olvasott</button></div>
     </section>
 
@@ -77,6 +85,8 @@ export default function NotificationsPage() {
       <article><MessageCircle/><div><small>Olvasatlan</small><strong>{unread}</strong></div></article>
       <article><AlertTriangle/><div><small>Kritikus</small><strong>{critical}</strong></div></article>
     </section>
+
+    <OperationalAlertSummary/>
 
     <div className="notify-tabs">
       <button className={filter === "all" ? "active" : ""} onClick={() => setFilter("all")}>Összes</button>
@@ -91,7 +101,7 @@ export default function NotificationsPage() {
       {visible.map(item => <article key={item.key} className={`notify-card sev-${item.severity} ${item.read ? "is-read" : ""}`}>
         <button className="notify-main" onClick={() => void markRead(item)}>
           <span className="notify-icon">{iconFor(item.type)}</span>
-          <span className="notify-copy"><small>{item.type.replace("_", " ")}</small><b>{item.title}</b><p>{item.detail}</p><em>{new Intl.DateTimeFormat("hu-HU", { dateStyle:"medium", timeStyle:"short" }).format(new Date(item.created_at))}</em></span>
+          <span className="notify-copy"><small>{labelFor(item.type)}</small><b>{item.title}</b><p>{item.detail}</p><em>{new Intl.DateTimeFormat("hu-HU", { dateStyle:"medium", timeStyle:"short" }).format(new Date(item.created_at))}</em></span>
           {!item.read && <i className="notify-dot"/>}
         </button>
         <button className="notify-dismiss" onClick={() => void dismiss(item)} title="Elrejtés"><X/></button>
