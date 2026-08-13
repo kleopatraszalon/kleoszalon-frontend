@@ -1,0 +1,40 @@
+.kapp-hero{
+  isolation:isolate;
+  min-height:clamp(430px,60vh,650px);
+  background-image:
+    linear-gradient(90deg,rgba(18,12,8,.98) 0%,rgba(18,12,8,.92) 38%,rgba(18,12,8,.58) 66%,rgba(18,12,8,.12) 100%),
+    url("../assets/kleopatra-white-tulip-hero-v1.webp");
+  background-position:center,right center;
+  background-size:cover,cover;
+  background-repeat:no-repeat;
+}
+
+.kapp-hero::after{
+  content:"";
+  position:absolute;
+  inset:auto 0 0;
+  height:42%;
+  z-index:0;
+  pointer-events:none;
+  background:linear-gradient(0deg,rgba(18,12,8,.58),transparent);
+}
+
+.kapp-hero>div:first-child{max-width:620px;text-shadow:0 2px 22px rgba(0,0,0,.32)}
+.kapp-hero h1{color:#fff!important;line-height:1.01;text-wrap:balance}
+.kapp-hero p{color:#f3eee6!important;max-width:520px}
+.kapp-hero-logo{display:none}
+
+@media(max-width:620px){
+  .kapp-hero{
+    min-height:560px;
+    align-items:flex-end;
+    padding:56px 26px 102px;
+    background-image:
+      linear-gradient(180deg,rgba(18,12,8,.22) 0%,rgba(18,12,8,.58) 42%,rgba(18,12,8,.97) 83%),
+      url("../assets/kleopatra-white-tulip-hero-v1.webp");
+    background-position:center,67% center;
+  }
+  .kapp-hero>div:first-child{max-width:100%}
+  .kapp-hero h1{margin:12px 0;font-size:clamp(42px,13vw,57px)}
+  .kapp-hero p{font-size:16px;line-height:1.42}
+}
