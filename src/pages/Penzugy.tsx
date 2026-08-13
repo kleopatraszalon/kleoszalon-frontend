@@ -16,13 +16,14 @@ type Summary={cash_sales:number;card_sales:number;transfer_sales:number;voucher_
 const fmt=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;
 const methods=[["cash","Készpénz"],["card","Bankkártya"],["transfer","Átutalás"],["voucher","Utalvány"],["other","Egyéb"]];
 const emptyLoyalty:LoyaltySelection={walletAmount:0,pointsToSpend:0,couponCode:"",voucherCode:"",voucherAmount:0,passUsages:[]};
+const localBusinessDate=()=>{const d=new Date(),y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,"0"),day=String(d.getDate()).padStart(2,"0");return `${y}-${m}-${day}`};
 
 export default function Penzugy(){
  const[orders,setOrders]=useState<WorkOrder[]>([]),[selected,setSelected]=useState<WorkOrder|null>(null),[query,setQuery]=useState(""),[loading,setLoading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const[discount,setDiscount]=useState(0),[tip,setTip]=useState(0),[invoiceStatus,setInvoiceStatus]=useState("not_requested"),[payments,setPayments]=useState<PaymentRow[]>([{payment_method:"cash",amount:0}]);
  const[loyalty,setLoyalty]=useState<LoyaltySelection>(emptyLoyalty);const[loyaltyResult,setLoyaltyResult]=useState<any>(null);
  const[summary,setSummary]=useState<Summary|null>(null),[openingCash,setOpeningCash]=useState(0),[countedCash,setCountedCash]=useState(0),[closeNote,setCloseNote]=useState(""),[dashboardRefresh,setDashboardRefresh]=useState(0);
- const locationId=localStorage.getItem("kleo_location_id")||"",today=new Date().toISOString().slice(0,10);
+ const locationId=localStorage.getItem("kleo_location_id")||"",today=localBusinessDate();
 
  async function load(){setLoading(true);setError("");try{const suffix=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[o,s]=await Promise.all([api.get(`/api/transactions/cashier/workorders${suffix}`),api.get(`/api/transactions/cashier/daily-summary?date=${today}${locationId?`&location_id=${encodeURIComponent(locationId)}`:""}`)]);const rows:WorkOrder[]=o.data||[];setOrders(rows);setSummary(s.data||null);const target=new URLSearchParams(window.location.search).get("workorder");if(target){const hit=rows.find(x=>String(x.id)===String(target)||String(x.work_order_number||'')===String(target));if(hit)choose(hit)}}catch(e:any){setError(e?.response?.data?.message||"A pénztár adatai nem tölthetők be.");}finally{setLoading(false)}}
  useEffect(()=>{void load()},[]);
