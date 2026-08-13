@@ -9,6 +9,7 @@ import AppLayout from "./layouts/AppLayout";
 import BrandLoadingScreen from "./components/BrandLoadingScreen";
 import { hasStoredRole } from "./utils/roles";
 const ProductsList = lazy(() => import("./pages/ProductsList"));
+const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));
 const WebshopAdmin = lazy(() => import("./pages/WebshopAdmin"));
 const HrPositionsPage = lazy(() => import("./pages/HrPositionsPage"));
 const HrDevelopmentPage = lazy(() => import("./pages/HrDevelopmentPage"));
@@ -31,6 +32,7 @@ const Munkalapok = lazy(() => import("./pages/Munkalapok"));
 const Penzugy = lazy(() => import("./pages/Penzugy"));
 const FinanceWorkspacePage = lazy(() => import("./pages/finance/FinanceWorkspacePage"));
 const Logisztika = lazy(() => import("./pages/Logisztika"));
+const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));
 const CentralSupplyPage = lazy(() => import("./pages/CentralSupplyPage"));
 const Register = lazy(() => import("./pages/Register"));
 const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
@@ -260,12 +262,14 @@ const router = createBrowserRouter([
   { path: "/finance/*", element: A(<FinanceWorkspacePage />) },
   { path: "/logisztika", element: A(<Logisztika />) },
   { path: "/warehouse", element: A(<Logisztika />) },
+  { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },
   { path: "/warehouse/products", element: A(<ProductsList />) },
   { path: "/warehouse/products/*", element: A(<ProductsList />) },
   { path: "/products", element: A(<ProductsList />) },
   { path: "/products/*", element: A(<ProductsList />) },
   { path: "/masterdata/products", element: A(<ProductsList />) },
+  { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },
   { path: "/masterdata/products/*", element: A(<ProductsList />) },
   {
     path: "/inventory/products",
@@ -370,7 +374,7 @@ const router = createBrowserRouter([
   },
   { path: "/extras", element: <Navigate to="/extra/tasks" replace /> },
   { path: "/finance/transaction", element: <Navigate to="/finance" replace /> },
-  { path: "/finance/transactions", element: A(<Penzugy />) },
+  { path: "/finance/transactions", element: A(<FinanceWorkspacePage />) },
   { path: "/finance/invoices/out", element: A(<Penzugy />) },
   { path: "/finance/invoices/in", element: A(<Penzugy />) },
   { path: "/settings", element: A(<ModulePlaceholderPage />) },
