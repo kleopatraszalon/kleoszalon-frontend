@@ -3,6 +3,7 @@ import { AlertTriangle, Bell, CheckCheck, FileWarning, MessageCircle, PackageX, 
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
 import AlertRuleManagementPanel from "../components/AlertRuleManagementPanel";
+import AlertDeliveryAuditPanel from "../components/AlertDeliveryAuditPanel";
 import "./NotificationsPage.css";
 
 type NotificationItem = {
@@ -77,6 +78,7 @@ export default function NotificationsPage() {
     </section>
 
     <AlertRuleManagementPanel/>
+    <AlertDeliveryAuditPanel/>
 
     <section className="notify-stats">
       <article><Bell/><div><small>Összes aktív</small><strong>{items.length}</strong></div></article>
