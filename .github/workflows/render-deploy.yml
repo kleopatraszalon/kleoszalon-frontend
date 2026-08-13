@@ -8,12 +8,50 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     env:
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
+      FRONTEND_URL: https://kleoszalon-frontend.onrender.com
     steps:
       - name: Trigger Render frontend deploy
         if: env.RENDER_DEPLOY_HOOK_URL != ''
         run: curl -fsS --retry 3 --max-time 30 -X POST "$RENDER_DEPLOY_HOOK_URL"
+
+      - name: Verify live frontend contains cashier stage13
+        if: env.RENDER_DEPLOY_HOOK_URL != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          found=0
+          for attempt in $(seq 1 48); do
+            if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$FRONTEND_URL/?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/index.html \
+              && curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$FRONTEND_URL/asset-manifest.json?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/asset-manifest.json; then
+              node -e "const m=require('/tmp/asset-manifest.json'); for(const v of Object.values(m.files||{})) if(typeof v==='string' && v.endsWith('.js')) console.log(v)" > /tmp/js-assets.txt
+              while IFS= read -r asset; do
+                [ -n "$asset" ] || continue
+                if [[ "$asset" == http://* || "$asset" == https://* ]]; then
+                  url="$asset"
+                elif [[ "$asset" == /* ]]; then
+                  url="$FRONTEND_URL$asset"
+                else
+                  url="$FRONTEND_URL/$asset"
+                fi
+                if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$url?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
+                  && grep -aFq '/api/transactions/cashier/shift/current' /tmp/app.js; then
+                  found=1
+                  break
+                fi
+              done < /tmp/js-assets.txt
+            fi
+            [ "$found" -eq 1 ] && break
+            sleep 10
+          done
+          if [ "$found" -ne 1 ]; then
+            echo "Render frontend is reachable, but cashier Stage13 bundle marker was not found."
+            exit 1
+          fi
+          echo "Render frontend cashier Stage13 smoke PASS"
+
       - name: Render deploy hook is not configured
         if: env.RENDER_DEPLOY_HOOK_URL == ''
         run: echo "RENDER_FRONTEND_DEPLOY_HOOK_URL secret is not configured; Render deploy skipped."
