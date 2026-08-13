@@ -1,4 +1,4 @@
-import React,{FormEvent,useCallback,useEffect,useMemo,useState}from"react";
+import React,{FormEvent,useCallback,useEffect,useMemo,useRef,useState}from"react";
 import{Archive,Boxes,Building2,ChevronRight,Database,Download,Edit3,Landmark,PackageSearch,Plus,RefreshCw,Search,Settings2,Tags,Truck,WalletCards,Wrench,X}from"lucide-react";
 import{useNavigate}from"react-router-dom";
 import api from"../api/api";
@@ -10,6 +10,13 @@ type EntityDef={key:string;title:string;singular:string;description:string;activ
 type Catalog={entities:EntityDef[];counts:Record<string,number>};
 type Row=Record<string,any>&{id:string|number;system?:boolean};
 type Props={entityKey?:string};
+
+const CATALOG_TTL_MS=5*60*1000;
+const RELATION_TTL_MS=5*60*1000;
+let catalogCache:{value:Catalog;expiresAt:number}|null=null;
+let catalogInFlight:Promise<Catalog>|null=null;
+const relationCache=new Map<string,{value:Row[];expiresAt:number}>();
+const relationInFlight=new Map<string,Promise<Row[]>>();
 
 const iconMap:Record<string,React.ReactNode>={
  salons:<Building2/>,departments:<Tags/>,"equipment-types":<Settings2/>,equipment:<Wrench/>,suppliers:<Truck/>,warehouses:<Boxes/>,units:<PackageSearch/>,"price-types":<Landmark/>,"leave-types":<Archive/>,"movement-types":<Boxes/>,"payment-methods":<WalletCards/>,"financial-transaction-types":<Database/>,
@@ -25,37 +32,79 @@ const format=(value:any,field?:Field)=>{
 };
 const err=(error:any)=>error?.response?.data?.message||error?.response?.data?.error||error?.message||"A művelet nem sikerült.";
 
+async function getCatalog(force=false):Promise<Catalog>{
+ if(!force&&catalogCache&&catalogCache.expiresAt>Date.now())return catalogCache.value;
+ if(!force&&catalogInFlight)return catalogInFlight;
+ const request=api.get("/transactions/masterdata/catalog").then(r=>{
+  const next=(r.data||{entities:[],counts:{}}) as Catalog;
+  catalogCache={value:next,expiresAt:Date.now()+CATALOG_TTL_MS};
+  return next;
+ }).finally(()=>{if(catalogInFlight===request)catalogInFlight=null});
+ catalogInFlight=request;
+ return request;
+}
+
+async function getRelation(key:string,force=false):Promise<Row[]>{
+ const cached=relationCache.get(key);
+ if(!force&&cached&&cached.expiresAt>Date.now())return cached.value;
+ const running=relationInFlight.get(key);
+ if(!force&&running)return running;
+ const request=api.get(`/transactions/masterdata/${encodeURIComponent(key)}`,{params:{include_inactive:1}}).then(r=>{
+  const rows=Array.isArray(r.data)?r.data:[];
+  relationCache.set(key,{value:rows,expiresAt:Date.now()+RELATION_TTL_MS});
+  return rows;
+ }).catch(()=>[] as Row[]).finally(()=>{if(relationInFlight.get(key)===request)relationInFlight.delete(key)});
+ relationInFlight.set(key,request);
+ return request;
+}
+
 export default function CentralMasterDataPage({entityKey}:Props){
  const navigate=useNavigate();
- const[catalog,setCatalog]=useState<Catalog>({entities:[],counts:{}}),[rows,setRows]=useState<Row[]>([]),[relations,setRelations]=useState<Record<string,Row[]>>({});
+ const rowRequestId=useRef(0);
+ const[catalog,setCatalog]=useState<Catalog>(()=>catalogCache?.value||{entities:[],counts:{}}),[rows,setRows]=useState<Row[]>([]),[relations,setRelations]=useState<Record<string,Row[]>>({});
  const[loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const[query,setQuery]=useState(""),[includeInactive,setIncludeInactive]=useState(false),[editing,setEditing]=useState<Row|null>(null),[showEditor,setShowEditor]=useState(false),[form,setForm]=useState<Record<string,any>>({});
  const current=useMemo(()=>catalog.entities.find(x=>x.key===entityKey)||null,[catalog.entities,entityKey]);
  const fieldMap=useMemo(()=>new Map((current?.fields||[]).map(f=>[f.key,f])),[current]);
 
- const loadCatalog=useCallback(async()=>{const r=await api.get("/transactions/masterdata/catalog");setCatalog(r.data||{entities:[],counts:{}})},[]);
+ const loadCatalog=useCallback(async(force=false)=>{const next=await getCatalog(force);setCatalog(next);return next},[]);
  const loadRows=useCallback(async()=>{
   if(!entityKey)return;
+  const requestId=++rowRequestId.current;
   const r=await api.get(`/transactions/masterdata/${encodeURIComponent(entityKey)}`,{params:{q:query||undefined,include_inactive:includeInactive?1:undefined}});
+  if(requestId!==rowRequestId.current)return;
   setRows(Array.isArray(r.data)?r.data:[]);
  },[entityKey,query,includeInactive]);
- const loadRelations=useCallback(async(def:EntityDef|null)=>{
+ const loadRelations=useCallback(async(def:EntityDef|null,force=false)=>{
   if(!def)return;
   const keys=Array.from(new Set(def.fields.map(f=>f.relationEntity).filter(Boolean))) as string[];
   if(!keys.length)return;
-  const entries=await Promise.all(keys.map(async key=>{try{const r=await api.get(`/transactions/masterdata/${encodeURIComponent(key)}`,{params:{include_inactive:1}});return[key,Array.isArray(r.data)?r.data:[]] as const}catch{return[key,[]] as const}}));
+  const entries=await Promise.all(keys.map(async key=>[key,await getRelation(key,force)] as const));
   setRelations(prev=>({...prev,...Object.fromEntries(entries)}));
  },[]);
  const refresh=useCallback(async()=>{
   setLoading(true);setError("");
-  try{await loadCatalog();if(entityKey)await loadRows()}catch(e){setError(err(e))}finally{setLoading(false)}
- },[loadCatalog,loadRows,entityKey]);
+  try{
+   relationCache.clear();
+   const tasks:Promise<any>[]=[loadCatalog(true)];
+   if(entityKey)tasks.push(loadRows());
+   await Promise.all(tasks);
+   if(current)await loadRelations(current,true);
+  }catch(e){setError(err(e))}finally{setLoading(false)}
+ },[loadCatalog,loadRows,loadRelations,entityKey,current]);
 
- useEffect(()=>{void refresh()},[refresh]);
+ useEffect(()=>{
+  let active=true;
+  setLoading(true);setError("");
+  void loadCatalog(false).catch(e=>{if(active)setError(err(e))}).finally(()=>{if(active&&!entityKey)setLoading(false)});
+  return()=>{active=false};
+ },[loadCatalog,entityKey]);
  useEffect(()=>{if(current)void loadRelations(current)},[current?.key,loadRelations]);
  useEffect(()=>{
   if(!entityKey)return;
-  const t=window.setTimeout(()=>{void loadRows().catch(e=>setError(err(e)))},220);
+  setLoading(true);
+  const delay=query?220:0;
+  const t=window.setTimeout(()=>{void loadRows().catch(e=>setError(err(e))).finally(()=>setLoading(false))},delay);
   return()=>window.clearTimeout(t);
  },[query,includeInactive,entityKey,loadRows]);
 
@@ -74,14 +123,14 @@ export default function CentralMasterDataPage({entityKey}:Props){
   try{
    if(editing)await api.patch(`/transactions/masterdata/${current.key}/${editing.id}`,form);
    else await api.post(`/transactions/masterdata/${current.key}`,form);
-   setNotice(editing?"A törzsadat módosítása elmentve.":"Az új törzsadat létrejött.");closeEditor();await loadRows();await loadCatalog();
+   setNotice(editing?"A törzsadat módosítása elmentve.":"Az új törzsadat létrejött.");closeEditor();await Promise.all([loadRows(),loadCatalog(true)]);
   }catch(x){setError(err(x))}finally{setSaving(false)}
  }
  async function deactivate(row:Row){
   if(!current)return;
   if(!window.confirm(`Biztosan inaktiválod ezt a(z) ${current.singular} rekordot?`))return;
   setSaving(true);setError("");
-  try{await api.delete(`/transactions/masterdata/${current.key}/${row.id}`);setNotice("A törzsadat inaktiválva.");await loadRows();await loadCatalog()}catch(x){setError(err(x))}finally{setSaving(false)}
+  try{await api.delete(`/transactions/masterdata/${current.key}/${row.id}`);setNotice("A törzsadat inaktiválva.");await Promise.all([loadRows(),loadCatalog(true)])}catch(x){setError(err(x))}finally{setSaving(false)}
  }
  async function exportCsv(){
   if(!current)return;
