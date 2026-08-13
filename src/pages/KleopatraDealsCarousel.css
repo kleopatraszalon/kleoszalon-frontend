@@ -1,0 +1,9 @@
+.kapp-deal-toolbar{display:flex;align-items:center;gap:12px}
+.kapp-deal-toolbar>div{display:flex;gap:7px}
+.kapp-deal-toolbar button{display:grid;place-items:center;width:40px;height:40px;padding:0;border:1px solid #d5c4a4;border-radius:50%;background:#fff;color:var(--ink);cursor:pointer}
+.kapp-deal-toolbar button:hover{border-color:var(--gold);background:#fffaf1}
+.kapp-deal-toolbar svg{width:19px}
+.kapp-deals>.kapp-deal-track{display:flex;grid-template-columns:none;gap:16px;overflow-x:auto;margin-top:18px;padding:2px 2px 14px;scroll-snap-type:x mandatory;scroll-behavior:smooth;overscroll-behavior-inline:contain;scrollbar-width:thin;scrollbar-color:#c8b187 #eee6da}
+.kapp-deals>.kapp-deal-track>article{flex:0 0 min(520px,calc(50% - 8px));scroll-snap-align:start}
+.kapp-deals>.kapp-deal-track>.empty-deal{flex-basis:100%}
+@media(max-width:620px){.kapp-deals>.kapp-deal-track{display:flex;grid-template-columns:none;padding-right:12vw}.kapp-deals>.kapp-deal-track>article{flex-basis:88%;min-width:0}.kapp-deal-toolbar>span{font-size:12px}.kapp-deal-toolbar button{width:36px;height:36px}}
