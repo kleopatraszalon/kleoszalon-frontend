@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { LanguageProvider } from "./i18n/LanguageProvider";
 
 // Globális stílusok visszakötése
 import "./styles/kleo-theme.css";
@@ -15,7 +16,9 @@ if (!container) throw new Error("Hiányzik a #root elem az index.html-ből");
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
-    <App />
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
   </React.StrictMode>
 );
 if("serviceWorker" in navigator)window.addEventListener("load",async()=>{try{const registration=await navigator.serviceWorker.register("/sw.js?v=1.4.9",{updateViaCache:"none"});await registration.update()}catch{}});
