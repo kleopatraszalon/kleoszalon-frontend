@@ -1,5 +1,5 @@
 {
-  "version": "1.4.8",
+  "version": "1.4.9",
   "released_at": "2026-08-13T11:35:00+02:00",
-  "message": "A napi akciók most oldalra lapozhatók, mobilon húzással, nagyobb képernyőn nyilakkal."
+  "message": "Az app arculata és szövege mostantól a VIR admin felületén szerkeszthető."
 }
