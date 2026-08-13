@@ -33,6 +33,7 @@ const Munkalapok = lazy(() => import("./pages/Munkalapok"));
 const Penzugy = lazy(() => import("./pages/Penzugy"));
 const Logisztika = lazy(() => import("./pages/Logisztika"));
 const CentralSupplyPage = lazy(() => import("./pages/CentralSupplyPage"));
+const CentralMasterDataPage = lazy(() => import("./pages/CentralMasterDataPage"));
 const Register = lazy(() => import("./pages/Register"));
 const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
 const WorkOrderNewModalPage = lazy(
@@ -262,6 +263,22 @@ const router = createBrowserRouter([
   { path: "/warehouse", element: A(<Logisztika />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },
   { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },
+  { path: "/masterdata", element: R(MANAGEMENT, <CentralMasterDataPage />) },
+  { path: "/masterdata/salons", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="salons" />) },
+  { path: "/masterdata/departments", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="departments" />) },
+  { path: "/masterdata/equipment-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="equipment-types" />) },
+  { path: "/masterdata/assets", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="equipment" />) },
+  { path: "/masterdata/suppliers", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="suppliers" />) },
+  { path: "/masterdata/warehouses", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="warehouses" />) },
+  { path: "/masterdata/units", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="units" />) },
+  { path: "/masterdata/price-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="price-types" />) },
+  { path: "/masterdata/leave-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="leave-types" />) },
+  { path: "/masterdata/movement-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="movement-types" />) },
+  { path: "/masterdata/payment-methods", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="payment-methods" />) },
+  { path: "/masterdata/financial-transaction-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="financial-transaction-types" />) },
+  { path: "/spec/warehouses", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="warehouses" />) },
+  { path: "/spec/leave-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="leave-types" />) },
+  { path: "/spec/financial-transaction-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="financial-transaction-types" />) },
   { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },
   { path: "/warehouse/products", element: A(<ProductsList />) },
   { path: "/warehouse/products/*", element: A(<ProductsList />) },
