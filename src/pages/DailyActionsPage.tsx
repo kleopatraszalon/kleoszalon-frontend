@@ -29,7 +29,27 @@ const empty: any = {
   channels: ["app"],
 };
 function m(e: any) {
-  return e?.response?.data?.message || e?.message || "A művelet sikertelen.";
+  return e?.response?.data?.message || e?.response?.data?.error || e?.message || "A művelet sikertelen.";
+}
+function optimizeImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) return reject(new Error("Csak képfájl tölthető fel."));
+    const url = URL.createObjectURL(file), img = document.createElement("img");
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const max = 1600, scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+      canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return reject(new Error("A kép nem dolgozható fel."));
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", .82));
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("A kép nem olvasható.")); };
+    img.src = url;
+  });
 }
 export default function DailyActionsPage() {
   const [data, setData] = useState<any>({ campaigns: [] }),
@@ -69,12 +89,19 @@ export default function DailyActionsPage() {
       channels: a.includes(v) ? a.filter((x: string) => x !== v) : [...a, v],
     });
   }
-  function image(e: any) {
+  async function image(e: any) {
     const f = e.target.files?.[0];
     if (!f) return;
-    const r = new FileReader();
-    r.onload = () => setForm({ ...form, image_url: String(r.result) });
-    r.readAsDataURL(f);
+    setError("");
+    try {
+      const image_url = await optimizeImage(f);
+      setForm((current: any) => ({ ...current, image_url }));
+      setNotice("A kép optimalizálva és beszúrva.");
+    } catch (err) {
+      setError(m(err));
+    } finally {
+      e.target.value = "";
+    }
   }
   async function count() {
     try {
