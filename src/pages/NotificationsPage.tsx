@@ -45,7 +45,7 @@ export default function NotificationsPage() {
       const operational=(ruleResult.data?.items||[]) as NotificationItem[];
       setItems(current=>{
         const state=new Map(current.map(x=>[x.key,x.read]));
-        const merged=[...legacy.filter(x=>!OPERATIONAL.has(x.type)),...operational.map(x=>({...x,read:state.get(x.key)??false}))];
+        const merged=[...legacy.filter(x=>!OPERATIONAL.has(x.type)),...operational.map(x=>({...x,read:state.get(x.key)??x.read??false}))];
         return merged.sort((a,b)=>{const sev={critical:0,warning:1,info:2};return sev[a.severity]-sev[b.severity]||(+new Date(b.created_at)-+new Date(a.created_at))});
       });
     } catch (e:any) {
