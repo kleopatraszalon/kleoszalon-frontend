@@ -8,7 +8,7 @@ import "./NotificationsPage.css";
 
 type NotificationItem = {
   key: string;
-  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder" | "supplier_expiry" | "employee_document" | "complaint_sla";
+  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder" | "loyalty" | "supplier_expiry" | "employee_document" | "complaint_sla";
   severity: "info" | "warning" | "critical";
   title: string;
   detail: string;
@@ -16,6 +16,7 @@ type NotificationItem = {
   created_at: string;
   read: boolean;
 };
+const OPERATIONAL=new Set(["supplier_expiry","employee_document","complaint_sla"]);
 
 const iconFor = (type: NotificationItem["type"]) => {
   if (type === "chat") return <MessageCircle/>;
@@ -38,8 +39,15 @@ export default function NotificationsPage() {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const r = await api.get("/transactions/notifications");
-      setItems(r.data?.items || []);
+      const [base,ruleResult]=await Promise.all([api.get("/transactions/notifications"),api.get("/transactions/notifications/alert-rules/items").catch(()=>null)]);
+      const legacy=(base.data?.items||[]) as NotificationItem[];
+      if(!ruleResult){setItems(legacy);return;}
+      const operational=(ruleResult.data?.items||[]) as NotificationItem[];
+      setItems(current=>{
+        const state=new Map(current.map(x=>[x.key,x.read]));
+        const merged=[...legacy.filter(x=>!OPERATIONAL.has(x.type)),...operational.map(x=>({...x,read:state.get(x.key)??false}))];
+        return merged.sort((a,b)=>{const sev={critical:0,warning:1,info:2};return sev[a.severity]-sev[b.severity]||(+new Date(b.created_at)-+new Date(a.created_at))});
+      });
     } catch (e:any) {
       setError(e?.response?.data?.message || e?.message || "Az értesítések betöltése sikertelen.");
     } finally { setLoading(false); }
