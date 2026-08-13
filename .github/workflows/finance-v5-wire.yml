@@ -22,11 +22,8 @@ jobs:
               anchor='const Penzugy = lazy(() => import("./pages/Penzugy"));\n'
               if anchor not in s: raise SystemExit('Penzugy lazy import anchor not found')
               s=s.replace(anchor,anchor+imp,1)
-          old='''  { path: "/penzugy", element: A(<Penzugy />) },
-  { path: "/finance", element: A(<Penzugy />) },'''
-          new='''  { path: "/penzugy", element: A(<FinanceWorkspacePage />) },
-  { path: "/finance", element: A(<FinanceWorkspacePage />) },
-  { path: "/finance/checkout", element: A(<Penzugy />) },'''
+          old='  { path: "/penzugy", element: A(<Penzugy />) },\n  { path: "/finance", element: A(<Penzugy />) },'
+          new='  { path: "/penzugy", element: A(<FinanceWorkspacePage />) },\n  { path: "/finance", element: A(<FinanceWorkspacePage />) },\n  { path: "/finance/checkout", element: A(<Penzugy />) },'
           if old in s:
               s=s.replace(old,new,1)
           elif '/finance/checkout' not in s:
@@ -35,7 +32,6 @@ jobs:
           new='  { path: "/finance/*", element: A(<FinanceWorkspacePage />) },'
           if old in s: s=s.replace(old,new,1)
           p.write_text(s)
-
           p=Path('src/pages/finance/FinanceWorkspacePage.tsx')
           s=p.read_text()
           old='await api.patch(`${BASE}/settings`,settings)'
