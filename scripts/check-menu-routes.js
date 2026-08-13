@@ -20,6 +20,6 @@ for(const route of critical){
 }
 const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(app);
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
-if(!sidebar.includes("MENU_CACHE_KEY='kleo.menu.cache.v11'")) failures.push('A menü-cache verzió nem v11.');
+if(!sidebar.includes("MENU_CACHE_KEY='kleo.menu.cache.v12'")) failures.push('A menü-cache verzió nem v12.');
 if(failures.length){console.error('MENÜ ROUTE AUDIT HIBA');failures.forEach(x=>console.error(' - '+x));process.exit(1)}
 console.log(`Menü route audit OK: ${critical.length} kritikus útvonal ellenőrizve.`);
