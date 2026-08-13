@@ -1,8 +1,8 @@
-import React,{useState}from"react";
+import React,{useEffect,useState}from"react";
 import{Save}from"lucide-react";
 import api from"../api/api";
-export default function AlertRuleEditor({rule,onSaved}:{rule:any;onSaved:()=>void}){
- const[value,setValue]=useState(Number(rule?.warning_value||0)),[error,setError]=useState("");
- async function save(){try{setError("");await api.put(`/transactions/alert-rules/rules/${rule.rule_key}`,{...rule,warning_value:value});onSaved()}catch(e:any){setError(e?.response?.data?.message||"A mentés sikertelen.")}}
- return <div className="notify-rule-editor"><label>Előriasztás<input type="number" min="0" value={value} onChange={e=>setValue(Number(e.target.value))}/></label><button onClick={()=>void save()}><Save/>Mentés</button>{error&&<small>{error}</small>}</div>;
+export default function AlertRuleEditor({rule,scopeType="global",scopeId="",unit="nap",onSaved}:{rule:any;scopeType?:"global"|"location";scopeId?:string;unit?:string;onSaved:()=>void}){
+ const[draft,setDraft]=useState<any>(rule||{}),[error,setError]=useState("");useEffect(()=>setDraft(rule||{}),[rule]);const set=(k:string,v:any)=>setDraft((p:any)=>({...p,[k]:v}));
+ async function save(){try{setError("");await api.put(`/transactions/alert-rules/rules/${rule.rule_key}`,{...draft,scope_type:scopeType,scope_id:scopeType==="global"?"*":scopeId});onSaved()}catch(e:any){setError(e?.response?.data?.message||"A mentés sikertelen.")}}
+ return <div className="notify-rule-editor"><div className="notify-rule-fields"><label>Előriasztás ({unit})<input type="number" min="0" value={draft.warning_value??0} onChange={e=>set("warning_value",+e.target.value)}/></label>{rule.rule_key==="complaint_sla"&&<label>SLA határidő (óra)<input type="number" min="1" value={draft.deadline_value??120} onChange={e=>set("deadline_value",+e.target.value)}/></label>}<label>L2 üzletvezető (óra)<input type="number" min="0" value={draft.level2_after_hours??0} onChange={e=>set("level2_after_hours",+e.target.value)}/></label><label>L3 admin (óra)<input type="number" min="0" value={draft.level3_after_hours??0} onChange={e=>set("level3_after_hours",+e.target.value)}/></label></div><div className="notify-rule-toggles"><label><input type="checkbox" checked={draft.escalation_enabled!==false} onChange={e=>set("escalation_enabled",e.target.checked)}/>Eszkaláció</label><label><input type="checkbox" checked={draft.email_enabled!==false} onChange={e=>set("email_enabled",e.target.checked)}/>E-mail</label><label><input type="checkbox" checked={draft.push_enabled!==false} onChange={e=>set("push_enabled",e.target.checked)}/>Push</label></div><button onClick={()=>void save()}><Save/>Mentés</button>{error&&<small>{error}</small>}</div>;
 }
