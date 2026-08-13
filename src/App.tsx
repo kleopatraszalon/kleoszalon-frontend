@@ -261,7 +261,7 @@ const router = createBrowserRouter([
   { path: "/warehouse", element: A(<Logisztika />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },
   { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },
-  { path: "/warehouse/operations", element: A(<InventoryOperationsPage />) },
+  { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },
   { path: "/warehouse/products", element: A(<ProductsList />) },
   { path: "/warehouse/products/*", element: A(<ProductsList />) },
   { path: "/products", element: A(<ProductsList />) },
