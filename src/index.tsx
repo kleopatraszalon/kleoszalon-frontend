@@ -18,4 +18,4 @@ root.render(
     <App />
   </React.StrictMode>
 );
-if("serviceWorker" in navigator)window.addEventListener("load",async()=>{try{const registration=await navigator.serviceWorker.register("/sw.js?v=1.4.6",{updateViaCache:"none"});await registration.update()}catch{}});
+if("serviceWorker" in navigator)window.addEventListener("load",async()=>{try{const registration=await navigator.serviceWorker.register("/sw.js?v=1.4.7",{updateViaCache:"none"});await registration.update()}catch{}});
