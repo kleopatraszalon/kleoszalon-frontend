@@ -173,7 +173,7 @@ export default function ClientGovernanceLauncher() {
     }
   };
 
-  const useDuplicateGroup = (group: DuplicateGroup) => {
+  const selectDuplicateGroup = (group: DuplicateGroup) => {
     const ids = group.clients || [];
     setSourceId(ids[0]?.id || "");
     setTargetId(ids[1]?.id || "");
@@ -276,7 +276,7 @@ export default function ClientGovernanceLauncher() {
         {tab === "merge" && canMerge && <div className="client-governance-body merge-body">
           <section className="duplicate-groups">
             <div className="section-title"><div><h3>Felismerhető duplikációk</h3><p>A meglévő CRM email/telefon egyezései alapján.</p></div><button onClick={() => void refreshDuplicates()}><RefreshCw size={15}/></button></div>
-            {duplicates.length === 0 ? <div className="governance-empty">Nincs jelenleg felismerhető duplikáció.</div> : duplicates.map((group, index) => <button key={`${group.email_key || group.phone_key || "dup"}-${index}`} onClick={() => useDuplicateGroup(group)}><Merge size={17}/><span><b>{group.clients.map(clientName).join(" ↔ ")}</b><small>{group.email_key || group.phone_key || "azonos kapcsolati adat"}</small></span></button>)}
+            {duplicates.length === 0 ? <div className="governance-empty">Nincs jelenleg felismerhető duplikáció.</div> : duplicates.map((group, index) => <button key={`${group.email_key || group.phone_key || "dup"}-${index}`} onClick={() => selectDuplicateGroup(group)}><Merge size={17}/><span><b>{group.clients.map(clientName).join(" ↔ ")}</b><small>{group.email_key || group.phone_key || "azonos kapcsolati adat"}</small></span></button>)}
           </section>
 
           <section className="merge-editor">
