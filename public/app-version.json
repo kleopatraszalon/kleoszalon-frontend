@@ -1,5 +1,5 @@
 {
-  "version": "1.4.7",
-  "released_at": "2026-08-13T11:25:00+02:00",
-  "message": "A telefon push-feliratkozása automatikusan megújul, és csak sikeres regisztráció után jelenik meg aktívként."
+  "version": "1.4.8",
+  "released_at": "2026-08-13T11:35:00+02:00",
+  "message": "A napi akciók most oldalra lapozhatók, mobilon húzással, nagyobb képernyőn nyilakkal."
 }
