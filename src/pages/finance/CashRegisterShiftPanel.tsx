@@ -10,7 +10,8 @@ type Props={onChanged?:()=>void|Promise<void>;onShiftStatusChange?:(open:boolean
 const HUF=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;
 const localDate=()=>{const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`};
 const dt=(v:any)=>v?new Date(v).toLocaleString("hu-HU"):"—";
-const esc=(v:any)=>String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]||m));
+const HTML_ENTITIES:Record<string,string>={"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+const esc=(v:any)=>String(v??"").replace(/[&<>"']/g,m=>HTML_ENTITIES[m]||m);
 
 export default function CashRegisterShiftPanel({onChanged,onShiftStatusChange}:Props){
  const locationId=localStorage.getItem("kleo_location_id")||"";
@@ -31,6 +32,8 @@ export default function CashRegisterShiftPanel({onChanged,onShiftStatusChange}:P
  const expected=Number(state.totals?.expected_cash||0);
  const closeDifference=Number(closeCount||0)-expected;
  const acceptedHandovers=useMemo(()=>state.handovers.filter(h=>h.status==="accepted"),[state.handovers]);
+ const reportLocation=()=>isAdmin&&allLocations?"":locationId;
+ const reportSuffix=()=>{const loc=reportLocation();return loc?`?location_id=${encodeURIComponent(loc)}`:""};
 
  async function loadCurrent(){
   if(!locationId){setState({shift:null,totals:null,handovers:[],pending_handover:null,latest_report:null});onShiftStatusChange?.(false);return}
@@ -80,9 +83,9 @@ export default function CashRegisterShiftPanel({onChanged,onShiftStatusChange}:P
   try{const r=await api.post(`/api/transactions/cashier/shift/${state.shift.id}/close`,{location_id:locationId,counted_cash:Number(closeCount||0),note:closeNote||null});setNotice(`A pénztár lezárva. Jegyzőkönyv: ${r.data?.report?.report_no||"elkészült"}.`);setCloseNote("");await changed()}
   catch(e:any){setError(e?.response?.data?.message||"A pénztári műszak nem zárható le.")}finally{setLoading(false)}
  }
- async function reportDetail(id:any){const loc=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const r=await api.get(`/api/transactions/cashier/shift-reports/${id}${loc}`);return r.data}
+ async function reportDetail(id:any){const r=await api.get(`/api/transactions/cashier/shift-reports/${id}${reportSuffix()}`);return r.data}
  async function openPdf(id:any){
-  try{const loc=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const r=await api.get(`/api/transactions/cashier/shift-reports/${id}/pdf${loc}`,{responseType:"blob"});const url=URL.createObjectURL(new Blob([r.data],{type:"application/pdf"}));window.open(url,"_blank","noopener,noreferrer");setTimeout(()=>URL.revokeObjectURL(url),60000)}
+  try{const r=await api.get(`/api/transactions/cashier/shift-reports/${id}/pdf${reportSuffix()}`,{responseType:"blob"});const url=URL.createObjectURL(new Blob([r.data],{type:"application/pdf"}));window.open(url,"_blank","noopener,noreferrer");setTimeout(()=>URL.revokeObjectURL(url),60000)}
   catch(e:any){setError(e?.response?.data?.message||"A PDF nem nyitható meg.")}
  }
  async function printReport(id:any){
