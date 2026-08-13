@@ -1,6 +1,7 @@
 import React,{useEffect,useState}from"react";
 import{AlertTriangle,FileWarning,Play,RefreshCw,ShieldAlert,Truck}from"lucide-react";
 import api from"../api/api";
+import"./OperationalAlertSummary.css";
 
 type Summary={total:number;critical:number;supplier_expiry:number;employee_document:number;complaint_sla:number};
 const err=(e:any)=>e?.response?.data?.message||e?.response?.data?.error||e?.message||"A művelet nem sikerült.";
