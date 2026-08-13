@@ -1,5 +1,5 @@
 {
-  "version": "1.4.6",
-  "released_at": "2026-08-13T11:15:00+02:00",
-  "message": "Gyorsabb napi akciók, automatikus frissítés és javított telefonos értesítések."
+  "version": "1.4.7",
+  "released_at": "2026-08-13T11:25:00+02:00",
+  "message": "A telefon push-feliratkozása automatikusan megújul, és csak sikeres regisztráció után jelenik meg aktívként."
 }
