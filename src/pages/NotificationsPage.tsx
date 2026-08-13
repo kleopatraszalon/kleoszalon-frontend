@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Bell, CheckCheck, MessageCircle, PackageX, RefreshCw, Sparkles, WalletCards, X } from "lucide-react";
+import { AlertTriangle, Bell, CheckCheck, FileWarning, MessageCircle, PackageX, RefreshCw, ShieldAlert, Sparkles, Truck, WalletCards, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/api";
+import AlertRuleManagementPanel from "../components/AlertRuleManagementPanel";
+import AlertDeliveryAuditPanel from "../components/AlertDeliveryAuditPanel";
 import "./NotificationsPage.css";
 
 type NotificationItem = {
   key: string;
-  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder";
+  type: "chat" | "stock" | "no_show" | "task" | "ai" | "finance" | "workorder" | "loyalty" | "supplier_expiry" | "employee_document" | "complaint_sla";
   severity: "info" | "warning" | "critical";
   title: string;
   detail: string;
@@ -14,12 +16,16 @@ type NotificationItem = {
   created_at: string;
   read: boolean;
 };
+const OPERATIONAL=new Set(["supplier_expiry","employee_document","complaint_sla"]);
 
 const iconFor = (type: NotificationItem["type"]) => {
   if (type === "chat") return <MessageCircle/>;
   if (type === "stock") return <PackageX/>;
   if (type === "ai") return <Sparkles/>;
   if (type === "finance" || type === "workorder") return <WalletCards/>;
+  if (type === "supplier_expiry") return <Truck/>;
+  if (type === "employee_document") return <FileWarning/>;
+  if (type === "complaint_sla") return <ShieldAlert/>;
   return <AlertTriangle/>;
 };
 
@@ -33,8 +39,15 @@ export default function NotificationsPage() {
   const load = useCallback(async () => {
     setLoading(true); setError("");
     try {
-      const r = await api.get("/transactions/notifications");
-      setItems(r.data?.items || []);
+      const [base,ruleResult]=await Promise.all([api.get("/transactions/notifications"),api.get("/transactions/notifications/alert-rules/items").catch(()=>null)]);
+      const legacy=(base.data?.items||[]) as NotificationItem[];
+      if(!ruleResult){setItems(legacy);return;}
+      const operational=(ruleResult.data?.items||[]) as NotificationItem[];
+      setItems(current=>{
+        const state=new Map(current.map(x=>[x.key,x.read]));
+        const merged=[...legacy.filter(x=>!OPERATIONAL.has(x.type)),...operational.map(x=>({...x,read:state.get(x.key)??x.read??false}))];
+        return merged.sort((a,b)=>{const sev={critical:0,warning:1,info:2};return sev[a.severity]-sev[b.severity]||(+new Date(b.created_at)-+new Date(a.created_at))});
+      });
     } catch (e:any) {
       setError(e?.response?.data?.message || e?.message || "Az értesítések betöltése sikertelen.");
     } finally { setLoading(false); }
@@ -68,9 +81,12 @@ export default function NotificationsPage() {
 
   return <main className="notify-page">
     <section className="notify-hero">
-      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Chat, készlet, no-show, teendők, AI-költség és pénzügyi rendellenességek egy helyen.</p></div>
+      <div><span>VEZETŐI ÉS OPERATÍV FIGYELMEZTETÉSEK</span><h1>Értesítési központ</h1><p>Lejáratok, SLA, készlet, no-show, teendők és pénzügyi rendellenességek egy helyen.</p></div>
       <div className="notify-actions"><button onClick={load}><RefreshCw className={loading ? "spin" : ""}/>Frissítés</button><button onClick={markAll} disabled={!unread}><CheckCheck/>Mind olvasott</button></div>
     </section>
+
+    <AlertRuleManagementPanel/>
+    <AlertDeliveryAuditPanel/>
 
     <section className="notify-stats">
       <article><Bell/><div><small>Összes aktív</small><strong>{items.length}</strong></div></article>
