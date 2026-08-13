@@ -18,13 +18,15 @@ test('daily close requires a manually entered counted cash value',()=>{
   expect(panel).toContain('ténylegesen megszámolt készpénzzel');
 });
 
-test('finance workspace renders the cashier register panel',()=>{
+test('finance workspace renders a restricted cashier mode',()=>{
   expect(finance).toContain("import CashRegisterSessionPanel from'./finance/CashRegisterSessionPanel'");
   expect(finance).toContain('<CashRegisterSessionPanel');
+  expect(finance).toContain("window.location.pathname.startsWith('/finance/cashier')");
+  expect(finance).toContain('!cashierOnly&&');
 });
 
 test('location menu exposes cashier only through explicit cashier roles',()=>{
   expect(sidebar).toContain("const canCashier=rk.some");
   expect(sidebar).toContain("canCashier?LOCATION:LOCATION.filter(m=>m.id!==99205)");
-  expect(sidebar).toContain("name:'Pénztár'");
+  expect(sidebar).toContain("name:'Pénztár',icon:'WalletCards',route:'/finance/cashier'");
 });
