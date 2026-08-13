@@ -14,6 +14,18 @@ import {
 import api from "../api/api";
 import "./DailyActionsPage.css";
 const KLEOPATRA_LOGO = "/kleopatra-logo.png";
+const localDateTime = (value: unknown) => {
+  const date = new Date(String(value || ""));
+  if (Number.isNaN(date.getTime())) return "";
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+const normalizedChannels = (value: unknown) => {
+  const values = Array.isArray(value) ? value : [];
+  const result = Array.from(new Set(values.map(String).map(x => x === "push" ? "app" : x)
+    .filter(x => ["email", "sms", "app"].includes(x))));
+  return result.length ? result : ["app"];
+};
 const empty: any = {
   name: "",
   headline: "",
@@ -78,8 +90,10 @@ export default function DailyActionsPage() {
     setSelected(x);
     setForm({
       ...x,
+      valid_from: localDateTime(x.valid_from),
+      valid_until: localDateTime(x.valid_until),
       audience: x.audience || { type: "all" },
-      channels: x.channels || ["app"],
+      channels: normalizedChannels(x.channels),
     });
   }
   function channel(v: string) {
