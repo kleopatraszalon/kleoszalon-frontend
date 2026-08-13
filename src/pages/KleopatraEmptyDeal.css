@@ -1,0 +1,10 @@
+.kapp-deals .empty-deal{position:relative;grid-column:1/-1;display:block;min-height:390px;overflow:hidden;padding:0!important;border:0!important;background:linear-gradient(90deg,#120c08f5 0%,#120c08d9 42%,#120c083d 72%,#120c081a 100%),url("./assets/background_login.webp") center 42%/cover no-repeat!important;box-shadow:0 22px 55px #120c0826}
+.kapp-deals .empty-deal::after{content:"";position:absolute;inset:0;border:1px solid #b6986175;border-radius:inherit;pointer-events:none}
+.kapp-deals .empty-deal-copy{position:relative;z-index:1;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;width:min(590px,66%);min-height:390px;padding:42px;color:#fff}
+.kapp-deals .empty-deal-copy>img{width:210px!important;height:auto!important;margin:0 0 30px;padding:14px 18px;border-radius:12px;background:#fffffff2;object-fit:contain!important}
+.kapp-deals .empty-deal-copy>small{color:#c8b187;font-weight:850;letter-spacing:.16em}
+.kapp-deals .empty-deal-copy h3{max-width:540px;margin:10px 0 12px;color:#fff;font-size:clamp(28px,4vw,46px);line-height:1.03;letter-spacing:-.035em}
+.kapp-deals .empty-deal-copy p{max-width:480px;margin:0;color:#eee4d7;font-size:15px;line-height:1.5}
+.kapp-deals .empty-deal-copy a{margin-top:24px!important;background:#ec008c!important}
+.kapp-deals .empty-deal-copy a svg{width:17px}
+@media(max-width:620px){.kapp-deals .empty-deal{min-height:480px;background:linear-gradient(0deg,#120c08fa 0%,#120c08df 48%,#120c0826 82%),url("./assets/background_login.webp") 64% 28%/cover no-repeat!important}.kapp-deals .empty-deal-copy{justify-content:flex-end;width:100%;min-height:480px;padding:26px 24px 30px}.kapp-deals .empty-deal-copy>img{width:170px!important;margin-bottom:22px;padding:10px 13px}.kapp-deals .empty-deal-copy h3{max-width:330px;font-size:31px}.kapp-deals .empty-deal-copy p{font-size:14px}.kapp-deals .empty-deal-copy a{width:100%;justify-content:center}}
