@@ -11,27 +11,46 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: feature/inventory-operations-v4-20260813
-      - name: Wire inventory operations route
+      - name: Complete inventory v4 frontend wiring
         run: |
           python - <<'PY'
           from pathlib import Path
+
           p=Path('src/App.tsx')
           s=p.read_text()
           imp='const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));\n'
           if 'InventoryOperationsPage' not in s:
               anchor='const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));\n'
               s=s.replace(anchor,anchor+imp,1)
-          route='  { path: "/warehouse/operations", element: A(<InventoryOperationsPage />) },\n'
+          route='  { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },\n'
           if 'path: "/warehouse/operations"' not in s:
               anchor='  { path: "/masterdata/products/taxonomy-review", element: R(MANAGEMENT, <ProductTaxonomyReviewPage />) },\n'
               s=s.replace(anchor,anchor+route,1)
+          else:
+              s=s.replace('{ path: "/warehouse/operations", element: A(<InventoryOperationsPage />) }','{ path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) }')
+          p.write_text(s)
+
+          p=Path('src/pages/InventoryOperationsPage.tsx')
+          s=p.read_text()
+          imp='import InventoryStockLevelSettings from"./inventory/InventoryStockLevelSettings";\n'
+          if 'InventoryStockLevelSettings' not in s:
+              s=s.replace('import{useCurrentUser}from"../hooks/useCurrentUser";\n','import{useCurrentUser}from"../hooks/useCurrentUser";\n'+imp,1)
+          s=s.replace('const[warehouses,setWarehouses]=useState<Warehouse[]>([]);const[products,setProducts]','const[warehouses,setWarehouses]=useState<Warehouse[]>([]);const[transferTargets,setTransferTargets]=useState<Warehouse[]>([]);const[products,setProducts]',1)
+          effect=' useEffect(()=>{if(!userLoading&&(isGlobal||ownLocation))void api.get("/api/transactions/inventory/ops/transfer-targets").then(r=>setTransferTargets(arr<Warehouse>(r.data))).catch(()=>{})},[userLoading,isGlobal,ownLocation]);\n'
+          anchor=' useEffect(()=>{if(!userLoading&&(isGlobal||ownLocation))void loadData()},[locationId,userLoading,isGlobal,ownLocation]); // eslint-disable-line react-hooks/exhaustive-deps\n'
+          if 'setTransferTargets' in s and '/transfer-targets' not in s:
+              s=s.replace(anchor,anchor+effect,1)
+          s=s.replace('{warehouses.filter(w=>String(w.id)!==transferSource).map(w=><option','{transferTargets.filter(w=>String(w.id)!==transferSource).map(w=><option')
+          setting_marker='  {tab==="settings"&&<div className="invops-grid">'
+          if '<InventoryStockLevelSettings' not in s:
+              s=s.replace(setting_marker,'  {tab==="settings"&&<InventoryStockLevelSettings locationId={locationId} onChanged={()=>void loadData()}/>}\n'+setting_marker,1)
           p.write_text(s)
           PY
-      - name: Commit route wiring
+      - name: Commit frontend wiring
         run: |
           if git diff --quiet; then exit 0; fi
           git config user.name "kleopatraszalon"
           git config user.email "birtalan.zoltan1975@gmail.com"
-          git add src/App.tsx
-          git commit -m "chore(inventory): wire v4 operations route"
+          git add src/App.tsx src/pages/InventoryOperationsPage.tsx
+          git commit -m "feat(inventory): finish v4 stock controls and transfer targets"
           git push origin HEAD:feature/inventory-operations-v4-20260813
