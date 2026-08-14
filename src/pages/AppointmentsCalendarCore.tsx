@@ -129,6 +129,19 @@ function parseMode(raw: string | null | undefined): CalendarMode | null {
   return null;
 }
 
+function roleList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String).map((value) => value.toLocaleLowerCase("hu-HU"));
+  const text = String(raw || "");
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.toLocaleLowerCase("hu-HU"));
+  } catch {}
+  return text
+    .split(",")
+    .map((value) => value.replace(/[\[\]"]/g, "").trim().toLocaleLowerCase("hu-HU"))
+    .filter(Boolean);
+}
+
 function minutesOfDay(value: string) {
   const date = new Date(value);
   return date.getHours() * 60 + date.getMinutes();
@@ -203,6 +216,9 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
       ? String(savedDate)
       : isoDate(new Date());
   const requestedMode = parseMode(urlParams.get("mode"));
+  const isReceptionist = roleList(user?.role).some((role) =>
+    ["receptionist", "reception", "recepciós", "recepcios"].includes(role),
+  );
 
   const [anchorDate, setAnchorDate] = useState(embedded ? isoDate(new Date()) : requestedDate);
   const [mode, setMode] = useState<CalendarMode>(requestedMode || initialMode || (embedded ? "days" : "staff"));
@@ -233,6 +249,16 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   useEffect(() => {
     if (!embedded && requestedMode) setMode(requestedMode);
   }, [embedded, requestedMode]);
+
+  useEffect(() => {
+    if (embedded || !isReceptionist || requestedMode || initialMode) return;
+    setMode("days");
+    if (!validIsoDate(queryDate)) {
+      const today = isoDate(new Date());
+      setAnchorDate(today);
+      localStorage.setItem("kleo.selectedDate", today);
+    }
+  }, [embedded, initialMode, isReceptionist, queryDate, requestedMode]);
 
   const loadCalendar = useCallback(async () => {
     if (!user) return;
