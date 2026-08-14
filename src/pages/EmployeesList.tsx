@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
+import { useLanguage } from "../i18n/LanguageProvider";
 import withBase from "../utils/apiBase";
 import "./EmployeesList.css";
 
@@ -67,10 +68,10 @@ const emptyEmployee = {
   active: true,
 };
 
-const money = (value?: number | string | null) =>
+const money = (value?: number | string | null, locale = "hu-HU") =>
   value === undefined || value === null || value === "" || Number(value) === 0
     ? "—"
-    : `${Number(value).toLocaleString("hu-HU")} Ft`;
+    : `${Number(value).toLocaleString(locale)} Ft`;
 
 const initials = (name = "") =>
   name.split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "?";
@@ -141,8 +142,17 @@ const roleOrder = [
   "Egyéb / besorolatlan",
 ];
 
+const ROLE_EN: Record<string,string> = {
+  "Szalonvezető":"Salon manager","Üzletvezető":"Store manager","Adminisztrátor":"Administrator","Recepciós":"Receptionist",
+  "Vezető kozmetikus":"Lead cosmetician","Kozmetikus":"Cosmetician","TOP fodrász":"TOP hairdresser","Fodrász mester":"Master hairdresser",
+  "Fodrász":"Hairdresser","Körmös":"Nail technician","Masszőr":"Massage therapist","Munkatárs":"Staff member",
+  "Munkakör nélkül":"No position","Egyéb / besorolatlan":"Other / unclassified","Tulajdonos":"Owner",
+};
+const localizedRole=(name:string,language:string)=>language==="en"?(ROLE_EN[name]||name):name;
+
 export default function EmployeesList() {
   const routerLocation = useLocation();
+  const { language, locale, t } = useLanguage();
   const positionsMode = routerLocation.pathname.includes("positions");
 
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -170,10 +180,10 @@ export default function EmployeesList() {
     const response = await fetch(withBase(path), { ...init, headers: { ...headers, ...(init?.headers || {}) } });
     const text = await response.text();
     let data: any = null;
-    try { data = text ? JSON.parse(text) : null; } catch { throw new Error(`A szerver hibás választ adott (HTTP ${response.status}).`); }
-    if (!response.ok) throw new Error(data?.error || "A művelet nem sikerült.");
+    try { data = text ? JSON.parse(text) : null; } catch { throw new Error(language === "en" ? `Invalid server response (HTTP ${response.status}).` : `A szerver hibás választ adott (HTTP ${response.status}).`); }
+    if (!response.ok) throw new Error(data?.error || (language === "en" ? "The operation failed." : "A művelet nem sikerült."));
     return data;
-  }, [headers]);
+  }, [headers, language]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -189,7 +199,7 @@ export default function EmployeesList() {
       ? positionResult.value.map((p: any) => ({
           ...p,
           id: String(p.id || ""),
-          name: String(p.name || "Névtelen munkakör"),
+          name: String(p.name || (language === "en" ? "Unnamed position" : "Névtelen munkakör")),
           base_monthly_wage: Number(p.base_monthly_wage || 0),
           base_hourly_wage: Number(p.base_hourly_wage || 0),
           commission_percent: Number(p.commission_percent || 0),
@@ -211,23 +221,24 @@ export default function EmployeesList() {
       })));
     } else {
       setEmployees([]);
-      setError(employeeResult.status === "rejected" ? employeeResult.reason?.message || "A munkatársak betöltése nem sikerült." : "A munkatársak betöltése nem sikerült.");
+      const fallback=language === "en" ? "Staff could not be loaded." : "A munkatársak betöltése nem sikerült.";
+      setError(employeeResult.status === "rejected" ? employeeResult.reason?.message || fallback : fallback);
     }
     setPositions(positionData);
     setLocations(locationData);
     setEmploymentTypes(employmentData);
     setLoading(false);
-  }, [api, includeInactive]);
+  }, [api, includeInactive, language]);
 
   useEffect(() => { load(); }, [load]);
 
   const employmentName = useCallback((employee: Employee) => {
-    return employmentTypes.find(t => t.code === employee.employment_type)?.name || employee.employment_type || "Nincs megadva";
-  }, [employmentTypes]);
+    return employmentTypes.find(item => item.code === employee.employment_type)?.name || employee.employment_type || t("common.none");
+  }, [employmentTypes, t]);
 
   const filtered = useMemo(() => employees.filter(employee => {
-    const needle = search.trim().toLocaleLowerCase("hu-HU");
-    const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLocaleLowerCase("hu-HU");
+    const needle = search.trim().toLocaleLowerCase(locale);
+    const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLocaleLowerCase(locale);
     const wage = Number(employee.monthly_wage || 0);
     const wageOk = !wageBand
       || (wageBand === "none" && wage <= 0)
@@ -241,7 +252,7 @@ export default function EmployeesList() {
       && (!locationFilter || String(employee.location_id || "") === locationFilter)
       && (!employmentFilter || employee.employment_type === employmentFilter)
       && wageOk;
-  }), [employees, search, positionFilter, locationFilter, employmentFilter, wageBand, employmentName]);
+  }), [employees, search, positionFilter, locationFilter, employmentFilter, wageBand, employmentName, locale]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Employee[]>();
@@ -250,14 +261,14 @@ export default function EmployeesList() {
       map.set(key, [...(map.get(key) || []), employee]);
     });
     return Array.from(map.entries())
-      .map(([name, people]) => ({ name, people: people.sort((a, b) => a.full_name.localeCompare(b.full_name, "hu")) }))
+      .map(([name, people]) => ({ name, people: people.sort((a, b) => a.full_name.localeCompare(b.full_name, locale)) }))
       .sort((a, b) => {
         const ai = roleOrder.indexOf(a.name);
         const bi = roleOrder.indexOf(b.name);
         if (ai >= 0 || bi >= 0) return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
-        return a.name.localeCompare(b.name, "hu");
+        return a.name.localeCompare(b.name, locale);
       });
-  }, [filtered]);
+  }, [filtered, locale]);
 
   const activeCount = employees.filter(e => e.active).length;
   const monthlyTotal = employees.filter(e => e.active).reduce((sum, e) => sum + Number(e.monthly_wage || 0), 0);
@@ -312,7 +323,7 @@ export default function EmployeesList() {
         } catch { /* a törzsadat mentése ettől még sikeres */ }
       }
       setEmployeeModal(false);
-      showNotice(isEdit ? "A munkatárs adatai frissültek." : "Az új munkatárs létrejött.");
+      showNotice(isEdit ? t("staff.saved") : t("staff.created"));
       await load();
     } catch (e: any) {
       setError(e.message);
@@ -331,18 +342,18 @@ export default function EmployeesList() {
   if (positionsMode) {
     return <main className="staff-page">
       <section className="staff-hero compact">
-        <div><span className="staff-eyebrow">CSAPAT ÉS HR</span><h1>Munkakörök</h1><p>Munkakörök és alap bérezési paraméterek.</p></div>
+        <div><span className="staff-eyebrow">{t("staff.eyebrow")}</span><h1>{t("staff.positions_title")}</h1><p>{t("staff.positions_description")}</p></div>
       </section>
       {error && <div className="staff-alert">{error}<button onClick={() => setError("")}><X size={16}/></button></div>}
       <section className="position-grid standalone">
         {positions.map(position => <article className="position-card" key={position.id}>
-          <header><span><BriefcaseBusiness/></span><b>{position.employee_count} fő</b></header>
-          <h3>{position.name}</h3>
-          <p>{position.description || "Nincs leírás megadva."}</p>
+          <header><span><BriefcaseBusiness/></span><b>{position.employee_count} {t("staff.people")}</b></header>
+          <h3>{localizedRole(canonicalRole(position.name)||position.name,language)}</h3>
+          <p>{position.description || t("staff.no_description")}</p>
           <div className="position-money">
-            <div><small>Alap havibér</small><strong>{money(position.base_monthly_wage)}</strong></div>
-            <div><small>Óradíj</small><strong>{money(position.base_hourly_wage)}</strong></div>
-            <div><small>Jutalék</small><strong>{Number(position.commission_percent || 0)}%</strong></div>
+            <div><small>{t("staff.base_monthly")}</small><strong>{money(position.base_monthly_wage,locale)}</strong></div>
+            <div><small>{t("staff.hourly_wage")}</small><strong>{money(position.base_hourly_wage,locale)}</strong></div>
+            <div><small>{t("staff.commission")}</small><strong>{Number(position.commission_percent || 0)}%</strong></div>
           </div>
         </article>)}
       </section>
@@ -353,51 +364,51 @@ export default function EmployeesList() {
     {notice && <div className="staff-toast"><Check size={18}/>{notice}</div>}
 
     <section className="staff-hero compact">
-      <div><span className="staff-eyebrow">CSAPAT ÉS HR</span><h1>Munkatársak listája</h1><p>Munkakörönként csoportosított munkatársi törzs, HR- és béradatokkal.</p></div>
-      <button className="staff-primary" onClick={() => openEmployee()}><Plus size={18}/> Hozzáadás</button>
+      <div><span className="staff-eyebrow">{t("staff.eyebrow")}</span><h1>{t("staff.title")}</h1><p>{t("staff.description")}</p></div>
+      <button className="staff-primary" onClick={() => openEmployee()}><Plus size={18}/> {t("staff.add")}</button>
     </section>
 
     <section className="staff-stats compact-stats">
-      <article><span className="stat-icon purple"><UsersRound/></span><div><small>Aktív munkatárs</small><strong>{activeCount}</strong></div></article>
-      <article><span className="stat-icon blue"><BriefcaseBusiness/></span><div><small>Munkakörcsoport</small><strong>{groups.length}</strong></div></article>
-      <article><span className="stat-icon green"><Building2/></span><div><small>Használt telephely</small><strong>{locationCount}</strong></div></article>
-      <article><span className="stat-icon gold"><CircleDollarSign/></span><div><small>Havi alapbér összesen</small><strong>{money(monthlyTotal)}</strong></div></article>
+      <article><span className="stat-icon purple"><UsersRound/></span><div><small>{t("staff.active_count")}</small><strong>{activeCount}</strong></div></article>
+      <article><span className="stat-icon blue"><BriefcaseBusiness/></span><div><small>{t("staff.position_groups")}</small><strong>{groups.length}</strong></div></article>
+      <article><span className="stat-icon green"><Building2/></span><div><small>{t("staff.location_count")}</small><strong>{locationCount}</strong></div></article>
+      <article><span className="stat-icon gold"><CircleDollarSign/></span><div><small>{t("staff.monthly_total")}</small><strong>{money(monthlyTotal,locale)}</strong></div></article>
     </section>
 
     {error && <div className="staff-alert">{error}<button onClick={() => setError("")}><X size={16}/></button></div>}
 
     <section className="staff-panel grouped-panel">
       <div className="grouped-filter-area">
-        <div className="staff-search wide"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Keresés név, e-mail, telefon, munkakör vagy telephely alapján…"/></div>
+        <div className="staff-search wide"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t("staff.search")}/></div>
         <div className="staff-filter-grid">
-          <label><span>Munkakör</span><select value={positionFilter} onChange={e => setPositionFilter(e.target.value)}><option value="">Összes</option>{positions.map(p => <option key={p.id} value={p.id}>{canonicalRole(p.name) || p.name}</option>)}</select></label>
-          <label><span>Telephely</span><select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}><option value="">Összes telephely</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
-          <label><span>Alkalmazás formája</span><select value={employmentFilter} onChange={e => setEmploymentFilter(e.target.value)}><option value="">Összes</option>{employmentTypes.filter(t => t.is_active !== false).map(t => <option key={t.id} value={t.code}>{t.name}</option>)}</select></label>
-          <label><span>Havi alapbér</span><select value={wageBand} onChange={e => setWageBand(e.target.value as WageBand)}><option value="">Összes</option><option value="none">Nincs megadva</option><option value="lt300">300 000 Ft alatt</option><option value="300-500">300 000 – 499 999 Ft</option><option value="500-700">500 000 – 699 999 Ft</option><option value="gte700">700 000 Ft vagy több</option></select></label>
-          <label className="staff-inactive-filter"><span>Státusz</span><span className="staff-switch"><input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)}/><i/> Inaktívak is</span></label>
+          <label><span>{t("staff.position")}</span><select value={positionFilter} onChange={e => setPositionFilter(e.target.value)}><option value="">{t("staff.all_positions")}</option>{positions.map(p => <option key={p.id} value={p.id}>{localizedRole(canonicalRole(p.name) || p.name,language)}</option>)}</select></label>
+          <label><span>{t("staff.location")}</span><select value={locationFilter} onChange={e => setLocationFilter(e.target.value)}><option value="">{t("staff.all_locations")}</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+          <label><span>{t("staff.employment_type")}</span><select value={employmentFilter} onChange={e => setEmploymentFilter(e.target.value)}><option value="">{t("common.all")}</option>{employmentTypes.filter(item => item.is_active !== false).map(item => <option key={item.id} value={item.code}>{item.name}</option>)}</select></label>
+          <label><span>{t("staff.monthly_wage")}</span><select value={wageBand} onChange={e => setWageBand(e.target.value as WageBand)}><option value="">{t("common.all")}</option><option value="none">{t("common.none")}</option><option value="lt300">{language==="en"?"Under HUF 300,000":"300 000 Ft alatt"}</option><option value="300-500">{language==="en"?"HUF 300,000–499,999":"300 000 – 499 999 Ft"}</option><option value="500-700">{language==="en"?"HUF 500,000–699,999":"500 000 – 699 999 Ft"}</option><option value="gte700">{language==="en"?"HUF 700,000 or more":"700 000 Ft vagy több"}</option></select></label>
+          <label className="staff-inactive-filter"><span>{t("staff.status")}</span><span className="staff-switch"><input type="checkbox" checked={includeInactive} onChange={e => setIncludeInactive(e.target.checked)}/><i/> {t("staff.include_inactive")}</span></label>
         </div>
-        <div className="filter-actions"><button type="button" className="staff-filter-button"><SlidersHorizontal size={15}/> Találat: {filtered.length}</button><button type="button" className="staff-reset" onClick={resetFilters}>Visszaállítás</button></div>
+        <div className="filter-actions"><button type="button" className="staff-filter-button"><SlidersHorizontal size={15}/> {t("staff.found")}: {filtered.length}</button><button type="button" className="staff-reset" onClick={resetFilters}>{t("common.reset")}</button></div>
       </div>
 
       <div className="staff-group-list">
-        {loading ? <div className="staff-empty">Adatok betöltése…</div> : groups.length === 0 ? <div className="staff-empty">Nincs a szűrésnek megfelelő munkatárs.</div> : groups.map(group => {
+        {loading ? <div className="staff-empty">{t("common.loading")}</div> : groups.length === 0 ? <div className="staff-empty">{t("staff.empty")}</div> : groups.map(group => {
           const isCollapsed = collapsed[group.name] === true;
           return <section className="staff-group" key={group.name}>
             <button className="staff-group-head" onClick={() => setCollapsed(prev => ({ ...prev, [group.name]: !prev[group.name] }))}>
-              <span>{isCollapsed ? <ChevronRight size={19}/> : <ChevronDown size={19}/>}<strong>{group.name}</strong><b>{group.people.length}</b></span>
-              <small>{isCollapsed ? "Kibontás" : "Összecsukás"}</small>
+              <span>{isCollapsed ? <ChevronRight size={19}/> : <ChevronDown size={19}/>}<strong>{localizedRole(group.name,language)}</strong><b>{group.people.length}</b></span>
+              <small>{isCollapsed ? t("staff.expand") : t("staff.collapse")}</small>
             </button>
             {!isCollapsed && <div className="staff-table-wrap"><table className="staff-table grouped-table">
-              <thead><tr><th>Szakember</th><th>Telephely</th><th>Alkalmazás formája</th><th>Havi alapbér</th><th>Óradíj</th><th>Jutalék</th><th>Státusz</th><th/></tr></thead>
+              <thead><tr><th>{t("staff.professional")}</th><th>{t("staff.location")}</th><th>{t("staff.employment_type")}</th><th>{t("staff.monthly_wage")}</th><th>{t("staff.hourly_wage")}</th><th>{t("staff.commission")}</th><th>{t("staff.status")}</th><th/></tr></thead>
               <tbody>{group.people.map(employee => <tr key={employee.id}>
-                <td><div className="staff-person">{employee.photo_url ? <img src={employee.photo_url} alt=""/> : <span>{initials(employee.full_name)}</span>}<div><strong>{employee.full_name}</strong><small>{employee.qualification || employee.email || "Nincs megadva végzettség"}</small>{employee.phone && <small>{employee.phone}</small>}</div></div></td>
-                <td><span className="staff-muted"><MapPin size={15}/>{employee.location_name || "Nincs telephely"}</span></td>
+                <td><div className="staff-person">{employee.photo_url ? <img src={employee.photo_url} alt=""/> : <span>{initials(employee.full_name)}</span>}<div><strong>{employee.full_name}</strong><small>{employee.qualification || employee.email || t("staff.no_qualification")}</small>{employee.phone && <small>{employee.phone}</small>}</div></div></td>
+                <td><span className="staff-muted"><MapPin size={15}/>{employee.location_name || t("staff.no_location")}</span></td>
                 <td><span className="employment-badge">{employmentName(employee)}</span></td>
-                <td><strong className="wage-value">{money(employee.monthly_wage)}</strong></td>
-                <td><strong className="wage-value">{money(employee.hourly_wage)}</strong></td>
+                <td><strong className="wage-value">{money(employee.monthly_wage,locale)}</strong></td>
+                <td><strong className="wage-value">{money(employee.hourly_wage,locale)}</strong></td>
                 <td><strong className="commission-value">{Number(employee.commission_percent || 0)}%</strong></td>
-                <td><button className={`status-badge ${employee.active ? "on" : "off"}`} onClick={() => toggleActive(employee)}><i/>{employee.active ? "Aktív" : "Inaktív"}</button></td>
-                <td><button className="icon-button" onClick={() => openEmployee(employee)} title="Szerkesztés"><Pencil size={17}/></button></td>
+                <td><button className={`status-badge ${employee.active ? "on" : "off"}`} onClick={() => toggleActive(employee)}><i/>{employee.active ? t("common.active") : t("common.inactive")}</button></td>
+                <td><button className="icon-button" onClick={() => openEmployee(employee)} title={t("common.edit")}><Pencil size={17}/></button></td>
               </tr>)}</tbody>
             </table></div>}
           </section>;
@@ -407,21 +418,21 @@ export default function EmployeesList() {
 
     {employeeModal && <div className="staff-modal-backdrop" onMouseDown={e => e.target === e.currentTarget && setEmployeeModal(false)}>
       <form className="staff-modal" onSubmit={saveEmployee}>
-        <header className="modal-header"><div><h2>{employeeForm.id ? "Munkatárs szerkesztése" : "Új munkatárs"}</h2><p>Személyes, foglalkoztatási és bérezési adatok.</p></div><button type="button" onClick={() => setEmployeeModal(false)}><X size={18}/></button></header>
+        <header className="modal-header"><div><h2>{employeeForm.id ? t("staff.edit_title") : t("staff.new_title")}</h2><p>{t("staff.modal_description")}</p></div><button type="button" onClick={() => setEmployeeModal(false)}><X size={18}/></button></header>
         <div className="modal-body">
-          <label className="form-field wide"><span>Teljes név *</span><input required value={employeeForm.full_name} onChange={e => setEmployeeForm({ ...employeeForm, full_name: e.target.value })}/></label>
-          <label className="form-field"><span>E-mail</span><input type="email" value={employeeForm.email || ""} onChange={e => setEmployeeForm({ ...employeeForm, email: e.target.value })}/></label>
-          <label className="form-field"><span>Telefonszám</span><input value={employeeForm.phone || ""} onChange={e => setEmployeeForm({ ...employeeForm, phone: e.target.value })}/></label>
-          <label className="form-field wide"><span>Végzettség</span><input value={employeeForm.qualification || ""} onChange={e => setEmployeeForm({ ...employeeForm, qualification: e.target.value })}/></label>
-          <label className="form-field"><span>Munkakör</span><select value={employeeForm.position_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, position_id: e.target.value })}><option value="">Válasszon</option>{positions.filter(p => p.is_active !== false).map(p => <option key={p.id} value={p.id}>{canonicalRole(p.name) || p.name}</option>)}</select></label>
-          <label className="form-field"><span>Telephely</span><select value={employeeForm.location_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, location_id: e.target.value })}><option value="">Válasszon</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
-          <label className="form-field wide"><span>Alkalmazás formája</span><select value={employeeForm.employment_type || ""} onChange={e => setEmployeeForm({ ...employeeForm, employment_type: e.target.value })}><option value="">Válasszon</option>{employmentTypes.filter(t => t.is_active !== false).map(t => <option key={t.id} value={t.code}>{t.name}</option>)}</select></label>
-          <label className="form-field"><span>Havi alapbér (Ft)</span><input type="number" min="0" value={employeeForm.monthly_wage} onChange={e => setEmployeeForm({ ...employeeForm, monthly_wage: e.target.value })}/></label>
-          <label className="form-field"><span>Óradíj (Ft)</span><input type="number" min="0" value={employeeForm.hourly_wage} onChange={e => setEmployeeForm({ ...employeeForm, hourly_wage: e.target.value })}/></label>
-          <label className="form-field"><span>Jutalék (%)</span><input type="number" min="0" max="100" step="0.1" value={employeeForm.commission_percent} onChange={e => setEmployeeForm({ ...employeeForm, commission_percent: e.target.value })}/></label>
-          <label className="modal-active"><input type="checkbox" checked={employeeForm.active !== false} onChange={e => setEmployeeForm({ ...employeeForm, active: e.target.checked })}/><span>Aktív munkatárs</span></label>
+          <label className="form-field wide"><span>{t("staff.full_name")}</span><input required value={employeeForm.full_name} onChange={e => setEmployeeForm({ ...employeeForm, full_name: e.target.value })}/></label>
+          <label className="form-field"><span>{t("staff.email")}</span><input type="email" value={employeeForm.email || ""} onChange={e => setEmployeeForm({ ...employeeForm, email: e.target.value })}/></label>
+          <label className="form-field"><span>{t("staff.phone")}</span><input value={employeeForm.phone || ""} onChange={e => setEmployeeForm({ ...employeeForm, phone: e.target.value })}/></label>
+          <label className="form-field wide"><span>{t("staff.qualification")}</span><input value={employeeForm.qualification || ""} onChange={e => setEmployeeForm({ ...employeeForm, qualification: e.target.value })}/></label>
+          <label className="form-field"><span>{t("staff.position")}</span><select value={employeeForm.position_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, position_id: e.target.value })}><option value="">{t("common.choose")}</option>{positions.filter(p => p.is_active !== false).map(p => <option key={p.id} value={p.id}>{localizedRole(canonicalRole(p.name) || p.name,language)}</option>)}</select></label>
+          <label className="form-field"><span>{t("staff.location")}</span><select value={employeeForm.location_id || ""} onChange={e => setEmployeeForm({ ...employeeForm, location_id: e.target.value })}><option value="">{t("common.choose")}</option>{locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
+          <label className="form-field wide"><span>{t("staff.employment_type")}</span><select value={employeeForm.employment_type || ""} onChange={e => setEmployeeForm({ ...employeeForm, employment_type: e.target.value })}><option value="">{t("common.choose")}</option>{employmentTypes.filter(item => item.is_active !== false).map(item => <option key={item.id} value={item.code}>{item.name}</option>)}</select></label>
+          <label className="form-field"><span>{t("staff.monthly_wage")} (Ft)</span><input type="number" min="0" value={employeeForm.monthly_wage} onChange={e => setEmployeeForm({ ...employeeForm, monthly_wage: e.target.value })}/></label>
+          <label className="form-field"><span>{t("staff.hourly_wage")} (Ft)</span><input type="number" min="0" value={employeeForm.hourly_wage} onChange={e => setEmployeeForm({ ...employeeForm, hourly_wage: e.target.value })}/></label>
+          <label className="form-field"><span>{t("staff.commission")} (%)</span><input type="number" min="0" max="100" step="0.1" value={employeeForm.commission_percent} onChange={e => setEmployeeForm({ ...employeeForm, commission_percent: e.target.value })}/></label>
+          <label className="modal-active"><input type="checkbox" checked={employeeForm.active !== false} onChange={e => setEmployeeForm({ ...employeeForm, active: e.target.checked })}/><span>{t("staff.active_employee")}</span></label>
         </div>
-        <footer className="modal-footer"><button type="button" className="staff-ghost" onClick={() => setEmployeeModal(false)}>Mégse</button><button className="staff-primary" disabled={saving}>{saving ? "Mentés…" : "Mentés"}</button></footer>
+        <footer className="modal-footer"><button type="button" className="staff-ghost" onClick={() => setEmployeeModal(false)}>{t("common.cancel")}</button><button className="staff-primary" disabled={saving}>{saving ? t("common.saving") : t("common.save")}</button></footer>
       </form>
     </div>}
   </main>;
