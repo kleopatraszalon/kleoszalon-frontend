@@ -5,7 +5,7 @@ const css=read("AdvancedBookingLauncher.css");
 const wrapper=fs.readFileSync(path.join(__dirname,"..","AppointmentsCalendar.tsx"),"utf8");
 const core=fs.readFileSync(path.join(__dirname,"..","AppointmentsCalendarCore.tsx"),"utf8");
 
-test("keeps the existing calendar and mounts advanced booking as an additive layer",()=>{expect(wrapper).toContain("AppointmentsCalendarCore");expect(wrapper).toContain("AdvancedBookingLauncher");expect(core).toContain("BookingOperationsPanel");expect(core).toContain("AppointmentNewModal");expect(core).toContain("FullCalendar")});
+test("keeps the operational calendar and mounts advanced booking as an additive layer",()=>{expect(wrapper).toContain("AppointmentsCalendarCore");expect(wrapper).toContain("AdvancedBookingLauncher");expect(core).toContain("BookingOperationsPanel");expect(core).toContain("AppointmentNewModal");expect(core).toContain('type CalendarMode = "days" | "staff" | "services"');expect(core).toContain("/workorders/new?appointment_id=")});
 
 test("exposes sequential and parallel 4Hands service-to-staff assignment",()=>{expect(launcher).toContain("Szekvenciális");expect(launcher).toContain("4Hands / párhuzamos");expect(launcher).toContain("employee_id");expect(launcher).toContain("service_id");expect(launcher).toContain("/availability");expect(launcher).toContain("/appointments")});
 
