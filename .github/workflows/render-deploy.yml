@@ -21,7 +21,11 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci
+        # npm ci currently rejects the historical lock because npm 10 resolves an
+        # optional yaml peer to 2.x while the committed lock still contains yaml 1.x.
+        # npm install keeps the quality gate reproducible enough for this legacy CRA
+        # app while allowing npm to reconcile optional peer metadata in the runner.
+        run: npm install --no-audit --no-fund
 
       - name: Frontend tests
         env:
