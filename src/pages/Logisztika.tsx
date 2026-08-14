@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import api from "../api";
 import { useCurrentUser } from "../hooks/useCurrentUser";
+import InventoryOperationsPage from "./InventoryOperationsPage";
 import ProcurementPanel from "./inventory/ProcurementPanel";
 import ProcurementWorkflowPanel from "./inventory/ProcurementWorkflowPanel";
 import InventoryControlDashboard from "./inventory/InventoryControlDashboard";
@@ -220,6 +221,8 @@ export default function Logisztika() {
   }
 
   const sectionLabel: Record<string, string> = { dashboard: "Beszerzési dashboard", suggestions: "Rendelési javaslatok", approvals: "Jóváhagyásra vár", orders: "Beszerzési rendelések", suppliers: "Beszállítók", prices: "Beszállítói árak", performance: "Beszállítói teljesítmény", deviations: "Eltérések" };
+
+  if (!procurementRequested) return <InventoryOperationsPage />;
 
   return <div className="inventory-page">
     <header className="inventory-header">
