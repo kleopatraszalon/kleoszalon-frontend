@@ -4,6 +4,7 @@ import {
   Image,
   Italic,
   Mail,
+  Megaphone,
   Plus,
   RefreshCw,
   Send,
@@ -11,6 +12,7 @@ import {
   Users,
 } from "lucide-react";
 import api from "../api/api";
+import SocialPublishingPage from "./SocialPublishingPage";
 import "./NewsletterPage.css";
 const shell = (
   title = "Kleopátra hírlevél",
@@ -33,7 +35,7 @@ const hu: any = {
 function msg(e: any) {
   return e?.response?.data?.message || e?.message || "A művelet sikertelen.";
 }
-export default function NewsletterPage() {
+function NewsletterStudio() {
   const [data, setData] = useState<any>({ campaigns: [], tags: [] }),
     [form, setForm] = useState<any>(fresh),
     [editing, setEditing] = useState<any>(null),
@@ -175,10 +177,16 @@ export default function NewsletterPage() {
             helyen.
           </p>
         </div>
-        <button onClick={create}>
-          <Plus />
-          Új hírlevél
-        </button>
+        <div className="nl-header-actions">
+          <button className="nl-social" onClick={() => window.location.assign("/marketing/newsletter?view=social")}>
+            <Megaphone />
+            Social Hub
+          </button>
+          <button onClick={create}>
+            <Plus />
+            Új hírlevél
+          </button>
+        </div>
       </header>
       {error && <div className="nl-note error">{error}</div>}
       {notice && <div className="nl-note ok">{notice}</div>}
@@ -392,4 +400,9 @@ export default function NewsletterPage() {
       </div>
     </main>
   );
+}
+
+export default function NewsletterPage() {
+  const view = new URLSearchParams(window.location.search).get("view");
+  return view === "social" ? <SocialPublishingPage /> : <NewsletterStudio />;
 }
