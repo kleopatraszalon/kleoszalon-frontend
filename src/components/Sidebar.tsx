@@ -7,7 +7,7 @@ import SidebarCalendar from'./SidebarCalendar';
 import{translateMenuLabel,useLanguage}from'../i18n/LanguageProvider';
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
-const MENU_CACHE_KEY='kleo.menu.cache.v16';
+const MENU_CACHE_KEY='kleo.menu.cache.v15';
 interface RawMenuItem{id:number;name:string;icon?:string|null;route?:string|null;parent_id?:number|null;required_role?:string|null;order_index?:number|null;submenus?:RawMenuItem[]}
 interface MenuItem{id:number;name:string;icon?:string;route?:string;children:MenuItem[]}
 interface SidebarProps{user?:{role?:string|string[]|null}|null}
