@@ -20,7 +20,9 @@ export default function NotificationBell() {
     finally { setLoading(false); }
   },[]);
 
-  useEffect(()=>{ void load(); const id=window.setInterval(()=>void load(),60000); return()=>window.clearInterval(id); },[load]);
+  // Az értesítésszám nem blokkolja a kezdőképernyő kritikus API-kéréseit.
+  // Kézi megnyitáskor továbbra is azonnal frissítünk.
+  useEffect(()=>{ const first=window.setTimeout(()=>void load(),900); const id=window.setInterval(()=>void load(),60000); return()=>{window.clearTimeout(first);window.clearInterval(id)}; },[load]);
 
   const openItem=async(item:Item)=>{
     if(!item.read){try{await api.post(`/transactions/notifications/${encodeURIComponent(item.key)}/read`)}catch{} setUnread(v=>Math.max(0,v-1));}
