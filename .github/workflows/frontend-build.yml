@@ -29,7 +29,17 @@ jobs:
       - name: Frontend tests
         env:
           CI: true
-        run: npm test -- --watchAll=false
+        shell: bash
+        run: |
+          set +e
+          output="$(npm test -- --watchAll=false 2>&1)"
+          code=$?
+          printf '%s\n' "$output"
+          if [ "$code" -ne 0 ]; then
+            detail="$(printf '%s' "$output" | tail -c 6000 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
+            echo "::error title=Frontend test failure::$detail"
+          fi
+          exit "$code"
 
       - name: Build frontend
         env:
