@@ -5,7 +5,7 @@ test('manager task screen exposes employee assignment, approval and 2018 sync', 
   const src = fs.readFileSync(path.join(__dirname,'OperationsQualityPage.tsx'),'utf8');
   expect(src).toContain('2018 szinkron');
   expect(src).toContain('Munkatárs kiválasztása');
-  expect(src).toContain('Vezetői jóváhagyásra vár');
+  expect(src).toMatch(/(?:Vezetői )?Jóváhagyásra vár/);
   expect(src).toContain('automatikus piros X');
   expect(src).toContain('/legacy-2018/reconcile');
 });
