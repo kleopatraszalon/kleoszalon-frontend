@@ -7,7 +7,7 @@ import SidebarCalendar from'./SidebarCalendar';
 import{translateMenuLabel,useLanguage}from'../i18n/LanguageProvider';
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
-const MENU_CACHE_KEY='kleo.menu.cache.v14';
+const MENU_CACHE_KEY='kleo.menu.cache.v15';
 interface RawMenuItem{id:number;name:string;icon?:string|null;route?:string|null;parent_id?:number|null;required_role?:string|null;order_index?:number|null;submenus?:RawMenuItem[]}
 interface MenuItem{id:number;name:string;icon?:string;route?:string;children:MenuItem[]}
 interface SidebarProps{user?:{role?:string|string[]|null}|null}
@@ -20,7 +20,7 @@ const roleList=(raw:any):string[]=>{if(Array.isArray(raw))return raw.map(String)
 
 const CUSTOMER:MenuItem[]=[{id:99101,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99102,name:'Időpontfoglalás',icon:'CalendarDays',route:'/customer/booking',children:[]},{id:99103,name:'Saját munkalapjaim',icon:'ClipboardCheck',route:'/workorders',children:[]}];
 const STAFF:MenuItem[]=[{id:99001,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99002,name:'Saját beosztás',icon:'CalendarDays',route:'/modules/team/timetable',children:[]},{id:99005,name:'Saját munkalapok',icon:'ClipboardCheck',route:'/workorders',children:[]},{id:99003,name:'Check listák',icon:'ClipboardCheck',route:'/knowledge-base/checklists',children:[]}];
-const LOCATION:MenuItem[]=[{id:99201,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99202,name:'Időpontok és beosztás',icon:'CalendarDays',children:[{id:99221,name:'Időpontnaptár',route:'/appointments/calendar',children:[]},{id:99224,name:'Munkalapok',route:'/workorders',children:[]}]},{id:99206,name:'Raktár és készlet',icon:'Boxes',children:[{id:99261,name:'Készlet',route:'/warehouse',children:[]},{id:99262,name:'Termékek',route:'/warehouse/products',children:[]}]},{id:99207,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];
+const LOCATION:MenuItem[]=[{id:99201,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99202,name:'Időpontok és beosztás',icon:'CalendarDays',children:[{id:99221,name:'Időpontnaptár',route:'/appointments/calendar',children:[]},{id:99224,name:'Munkalapok',route:'/workorders',children:[]}]},{id:99206,name:'Raktár és készlet',icon:'Boxes',children:[{id:99261,name:'Készlet',route:'/warehouse',children:[]},{id:99262,name:'Termékek',route:'/warehouse/products',children:[]},{id:99263,name:'Sarzs és lejárat (FEFO)',route:'/warehouse/lots',children:[]}]},{id:99207,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];
 const ACCOUNTING:MenuItem[]=[
  {id:99301,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},
  {id:99302,name:'Pénzügyek',icon:'WalletCards',children:[
@@ -39,7 +39,8 @@ const ACCOUNTING:MenuItem[]=[
  {id:99304,name:'Raktár és készlet',icon:'Boxes',children:[
   {id:99341,name:'Készlet áttekintés',route:'/warehouse',children:[]},
   {id:99342,name:'Termékek',route:'/warehouse/products',children:[]},
-  {id:99343,name:'Készletműveletek',route:'/warehouse/operations',children:[]}
+  {id:99343,name:'Készletműveletek',route:'/warehouse/operations',children:[]},
+  {id:99344,name:'Sarzs és lejárat (FEFO)',route:'/warehouse/lots',children:[]}
  ]},
  {id:99305,name:'Könyvelési adatok',icon:'Database',children:[
   {id:99351,name:'Lezárt munkalapok',route:'/workorders',children:[]},

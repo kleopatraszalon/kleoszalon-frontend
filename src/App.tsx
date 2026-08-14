@@ -11,6 +11,7 @@ import { hasStoredRole } from "./utils/roles";
 const ProductsList = lazy(() => import("./pages/ProductsList"));
 const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));
 const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));
+const InventoryLotsPage = lazy(() => import("./pages/InventoryLotsPage"));
 const WebshopAdmin = lazy(() => import("./pages/WebshopAdmin"));
 const HrPositionsPage = lazy(() => import("./pages/HrPositionsPage"));
 const HrDevelopmentPage = lazy(() => import("./pages/HrDevelopmentPage"));
@@ -266,6 +267,7 @@ const router = createBrowserRouter([
   { path: "/warehouse", element: A(<Logisztika />) },
   { path: "/warehouse/list", element: A(<Logisztika />) },
   { path: "/warehouse/operations", element: R(KIOSK_MANAGERS, <InventoryOperationsPage />) },
+  { path: "/warehouse/lots", element: R(KIOSK_MANAGERS, <InventoryLotsPage />) },
   { path: "/masterdata", element: R(MANAGEMENT, <CentralMasterDataPage />) },
   { path: "/masterdata/salons", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="salons" />) },
   { path: "/masterdata/departments", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="departments" />) },

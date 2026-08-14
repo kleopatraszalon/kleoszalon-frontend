@@ -44,6 +44,7 @@ function IdleAiHelpChat({pageTitle}:{pageTitle:string}){
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
+  "/warehouse/lots": "Sarzs és lejárat (FEFO)",
   "/masterdata/services": "Szolgáltatási törzs", "/masterdata/products": "Termékek", "/products": "Termékek", "/warehouse/products": "Termékek",
   "/dashboard/notifications": "Értesítési központ",
   "/settings/roles": "Jogosultságok és hozzáférések",
@@ -62,7 +63,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isAccounting=roles.some(r=>["accounting","bookkeeper","konyveles","könyvelés"].includes(r));
   const isElevated=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
   const isReceptionist=roles.some(r=>["receptionist","reception","recepciós","recepcios"].includes(r));
-  const isStaff=!isAccounting&&(isReceptionist||(!isElevated&&roles.some(r=>["employee","staff","munkatárs","munkatars","professional","specialist"].includes(r))));
+  const isStaff=isReceptionist||(!isAccounting&&!isElevated&&roles.some(r=>["employee","staff","munkatárs","munkatars","professional","specialist"].includes(r)));
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
