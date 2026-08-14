@@ -59,7 +59,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { language, locale, t } = useLanguage();
   const roles=useMemo(()=>roleList(user?.role),[user?.role]);
   const isElevated=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
-  const isStaff=!isElevated&&roles.some(r=>["employee","receptionist"].includes(r));
+  const isReceptionist=roles.some(r=>["receptionist","reception","recepciós","recepcios"].includes(r));
+  const isStaff=isReceptionist||(!isElevated&&roles.some(r=>["employee","staff","munkatárs","munkatars","professional","specialist"].includes(r)));
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
