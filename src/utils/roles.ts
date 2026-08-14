@@ -55,5 +55,10 @@ export function rolesFromStoredToken():string[]{
 
 export function hasStoredRole(allowed: readonly string[]):boolean{
   const wanted=new Set(allowed.map(normalizeRole));
-  return rolesFromStoredToken().some(role=>wanted.has(role));
+  const actual=rolesFromStoredToken();
+  if(actual.some(role=>wanted.has(role)))return true;
+  // A könyvelő a management-szintű üzleti oldalak route guardján átmehet,
+  // de ettől nem válik adminná. A tényleges műveleti jogokat az API RBAC korlátozza.
+  if(actual.includes("accounting")&&wanted.has("manager"))return true;
+  return false;
 }
