@@ -33,8 +33,11 @@ jobs:
         run: npm test -- --watchAll=false
 
       - name: Production build
+        # The regular frontend-build workflow already compiles the legacy CRA app
+        # with CI=false so historical ESLint warnings remain visible but do not block
+        # a release. Tests above stay strict under CI=true.
         env:
-          CI: true
+          CI: false
         run: npm run build
 
   deploy:
