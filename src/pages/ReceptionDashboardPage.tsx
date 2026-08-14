@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, ClipboardPlus, Plus } from "lucide-react";
+import { CalendarDays, ClipboardPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppointmentsCalendarCore from "./AppointmentsCalendarCore";
 
@@ -49,13 +49,6 @@ export default function ReceptionDashboardPage() {
             style={quickButtonStyle}
           >
             <CalendarDays size={17} /> Teljes naptár
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/appointments/calendar?mode=days")}
-            style={quickButtonStyle}
-          >
-            <Plus size={17} /> Új időpont
           </button>
           <button
             type="button"
