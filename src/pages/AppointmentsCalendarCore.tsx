@@ -1,12 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin, { DateClickArg, EventResizeDoneArg } from "@fullcalendar/interaction";
-import resourceTimeGridPlugin from "@fullcalendar/resource-timegrid";
-import type { DatesSetArg, DateSelectArg, EventClickArg, EventDropArg, EventInput } from "@fullcalendar/core";
-import { useLocation, useNavigate } from "react-router-dom";
 import { CalendarDays, Clock3, LayoutGrid, List, Plus, Search, Sparkles, Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { apiFetch } from "../utils/api";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
@@ -19,43 +13,217 @@ import "./InteractiveAppointmentsCalendar.css";
 import "./ClassicAppointmentsCalendar.css";
 import "./EmployeeCalendarHeader.css";
 import "./ModernServiceCalendar.css";
+import "./OperationalCalendarBoard.css";
 
-type Employee = { id: string; full_name?: string | null; short_name?: string | null; first_name?: string | null; last_name?: string | null; color?: string | null; photo_url?: string | null; };
-type Appointment = { id: string; title?: string | null; start_time: string; end_time: string; employee_id: string | null; client_name?: string | null; status?: string | null; service_names?: string[] | null; };
+type Employee = {
+  id: string;
+  full_name?: string | null;
+  short_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  color?: string | null;
+  photo_url?: string | null;
+};
 
-function toArray<T>(raw: any): T[] { if (Array.isArray(raw)) return raw; if (Array.isArray(raw?.items)) return raw.items; if (Array.isArray(raw?.data)) return raw.data; return []; }
-function isoDate(value: Date) { const y = value.getFullYear(); const m = String(value.getMonth() + 1).padStart(2, "0"); const d = String(value.getDate()).padStart(2, "0"); return `${y}-${m}-${d}`; }
-function validIsoDate(value?: string | null) { return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T12:00:00`).getTime())); }
-function employeeName(employee: Employee) { return employee.short_name || employee.full_name || [employee.first_name, employee.last_name].filter(Boolean).join(" ") || "Munkatárs"; }
+type Appointment = {
+  id: string;
+  title?: string | null;
+  start_time: string;
+  end_time: string;
+  employee_id: string | null;
+  client_name?: string | null;
+  status?: string | null;
+  service_names?: string[] | null;
+};
+
+type CalendarMode = "days" | "staff" | "services";
+
+type CalendarColumn = {
+  id: string;
+  title: string;
+  subtitle?: string;
+  date: string;
+  employeeId?: string;
+  serviceKey?: string;
+};
+
+type PositionedAppointment = {
+  item: Appointment;
+  startMinutes: number;
+  endMinutes: number;
+  lane: number;
+  lanes: number;
+};
+
+type Props = {
+  embedded?: boolean;
+  initialMode?: CalendarMode;
+  visibleDayCount?: number;
+};
+
+const START_MINUTES = 7 * 60;
+const END_MINUTES = 21 * 60;
+const SLOT_MINUTES = 15;
+const SLOT_HEIGHT = 18;
+const PX_PER_MINUTE = SLOT_HEIGHT / SLOT_MINUTES;
+const TIMELINE_HEIGHT = (END_MINUTES - START_MINUTES) * PX_PER_MINUTE;
 
 const SERVICE_PALETTE = [
-  { background: "#bfe8dc", border: "#76c8b2", text: "#184c40" }, { background: "#cfc0e4", border: "#aa8fce", text: "#412d59" },
-  { background: "#f3c6c0", border: "#df9187", text: "#66322c" }, { background: "#c8dfb7", border: "#8fbd70", text: "#315020" },
-  { background: "#f2d28e", border: "#d9ac4f", text: "#5d4514" }, { background: "#b9d8ee", border: "#79acd1", text: "#214c68" },
-  { background: "#efc2d5", border: "#d989aa", text: "#633149" }, { background: "#c3ddd9", border: "#83b8b0", text: "#234d47" },
-  { background: "#d8d2a8", border: "#b8ad6f", text: "#4f4821" }, { background: "#c8cef0", border: "#909bd2", text: "#313b68" },
-  { background: "#e7c7a9", border: "#c99768", text: "#5d3a1f" }, { background: "#bcd9c3", border: "#7eb18a", text: "#294f32" },
-  { background: "#ddc1e8", border: "#b783cb", text: "#533060" }, { background: "#f0bfc2", border: "#d77f85", text: "#672f34" },
-  { background: "#bddfe9", border: "#7db9c9", text: "#244f5b" }, { background: "#e5d3b5", border: "#c2a573", text: "#59472b" },
+  { background: "#bfe8dc", border: "#76c8b2", text: "#184c40" },
+  { background: "#cfc0e4", border: "#aa8fce", text: "#412d59" },
+  { background: "#f3c6c0", border: "#df9187", text: "#66322c" },
+  { background: "#c8dfb7", border: "#8fbd70", text: "#315020" },
+  { background: "#f2d28e", border: "#d9ac4f", text: "#5d4514" },
+  { background: "#b9d8ee", border: "#79acd1", text: "#214c68" },
+  { background: "#efc2d5", border: "#d989aa", text: "#633149" },
+  { background: "#c3ddd9", border: "#83b8b0", text: "#234d47" },
+  { background: "#d8d2a8", border: "#b8ad6f", text: "#4f4821" },
+  { background: "#c8cef0", border: "#909bd2", text: "#313b68" },
+  { background: "#e7c7a9", border: "#c99768", text: "#5d3a1f" },
+  { background: "#bcd9c3", border: "#7eb18a", text: "#294f32" },
+  { background: "#ddc1e8", border: "#b783cb", text: "#533060" },
+  { background: "#f0bfc2", border: "#d77f85", text: "#672f34" },
+  { background: "#bddfe9", border: "#7db9c9", text: "#244f5b" },
+  { background: "#e5d3b5", border: "#c2a573", text: "#59472b" },
 ];
-function appointmentServiceKey(item: Appointment) { return item.service_names?.find((name) => name?.trim())?.trim() || item.title?.trim() || "Általános szolgáltatás"; }
-const EMPLOYEE_COLORS = ["#8f6ad8", "#d58273", "#4a9a8a", "#ca9646", "#5f83c7", "#b96386", "#6c9a52", "#96735f"];
-function stableEmployeeColor(id: string, preferred?: string | null) { if (preferred) return preferred; const hash = Array.from(id).reduce((sum, char) => ((sum * 31) + char.charCodeAt(0)) >>> 0, 0); return EMPLOYEE_COLORS[hash % EMPLOYEE_COLORS.length]; }
 
-export default function AppointmentsCalendarPage() {
+function toArray<T>(raw: any): T[] {
+  if (Array.isArray(raw)) return raw;
+  if (Array.isArray(raw?.items)) return raw.items;
+  if (Array.isArray(raw?.data)) return raw.data;
+  return [];
+}
+
+function isoDate(value: Date) {
+  const y = value.getFullYear();
+  const m = String(value.getMonth() + 1).padStart(2, "0");
+  const d = String(value.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function validIsoDate(value?: string | null) {
+  return Boolean(value && /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T12:00:00`).getTime()));
+}
+
+function addDays(value: string, count: number) {
+  const date = new Date(`${value}T12:00:00`);
+  date.setDate(date.getDate() + count);
+  return isoDate(date);
+}
+
+function localDateAtMinutes(value: string, minutes: number) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day, Math.floor(minutes / 60), minutes % 60, 0, 0);
+}
+
+function employeeName(employee: Employee) {
+  return employee.short_name || employee.full_name || [employee.first_name, employee.last_name].filter(Boolean).join(" ") || "Munkatárs";
+}
+
+function appointmentServiceKey(item: Appointment) {
+  return item.service_names?.find((name) => name?.trim())?.trim() || item.title?.trim() || "Általános szolgáltatás";
+}
+
+function parseMode(raw: string | null | undefined): CalendarMode | null {
+  if (raw === "days" || raw === "staff" || raw === "services") return raw;
+  return null;
+}
+
+function roleList(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw.map(String).map((value) => value.toLocaleLowerCase("hu-HU"));
+  const text = String(raw || "");
+  try {
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.toLocaleLowerCase("hu-HU"));
+  } catch {}
+  return text
+    .split(",")
+    .map((value) => value.replace(/[\[\]"]/g, "").trim().toLocaleLowerCase("hu-HU"))
+    .filter(Boolean);
+}
+
+function minutesOfDay(value: string) {
+  const date = new Date(value);
+  return date.getHours() * 60 + date.getMinutes();
+}
+
+function formatTime(value: string) {
+  return new Date(value).toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit", hour12: false });
+}
+
+function formatDayHeader(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("hu-HU", { weekday: "long" });
+}
+
+function formatDaySubtitle(value: string) {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("hu-HU", { month: "short", day: "numeric" });
+}
+
+function layoutAppointments(items: Appointment[]): PositionedAppointment[] {
+  const source = [...items]
+    .map((item) => ({
+      item,
+      startMinutes: minutesOfDay(item.start_time),
+      endMinutes: minutesOfDay(item.end_time),
+    }))
+    .filter((entry) => entry.endMinutes > START_MINUTES && entry.startMinutes < END_MINUTES)
+    .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes);
+
+  const placed: PositionedAppointment[] = [];
+  let active: Array<{ endMinutes: number; lane: number }> = [];
+  let cluster: number[] = [];
+  let clusterLaneCount = 1;
+
+  const finishCluster = () => {
+    cluster.forEach((index) => {
+      placed[index].lanes = clusterLaneCount;
+    });
+    cluster = [];
+    clusterLaneCount = 1;
+  };
+
+  source.forEach((entry) => {
+    active = active.filter((candidate) => candidate.endMinutes > entry.startMinutes);
+    if (!active.length && cluster.length) finishCluster();
+
+    const occupied = new Set(active.map((candidate) => candidate.lane));
+    let lane = 0;
+    while (occupied.has(lane)) lane += 1;
+
+    const index = placed.length;
+    placed.push({ ...entry, lane, lanes: 1 });
+    active.push({ endMinutes: entry.endMinutes, lane });
+    cluster.push(index);
+    clusterLaneCount = Math.max(clusterLaneCount, lane + 1);
+  });
+
+  if (cluster.length) finishCluster();
+  return placed;
+}
+
+export default function AppointmentsCalendarPage({ embedded = false, initialMode, visibleDayCount }: Props = {}) {
   const navigate = useNavigate();
   const location = useLocation();
-  const calendarRef = useRef<FullCalendar | null>(null);
   const { user, loading: userLoading } = (useCurrentUser() as any) || {};
-  const requestedDate = useMemo(() => {
-    const queryDate = new URLSearchParams(location.search).get("date");
-    const savedDate = localStorage.getItem("kleo.selectedDate");
-    return validIsoDate(queryDate) ? String(queryDate) : validIsoDate(savedDate) ? String(savedDate) : isoDate(new Date());
-  }, [location.search]);
+  const draggedAppointmentId = useRef<string | null>(null);
+
+  const urlParams = useMemo(() => new URLSearchParams(location.search), [location.search]);
+  const queryDate = urlParams.get("date");
+  const savedDate = typeof window !== "undefined" ? localStorage.getItem("kleo.selectedDate") : null;
+  const requestedDate = validIsoDate(queryDate)
+    ? String(queryDate)
+    : validIsoDate(savedDate)
+      ? String(savedDate)
+      : isoDate(new Date());
+  const requestedMode = parseMode(urlParams.get("mode"));
+  const isReceptionist = roleList(user?.role).some((role) =>
+    ["receptionist", "reception", "recepciós", "recepcios"].includes(role),
+  );
+
+  const [anchorDate, setAnchorDate] = useState(embedded ? isoDate(new Date()) : requestedDate);
+  const [mode, setMode] = useState<CalendarMode>(requestedMode || initialMode || (embedded ? "days" : "staff"));
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [range, setRange] = useState({ from: requestedDate, to: requestedDate });
-  const [view, setView] = useState("resourceTimeGridDay");
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -63,65 +231,475 @@ export default function AppointmentsCalendarPage() {
   const [modal, setModal] = useState<{ open: boolean; employeeId?: string; date?: string; startMinutes?: number; duration?: number }>({ open: false });
   const [drawerId, setDrawerId] = useState<string | null>(null);
 
+  const dayCount = visibleDayCount || (embedded ? 5 : 7);
+  const range = useMemo(
+    () => ({
+      from: anchorDate,
+      to: mode === "days" ? addDays(anchorDate, Math.max(0, dayCount - 1)) : anchorDate,
+    }),
+    [anchorDate, dayCount, mode],
+  );
+
   useEffect(() => {
+    if (embedded) return;
     localStorage.setItem("kleo.selectedDate", requestedDate);
-    const api = calendarRef.current?.getApi();
-    if (api) api.changeView("resourceTimeGridDay", requestedDate);
-    setRange({ from: requestedDate, to: requestedDate });
-  }, [requestedDate]);
+    setAnchorDate(requestedDate);
+  }, [embedded, requestedDate]);
+
+  useEffect(() => {
+    if (!embedded && requestedMode) setMode(requestedMode);
+  }, [embedded, requestedMode]);
+
+  useEffect(() => {
+    if (embedded || !isReceptionist || requestedMode || initialMode) return;
+    setMode("days");
+    if (!validIsoDate(queryDate)) {
+      const today = isoDate(new Date());
+      setAnchorDate(today);
+      localStorage.setItem("kleo.selectedDate", today);
+    }
+  }, [embedded, initialMode, isReceptionist, queryDate, requestedMode]);
 
   const loadCalendar = useCallback(async () => {
     if (!user) return;
     void reloadKey;
-    setLoading(true); setError("");
+    setLoading(true);
+    setError("");
     try {
       const params = new URLSearchParams({ from: range.from, to: range.to });
       if (user.location_id) params.set("location_id", String(user.location_id));
       const raw = await apiFetch<any>(`/api/timetable?${params}`);
-      setEmployees(toArray<Employee>(raw?.employees)); setAppointments(toArray<Appointment>(raw?.appointments));
-    } catch (reason: any) { setError(reason?.message || "Nem sikerült betölteni a naptárat."); }
-    finally { setLoading(false); }
+      setEmployees(toArray<Employee>(raw?.employees));
+      setAppointments(toArray<Appointment>(raw?.appointments));
+    } catch (reason: any) {
+      setError(reason?.message || "Nem sikerült betölteni a naptárat.");
+    } finally {
+      setLoading(false);
+    }
   }, [range.from, range.to, reloadKey, user]);
 
-  useEffect(() => { loadCalendar(); }, [loadCalendar]);
-  const visibleEmployees = useMemo(() => { const needle = search.trim().toLocaleLowerCase("hu-HU"); return needle ? employees.filter((item) => employeeName(item).toLocaleLowerCase("hu-HU").includes(needle)) : employees; }, [employees, search]);
-  const resources = useMemo(() => visibleEmployees.map((item) => ({ id: item.id, title: employeeName(item), eventColor: stableEmployeeColor(item.id, item.color), extendedProps: { photoUrl: item.photo_url, color: stableEmployeeColor(item.id, item.color) } })), [visibleEmployees]);
-  const serviceColors = useMemo(() => { const keys = Array.from(new Set(appointments.map(appointmentServiceKey))).sort((a, b) => a.localeCompare(b, "hu")); return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]])); }, [appointments]);
-  const events = useMemo<EventInput[]>(() => appointments.filter((item) => !item.employee_id || visibleEmployees.some((employee) => employee.id === item.employee_id)).map((item) => {
-    const serviceLabel = appointmentServiceKey(item); const palette = serviceColors.get(serviceLabel) || SERVICE_PALETTE[0]; const statusKey = (item.status || "confirmed").toLowerCase().replace(/[^a-z0-9_-]/g, "");
-    return { id: item.id, resourceId: item.employee_id || undefined, start: item.start_time, end: item.end_time, title: item.client_name || item.title || "Vendég", backgroundColor: palette.background, borderColor: palette.border, textColor: palette.text, classNames: ["service-calendar-event", `appointment-status-${statusKey}`], extendedProps: { ...item, service_label: serviceLabel } };
-  }), [appointments, serviceColors, visibleEmployees]);
-  const plannedMinutes = useMemo(() => appointments.reduce((sum, item) => sum + Math.max(0, (new Date(item.end_time).getTime() - new Date(item.start_time).getTime()) / 60000), 0), [appointments]);
+  useEffect(() => {
+    void loadCalendar();
+  }, [loadCalendar]);
 
-  const datesSet = (info: DatesSetArg) => { const inclusiveEnd = new Date(info.end); inclusiveEnd.setDate(inclusiveEnd.getDate() - 1); const next = { from: isoDate(info.start), to: isoDate(inclusiveEnd) }; setRange((current) => current.from === next.from && current.to === next.to ? current : next); setView(info.view.type); };
-  const selectSlot = (info: DateSelectArg) => { const start = info.start; const duration = Math.max(15, Math.round((info.end.getTime() - start.getTime()) / 60000)); setModal({ open: true, employeeId: info.resource?.id, date: isoDate(start), startMinutes: start.getHours() * 60 + start.getMinutes(), duration }); calendarRef.current?.getApi().unselect(); };
-  const clickEmptyDay = (info: DateClickArg) => { if (view !== "dayGridMonth") return; const selected = isoDate(info.date); localStorage.setItem("kleo.selectedDate", selected); navigate(`/appointments/calendar?date=${selected}`); calendarRef.current?.getApi().changeView("resourceTimeGridDay", selected); };
-  const saveMove = async (info: EventDropArg | EventResizeDoneArg) => { const resourceId = info.event.getResources()[0]?.id || info.event.extendedProps.employee_id; try { await apiFetch(`/api/appointments/${info.event.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ start_time: info.event.start?.toISOString(), end_time: info.event.end?.toISOString(), employee_id: resourceId }) }); setError(""); setReloadKey((value) => value + 1); } catch (reason: any) { info.revert(); setError(reason?.message || "Az időpont nem helyezhető át. Ellenőrizze az ütközéseket."); } };
-  const changeView = (next: string) => calendarRef.current?.getApi().changeView(next);
+  const employeeById = useMemo(
+    () => new Map(employees.map((employee) => [String(employee.id), employeeName(employee)])),
+    [employees],
+  );
+
+  const serviceColors = useMemo(() => {
+    const keys = Array.from(new Set(appointments.map(appointmentServiceKey))).sort((a, b) => a.localeCompare(b, "hu"));
+    return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]]));
+  }, [appointments]);
+
+  const normalizedSearch = search.trim().toLocaleLowerCase("hu-HU");
+  const visibleEmployees = useMemo(() => {
+    if (mode !== "staff" || !normalizedSearch) return employees;
+    return employees.filter((item) => employeeName(item).toLocaleLowerCase("hu-HU").includes(normalizedSearch));
+  }, [employees, mode, normalizedSearch]);
+
+  const serviceKeys = useMemo(() => {
+    const keys = Array.from(new Set(appointments.map(appointmentServiceKey))).sort((a, b) => a.localeCompare(b, "hu"));
+    if (mode !== "services" || !normalizedSearch) return keys;
+    return keys.filter((key) => key.toLocaleLowerCase("hu-HU").includes(normalizedSearch));
+  }, [appointments, mode, normalizedSearch]);
+
+  const displayedAppointments = useMemo(() => {
+    if (mode !== "days" || !normalizedSearch) return appointments;
+    return appointments.filter((item) => {
+      const employee = item.employee_id ? employeeById.get(String(item.employee_id)) || "" : "";
+      return [item.client_name, item.title, appointmentServiceKey(item), employee]
+        .some((value) => String(value || "").toLocaleLowerCase("hu-HU").includes(normalizedSearch));
+    });
+  }, [appointments, employeeById, mode, normalizedSearch]);
+
+  const columns = useMemo<CalendarColumn[]>(() => {
+    if (mode === "days") {
+      return Array.from({ length: dayCount }, (_, index) => {
+        const date = addDays(anchorDate, index);
+        return {
+          id: date,
+          title: formatDayHeader(date),
+          subtitle: formatDaySubtitle(date),
+          date,
+        };
+      });
+    }
+
+    if (mode === "staff") {
+      return visibleEmployees.map((employee) => ({
+        id: String(employee.id),
+        title: employeeName(employee),
+        subtitle: "Munkatárs",
+        date: anchorDate,
+        employeeId: String(employee.id),
+      }));
+    }
+
+    return serviceKeys.map((serviceKey) => ({
+      id: serviceKey,
+      title: serviceKey,
+      subtitle: "Szolgáltatás",
+      date: anchorDate,
+      serviceKey,
+    }));
+  }, [anchorDate, dayCount, mode, serviceKeys, visibleEmployees]);
+
+  const appointmentsForColumn = useCallback((column: CalendarColumn) => {
+    const source = mode === "days" ? displayedAppointments : appointments;
+    return source.filter((item) => {
+      const itemDate = isoDate(new Date(item.start_time));
+      if (itemDate !== column.date) return false;
+      if (mode === "staff") return String(item.employee_id || "") === String(column.employeeId || "");
+      if (mode === "services") return appointmentServiceKey(item) === column.serviceKey;
+      return true;
+    });
+  }, [appointments, displayedAppointments, mode]);
+
+  const syncUrl = useCallback((date: string, nextMode: CalendarMode) => {
+    if (embedded) return;
+    const params = new URLSearchParams(location.search);
+    params.set("date", date);
+    params.set("mode", nextMode);
+    navigate({ pathname: "/appointments/calendar", search: `?${params.toString()}` }, { replace: true });
+  }, [embedded, location.search, navigate]);
+
+  const changeMode = (nextMode: CalendarMode) => {
+    setMode(nextMode);
+    setSearch("");
+    syncUrl(anchorDate, nextMode);
+  };
+
+  const moveAnchor = (days: number) => {
+    const next = addDays(anchorDate, days);
+    setAnchorDate(next);
+    if (!embedded) {
+      localStorage.setItem("kleo.selectedDate", next);
+      syncUrl(next, mode);
+    }
+  };
+
+  const goToday = () => {
+    const today = isoDate(new Date());
+    setAnchorDate(today);
+    if (!embedded) {
+      localStorage.setItem("kleo.selectedDate", today);
+      syncUrl(today, mode);
+    }
+  };
+
+  const openNewAppointment = (column?: CalendarColumn, clientY?: number, currentTarget?: HTMLElement) => {
+    const date = column?.date || anchorDate;
+    let startMinutes = 9 * 60;
+    if (typeof clientY === "number" && currentTarget) {
+      const rect = currentTarget.getBoundingClientRect();
+      const raw = START_MINUTES + (clientY - rect.top) / PX_PER_MINUTE;
+      startMinutes = Math.round(raw / SLOT_MINUTES) * SLOT_MINUTES;
+      startMinutes = Math.max(START_MINUTES, Math.min(END_MINUTES - SLOT_MINUTES, startMinutes));
+    }
+    setModal({
+      open: true,
+      employeeId: mode === "staff" ? column?.employeeId : undefined,
+      date,
+      startMinutes,
+      duration: 30,
+    });
+  };
+
+  const patchAppointment = async (item: Appointment, column: CalendarColumn, clientY: number, currentTarget: HTMLElement) => {
+    if (mode === "services" && appointmentServiceKey(item) !== column.serviceKey) {
+      setError("Szolgáltatás-oszlopok között húzással nem módosítható a szolgáltatás. Nyisd meg az időpontot vagy a munkalapot a szolgáltatás cseréjéhez.");
+      return;
+    }
+
+    const rect = currentTarget.getBoundingClientRect();
+    const raw = START_MINUTES + (clientY - rect.top) / PX_PER_MINUTE;
+    const startMinutes = Math.max(
+      START_MINUTES,
+      Math.min(END_MINUTES - SLOT_MINUTES, Math.round(raw / SLOT_MINUTES) * SLOT_MINUTES),
+    );
+    const originalStart = new Date(item.start_time);
+    const originalEnd = new Date(item.end_time);
+    const duration = Math.max(SLOT_MINUTES, Math.round((originalEnd.getTime() - originalStart.getTime()) / 60000));
+    const start = localDateAtMinutes(column.date, startMinutes);
+    const end = new Date(start.getTime() + duration * 60000);
+    const employeeId = mode === "staff" ? column.employeeId || item.employee_id : item.employee_id;
+
+    try {
+      await apiFetch(`/api/appointments/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start_time: start.toISOString(),
+          end_time: end.toISOString(),
+          employee_id: employeeId,
+        }),
+      });
+      setError("");
+      setReloadKey((value) => value + 1);
+    } catch (reason: any) {
+      setError(reason?.message || "Az időpont nem helyezhető át. Ellenőrizd az ütközéseket.");
+    }
+  };
+
+  const handleDrop = async (event: React.DragEvent<HTMLDivElement>, column: CalendarColumn) => {
+    event.preventDefault();
+    const id = event.dataTransfer.getData("text/appointment-id") || draggedAppointmentId.current;
+    draggedAppointmentId.current = null;
+    if (!id) return;
+    const item = appointments.find((candidate) => String(candidate.id) === String(id));
+    if (!item) return;
+    await patchAppointment(item, column, event.clientY, event.currentTarget);
+  };
+
   const activeEmployees = new Set(appointments.map((item) => item.employee_id).filter(Boolean)).size;
-  if (userLoading) return <main className="modern-calendar-page"><div className="calendar-loading">Betöltés…</div></main>;
-  if (!user) { navigate("/login"); return null; }
+  const plannedMinutes = appointments.reduce(
+    (sum, item) => sum + Math.max(0, (new Date(item.end_time).getTime() - new Date(item.start_time).getTime()) / 60000),
+    0,
+  );
+  const columnWidth = mode === "days" ? 300 : mode === "services" ? 230 : 190;
+  const boardMinWidth = 76 + Math.max(1, columns.length) * columnWidth;
+  const now = new Date();
+  const today = isoDate(now);
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const nowTop = (nowMinutes - START_MINUTES) * PX_PER_MINUTE;
+  const timeLabels = Array.from(
+    { length: Math.floor((END_MINUTES - START_MINUTES) / 30) + 1 },
+    (_, index) => START_MINUTES + index * 30,
+  );
 
-  return <main className="modern-calendar-page">
-    <header className="modern-calendar-hero calendar-classic-hero"><div className="modern-calendar-heading"><span className="modern-calendar-kicker"><Sparkles size={14}/> Naptár és digitális beosztás</span><h1>Időpontnaptár</h1><p>Munkatársak napi beosztása és foglalásai egy áttekinthető felületen.</p></div><button className="modern-primary-button" onClick={() => setModal({ open: true })}><Plus size={18}/> Új időpont</button></header>
-    <BookingOperationsPanel appointments={appointments} employeeCount={employees.length} onOpenAppointment={setDrawerId}/>
-    <SmartSlotSuggestions employees={visibleEmployees.map((item) => ({ id: item.id, name: employeeName(item) }))} appointments={appointments} selectedDate={range.from} onSelect={(slot, duration) => setModal({ open: true, employeeId: slot.employeeId, date: slot.date, startMinutes: slot.startMinutes, duration })}/>
-    <BookingConflictPanel employees={visibleEmployees.map((item) => ({ id: item.id, name: employeeName(item) }))} appointments={appointments} onOpenAppointment={setDrawerId}/>
-    <section className="modern-calendar-board">
-      <header className="interactive-calendar-toolbar">
-        <div className="calendar-nav"><button onClick={() => calendarRef.current?.getApi().prev()}>‹</button><button onClick={() => calendarRef.current?.getApi().today()}>Ma</button><button onClick={() => calendarRef.current?.getApi().next()}>›</button></div>
-        <label className="calendar-employee-search"><Search size={16}/><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Munkatárs keresése…"/></label>
-        <div className="calendar-compact-stats"><span><CalendarDays size={14}/><b>{appointments.length}</b> foglalás</span><span><Users size={14}/><b>{activeEmployees}/{employees.length}</b> munkatárs</span><span><Clock3 size={14}/><b>{Math.round(plannedMinutes / 60 * 10) / 10}</b> óra</span></div>
-        <div className="modern-view-switcher"><button className={view === "resourceTimeGridDay" ? "active" : ""} onClick={() => changeView("resourceTimeGridDay")}><LayoutGrid size={15}/> Nap</button><button className={view === "resourceTimeGridWeek" ? "active" : ""} onClick={() => changeView("resourceTimeGridWeek")}>Hét</button><button className={view === "dayGridMonth" ? "active" : ""} onClick={() => changeView("dayGridMonth")}>Hónap</button><button onClick={() => navigate("/modules/appointments/list")}><List size={15}/> Lista</button></div>
-      </header>
-      {error && <div className="interactive-calendar-error">{error}</div>}
-      <div className={`interactive-fullcalendar modern-service-calendar ${loading ? "is-loading" : ""}`} style={{ "--calendar-content-width": `${Math.max(940, visibleEmployees.length * 166 + 72)}px` } as React.CSSProperties}>
-        <FullCalendar ref={calendarRef} plugins={[resourceTimeGridPlugin, timeGridPlugin, dayGridPlugin, interactionPlugin]} initialView="resourceTimeGridDay" initialDate={requestedDate} headerToolbar={{ left: "", center: "title", right: "" }} locale="hu" firstDay={1} resources={resources}
-          resourceLabelContent={(info: any) => { const title = info.resource.title || "Munkatárs"; const photo = info.resource.extendedProps?.photoUrl; const color = info.resource.extendedProps?.color || "#8f6ad8"; const initials = title.split(/\s+/).slice(0, 2).map((part: string) => part[0]).join(""); return <div className="classic-resource-label">{photo ? <img src={photo} alt=""/> : <span style={{ background: color }}>{initials}</span>}<div><b>{title}</b><small><i/> Foglalható</small></div></div>; }}
-          events={events} datesSet={datesSet} selectable selectMirror editable eventStartEditable eventDurationEditable eventResourceEditable select={selectSlot} dateClick={clickEmptyDay} eventClick={(info: EventClickArg) => setDrawerId(info.event.id)} eventDrop={saveMove} eventResize={saveMove} slotDuration="00:15:00" snapDuration="00:15:00" slotMinTime="07:00:00" slotMaxTime="21:00:00" scrollTime="08:00:00" allDaySlot={false} nowIndicator height="auto" eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }} eventContent={(info) => <div className="classic-calendar-event"><b>{info.timeText}</b><span>{info.event.title}</span><small>{info.event.extendedProps.service_label}</small></div>}/>
-      </div>
-    </section>
-    {modal.open && <AppointmentNewModal onSaved={() => { setModal({ open: false }); setReloadKey((value) => value + 1); }} onClose={() => setModal({ open: false })} initialEmployeeId={modal.employeeId} initialDate={modal.date} initialStartMinutes={modal.startMinutes} initialDurationMinutes={modal.duration || 30}/>} 
-    <AppointmentDrawer open={Boolean(drawerId)} mode="edit" appointmentId={drawerId} employees={employees.map((item) => ({ id: item.id, full_name: employeeName(item), photo_url: item.photo_url || undefined }))} onClose={() => setDrawerId(null)} onChanged={() => { setDrawerId(null); setReloadKey((value) => value + 1); }}/>
-  </main>;
+  const calendarTitle = mode === "days"
+    ? `${formatDaySubtitle(anchorDate)} – ${formatDaySubtitle(addDays(anchorDate, dayCount - 1))}`
+    : new Date(`${anchorDate}T12:00:00`).toLocaleDateString("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" });
+
+  const searchPlaceholder = mode === "staff"
+    ? "Munkatárs keresése…"
+    : mode === "services"
+      ? "Szolgáltatás keresése…"
+      : "Vendég, munkatárs vagy szolgáltatás…";
+
+  if (userLoading) {
+    return <main className={`modern-calendar-page ${embedded ? "calendar-embedded" : ""}`}><div className="calendar-loading">Betöltés…</div></main>;
+  }
+  if (!user) {
+    navigate("/login");
+    return null;
+  }
+
+  return (
+    <main className={`modern-calendar-page ${embedded ? "calendar-embedded" : ""}`}>
+      {!embedded && (
+        <header className="modern-calendar-hero calendar-classic-hero">
+          <div className="modern-calendar-heading">
+            <span className="modern-calendar-kicker"><Sparkles size={14}/> Naptár és digitális beosztás</span>
+            <h1>Időpontnaptár</h1>
+            <p>Napok, munkatársak vagy szolgáltatások szerint rendezhető, licencfüggetlen operatív naptár.</p>
+          </div>
+          <button className="modern-primary-button" onClick={() => openNewAppointment()}>
+            <Plus size={18}/> Új időpont
+          </button>
+        </header>
+      )}
+
+      {!embedded && (
+        <>
+          <BookingOperationsPanel appointments={appointments} employeeCount={employees.length} onOpenAppointment={setDrawerId}/>
+          <SmartSlotSuggestions
+            employees={employees.map((item) => ({ id: item.id, name: employeeName(item) }))}
+            appointments={appointments}
+            selectedDate={anchorDate}
+            onSelect={(slot, duration) => setModal({ open: true, employeeId: slot.employeeId, date: slot.date, startMinutes: slot.startMinutes, duration })}
+          />
+          <BookingConflictPanel
+            employees={employees.map((item) => ({ id: item.id, name: employeeName(item) }))}
+            appointments={appointments}
+            onOpenAppointment={setDrawerId}
+          />
+        </>
+      )}
+
+      <section className="modern-calendar-board operational-calendar-section">
+        {embedded && (
+          <div className="operational-embedded-heading">
+            <div>
+              <span>Recepciós napi áttekintés</span>
+              <h2>Időpontok napok szerint</h2>
+            </div>
+            <button onClick={() => navigate("/appointments/calendar?mode=days")}>Teljes naptár</button>
+          </div>
+        )}
+
+        <header className="interactive-calendar-toolbar operational-calendar-toolbar">
+          <div className="calendar-nav">
+            <button onClick={() => moveAnchor(-1)} aria-label="Előző nap">‹</button>
+            <button onClick={goToday}>Ma</button>
+            <button onClick={() => moveAnchor(1)} aria-label="Következő nap">›</button>
+            <strong className="operational-calendar-title">{calendarTitle}</strong>
+          </div>
+
+          <label className="calendar-employee-search">
+            <Search size={16}/>
+            <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder={searchPlaceholder}/>
+          </label>
+
+          <div className="calendar-compact-stats">
+            <span><CalendarDays size={14}/><b>{appointments.length}</b> foglalás</span>
+            <span><Users size={14}/><b>{activeEmployees}/{employees.length}</b> munkatárs</span>
+            <span><Clock3 size={14}/><b>{Math.round(plannedMinutes / 60 * 10) / 10}</b> óra</span>
+          </div>
+
+          <div className="modern-view-switcher operational-mode-switcher">
+            <button className={mode === "days" ? "active" : ""} onClick={() => changeMode("days")}>
+              <CalendarDays size={15}/> Napok szerint
+            </button>
+            <button className={mode === "staff" ? "active" : ""} onClick={() => changeMode("staff")}>
+              <Users size={15}/> Dolgozók szerint
+            </button>
+            <button className={mode === "services" ? "active" : ""} onClick={() => changeMode("services")}>
+              <LayoutGrid size={15}/> Szolgáltatások szerint
+            </button>
+            {!embedded && (
+              <button onClick={() => navigate("/modules/appointments/list")}>
+                <List size={15}/> Lista
+              </button>
+            )}
+          </div>
+
+          <button className="operational-add-button" onClick={() => openNewAppointment()}>
+            <Plus size={16}/> Új időpont
+          </button>
+        </header>
+
+        {error && <div className="interactive-calendar-error">{error}</div>}
+
+        <div className={`operational-calendar-scroll ${loading ? "is-loading" : ""}`}>
+          {columns.length ? (
+            <div
+              className="operational-calendar-grid"
+              style={{
+                gridTemplateColumns: `76px repeat(${columns.length}, minmax(${columnWidth}px, 1fr))`,
+                minWidth: boardMinWidth,
+              }}
+            >
+              <div className="operational-time-head">Idő</div>
+              {columns.map((column) => (
+                <div className="operational-column-header" key={`head-${column.id}`}>
+                  <strong>{column.title}</strong>
+                  <small>{column.subtitle}</small>
+                </div>
+              ))}
+
+              <div className="operational-time-axis" style={{ height: TIMELINE_HEIGHT }}>
+                {timeLabels.map((minutes) => (
+                  <span
+                    key={minutes}
+                    style={{ top: Math.max(0, (minutes - START_MINUTES) * PX_PER_MINUTE - 9) }}
+                  >
+                    {String(Math.floor(minutes / 60)).padStart(2, "0")}:{String(minutes % 60).padStart(2, "0")}
+                  </span>
+                ))}
+              </div>
+
+              {columns.map((column) => {
+                const positioned = layoutAppointments(appointmentsForColumn(column));
+                const showNow = column.date === today && nowMinutes >= START_MINUTES && nowMinutes <= END_MINUTES;
+                return (
+                  <div
+                    key={`body-${column.id}`}
+                    className="operational-column-body"
+                    style={{ height: TIMELINE_HEIGHT }}
+                    onClick={(event) => {
+                      if ((event.target as HTMLElement).closest(".operational-calendar-event")) return;
+                      openNewAppointment(column, event.clientY, event.currentTarget);
+                    }}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={(event) => void handleDrop(event, column)}
+                  >
+                    {showNow && <div className="operational-now-line" style={{ top: nowTop }}><i/></div>}
+
+                    {positioned.map(({ item, startMinutes, endMinutes, lane, lanes }) => {
+                      const clippedStart = Math.max(START_MINUTES, startMinutes);
+                      const clippedEnd = Math.min(END_MINUTES, endMinutes);
+                      const serviceLabel = appointmentServiceKey(item);
+                      const palette = serviceColors.get(serviceLabel) || SERVICE_PALETTE[0];
+                      const left = (lane / lanes) * 100;
+                      const width = 100 / lanes;
+                      const employee = item.employee_id ? employeeById.get(String(item.employee_id)) : "";
+                      return (
+                        <button
+                          type="button"
+                          key={item.id}
+                          draggable
+                          className="operational-calendar-event"
+                          title="Kattintás: munkalap létrehozása / megnyitása"
+                          onDragStart={(event) => {
+                            draggedAppointmentId.current = item.id;
+                            event.dataTransfer.effectAllowed = "move";
+                            event.dataTransfer.setData("text/appointment-id", item.id);
+                          }}
+                          onDragEnd={() => {
+                            draggedAppointmentId.current = null;
+                          }}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            navigate(`/workorders/new?appointment_id=${encodeURIComponent(item.id)}`);
+                          }}
+                          style={{
+                            top: (clippedStart - START_MINUTES) * PX_PER_MINUTE + 2,
+                            height: Math.max(28, (clippedEnd - clippedStart) * PX_PER_MINUTE - 4),
+                            left: `calc(${left}% + 4px)`,
+                            width: `calc(${width}% - 8px)`,
+                            background: palette.background,
+                            borderColor: palette.border,
+                            color: palette.text,
+                          }}
+                        >
+                          <b>{formatTime(item.start_time)} – {formatTime(item.end_time)}</b>
+                          <strong>{item.client_name || item.title || "Vendég"}</strong>
+                          <small>{serviceLabel}</small>
+                          {mode !== "staff" && employee && <small>{employee}</small>}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="operational-calendar-empty">
+              {loading ? "Naptár betöltése…" : mode === "staff" ? "Nincs megjeleníthető munkatárs." : "Nincs megjeleníthető időpont vagy szolgáltatás."}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {modal.open && (
+        <AppointmentNewModal
+          onSaved={() => {
+            setModal({ open: false });
+            setReloadKey((value) => value + 1);
+          }}
+          onClose={() => setModal({ open: false })}
+          initialEmployeeId={modal.employeeId}
+          initialDate={modal.date}
+          initialStartMinutes={modal.startMinutes}
+          initialDurationMinutes={modal.duration || 30}
+        />
+      )}
+
+      {!embedded && (
+        <AppointmentDrawer
+          open={Boolean(drawerId)}
+          mode="edit"
+          appointmentId={drawerId}
+          employees={employees.map((item) => ({ id: item.id, full_name: employeeName(item), photo_url: item.photo_url || undefined }))}
+          onClose={() => setDrawerId(null)}
+          onChanged={() => {
+            setDrawerId(null);
+            setReloadKey((value) => value + 1);
+          }}
+        />
+      )}
+    </main>
+  );
 }
