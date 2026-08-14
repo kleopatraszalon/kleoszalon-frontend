@@ -1,9 +1,10 @@
 import fs from"fs";import path from"path";
-const finance=fs.readFileSync(path.join(__dirname,"..","Penzugy.tsx"),"utf8");
+const finance=fs.readFileSync(path.join(__dirname,"..","PenzugyLegacy.tsx"),"utf8");
+const adapter=fs.readFileSync(path.join(__dirname,"..","Penzugy.tsx"),"utf8");
 const operations=fs.readFileSync(path.join(__dirname,"CashierAltegioOperationsPanel.tsx"),"utf8");
 const shift=fs.readFileSync(path.join(__dirname,"CashRegisterShiftPanel.tsx"),"utf8");
 
-test("keeps the existing Stage13 shift handover and close report workflow",()=>{expect(shift).toContain("/shift/current");expect(shift).toContain("/handover");expect(shift).toContain("/close");expect(shift).toContain("/shift-reports/");expect(finance).toContain("CashRegisterShiftPanel")});
+test("keeps the existing Stage13 shift handover and close report workflow",()=>{expect(shift).toContain("/shift/current");expect(shift).toContain("/handover");expect(shift).toContain("/close");expect(shift).toContain("/shift-reports/");expect(finance).toContain("CashRegisterShiftPanel");expect(adapter).toContain("PenzugyLegacy")});
 
 test("adds denomination counts and previous closing count",()=>{expect(operations).toContain("Címletszámolás");expect(operations).toContain('/count');expect(operations).toContain("previous-count");expect(operations).toContain("Átadás előtti számolás");expect(operations).toContain("Záró számolás")});
 
@@ -13,4 +14,4 @@ test("checkout uses configured payment methods account card brand fee and split 
 
 test("payment history exposes partial and full refund action",()=>{expect(finance).toContain("/payments/${payment.id}/refund");expect(finance).toContain("Fizetések és visszatérítések");expect(finance).toContain("Visszatérítés");expect(finance).toContain("refunded_amount")});
 
-test("checkout and cash operations remain blocked without an open shift",()=>{expect(finance).toContain("cashierShiftOpen");expect(finance).toContain("Fizetés rögzítéséhez előbb nyisd meg a pénztári műszakot");expect(finance).toContain("disabled={!cashierShiftOpen}")});
+test("checkout and cash operations remain blocked without an open shift",()=>{expect(finance).toContain("cashierShiftOpen");expect(finance).toContain("Fizetés rögzítéséhez előbb nyisd meg a pénztári műszakot");expect(finance).toContain("disabled={!cashierShiftOpen}");expect(adapter).toContain('pathname === "/finance/checkout"')});
