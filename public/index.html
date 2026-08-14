@@ -21,7 +21,11 @@
         if (!anchor) return;
         try {
           var url = new URL(anchor.href, window.location.href);
-          var standalone = ['/flyer-designer.html', '/marketing-studio.html'];
+          var automationTools = ['winback', 'occasions', 'empty', 'roi'];
+          if (url.origin === window.location.origin && url.pathname === '/marketing-studio.html' && automationTools.indexOf(url.searchParams.get('tool')) >= 0) {
+            url.pathname = '/marketing-automation.html';
+          }
+          var standalone = ['/flyer-designer.html', '/marketing-studio.html', '/marketing-automation.html'];
           if (url.origin === window.location.origin && standalone.indexOf(url.pathname) >= 0) {
             event.preventDefault();
             event.stopPropagation();
