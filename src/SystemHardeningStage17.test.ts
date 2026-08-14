@@ -37,3 +37,15 @@ test("Stage17 bilingual coverage includes login, staff and CRM operational pages
   expect(crm).toMatch(/crm\.tab\./);
   expect(crm).toMatch(/Intl\.DateTimeFormat\(locale/);
 });
+
+test("Stage17 bilingual coverage includes service and product master catalogs",()=>{
+  const services=read("src/pages/ServicesCatalogPage.tsx");
+  const products=read("src/pages/ProductCatalogPage.tsx");
+  expect(services).toMatch(/useLanguage/);
+  expect(services).toMatch(/toLocaleString\(locale\)/);
+  expect(services).toMatch(/Active only/);
+  expect(products).toMatch(/useLanguage/);
+  expect(products).toMatch(/toLocaleString\(locale\)/);
+  expect(products).toMatch(/Other product type/);
+  expect(products).toMatch(/All subcategories/);
+});
