@@ -7,7 +7,7 @@ import SidebarCalendar from'./SidebarCalendar';
 import{translateMenuLabel,useLanguage}from'../i18n/LanguageProvider';
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
-const MENU_CACHE_KEY='kleo.menu.cache.v13';
+const MENU_CACHE_KEY='kleo.menu.cache.v15';
 interface RawMenuItem{id:number;name:string;icon?:string|null;route?:string|null;parent_id?:number|null;required_role?:string|null;order_index?:number|null;submenus?:RawMenuItem[]}
 interface MenuItem{id:number;name:string;icon?:string;route?:string;children:MenuItem[]}
 interface SidebarProps{user?:{role?:string|string[]|null}|null}
@@ -37,23 +37,23 @@ const ACCOUNTING:MenuItem[]=[
   {id:99334,name:'Beszállítók',route:'/warehouse?view=procurement&section=suppliers',children:[]}
  ]},
  {id:99304,name:'Raktár és készlet',icon:'Boxes',children:[
-  {id:99341,name:'Készlet',route:'/warehouse',children:[]},
+  {id:99341,name:'Készlet áttekintés',route:'/warehouse',children:[]},
   {id:99342,name:'Termékek',route:'/warehouse/products',children:[]},
   {id:99343,name:'Készletműveletek',route:'/warehouse/operations',children:[]},
   {id:99344,name:'Sarzs és lejárat (FEFO)',route:'/warehouse/lots',children:[]}
  ]},
- {id:99305,name:'Lezárt munkalapok',icon:'ClipboardCheck',route:'/workorders',children:[]},
- {id:99306,name:'Munkatársak és bérforrások',icon:'UserCog',route:'/employees',children:[]},
- {id:99307,name:'Ügyfelek / vevők',icon:'Users',route:'/modules/customers/clients',children:[]},
- {id:99308,name:'Riportok és kimutatások',icon:'ChartNoAxesCombined',route:'/reports/top-metrics',children:[]},
- {id:99309,name:'Könyvelési tudástár',icon:'BookOpenText',route:'/knowledge-base',children:[]},
- {id:99310,name:'Törzsadatok',icon:'Database',children:[
-  {id:99351,name:'Beszállítók',route:'/masterdata/suppliers',children:[]},
-  {id:99352,name:'Fizetési módok',route:'/masterdata/payment-methods',children:[]},
-  {id:99353,name:'Pénzügyi tranzakciótípusok',route:'/masterdata/financial-transaction-types',children:[]},
-  {id:99354,name:'Raktárak',route:'/masterdata/warehouses',children:[]},
-  {id:99355,name:'Telephelyek / költséghelyek',route:'/masterdata/salons',children:[]}
- ]}
+ {id:99305,name:'Könyvelési adatok',icon:'Database',children:[
+  {id:99351,name:'Lezárt munkalapok',route:'/workorders',children:[]},
+  {id:99352,name:'Munkatársak és bérforrások',route:'/employees',children:[]},
+  {id:99353,name:'Ügyfelek / vevők',route:'/modules/customers/clients',children:[]},
+  {id:99354,name:'Beszállítói törzs',route:'/masterdata/suppliers',children:[]},
+  {id:99355,name:'Telephelyek / költséghelyek',route:'/masterdata/salons',children:[]},
+  {id:99356,name:'Fizetési módok',route:'/masterdata/payment-methods',children:[]},
+  {id:99357,name:'Pénzügyi tranzakciótípusok',route:'/masterdata/financial-transaction-types',children:[]},
+  {id:99358,name:'Raktárak',route:'/masterdata/warehouses',children:[]}
+ ]},
+ {id:99306,name:'Riportok és kimutatások',icon:'ChartNoAxesCombined',route:'/reports/top-metrics',children:[]},
+ {id:99307,name:'Könyvelési tudástár',icon:'BookOpenText',route:'/knowledge-base',children:[]}
 ];
 const FALLBACK:MenuItem[]=[{id:90001,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:90007,name:'Pénzügyek',icon:'WalletCards',route:'/finance',children:[]},{id:90008,name:'Raktár és készlet',icon:'Boxes',route:'/warehouse',children:[]},{id:90009,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];
 
@@ -65,12 +65,13 @@ export default function Sidebar({user}:SidebarProps){
  const isManager=rk.some(r=>['manager','vezető','vezeto'].includes(r));
  const isLocationScoped=rk.some(r=>['location_manager','üzletvezető','uzletvezeto','store_manager','branch_manager','szalonvezető','szalonvezeto','salon_manager','receptionist','recepciós','recepcios','reception'].includes(r));
  const isStaff=!isCustomer&&!isAccounting&&!isAdmin&&!isManager&&!isLocationScoped;
- const[menus,setMenus]=useState<MenuItem[]>(FALLBACK),[open,setOpen]=useState<number[]>([]);
+ const[menus,setMenus]=useState<MenuItem[]>(FALLBACK),[open,setOpen]=useState<number[]>(()=>isAccounting?[99302,99303,99304]:[]);
  useEffect(()=>{if(isCustomer||isAccounting||isLocationScoped||isStaff)return;void(async()=>{const token=localStorage.getItem('token')||localStorage.getItem('kleo_token'),config={withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}};try{const r=await axios.get(`${API_BASE}/menus`,config),tree=buildTree(Array.isArray(r.data)?r.data:[],user?.role||null);if(tree.length){setMenus(tree);localStorage.setItem(MENU_CACHE_KEY,JSON.stringify(tree));return}}catch{}try{const p=JSON.parse(localStorage.getItem(MENU_CACHE_KEY)||'null');if(Array.isArray(p)&&p.length)setMenus(p)}catch{}})()},[user,isCustomer,isAccounting,isLocationScoped,isStaff]);
+ useEffect(()=>{if(isAccounting)setOpen(p=>Array.from(new Set([...p,99302,99303,99304])));},[isAccounting]);
  const visible=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:menus;
  useEffect(()=>{const parents:number[]=[];const walk=(xs:MenuItem[],ps:number[]=[])=>xs.forEach(x=>{if(x.route&&routeActive(x.route,location))parents.push(...ps);if(x.children.length)walk(x.children,[...ps,x.id])});walk(visible);if(parents.length)setOpen(p=>Array.from(new Set([...p,...parents])))},[location.pathname,location.search,visible]);
  const dateSelect=(d:Date)=>{const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;navigate(`/appointments/calendar?date=${s}`)};
  const subtitle=isAccounting?(language==='en'?'Accounting workspace':'Könyvelési felület'):isCustomer?(language==='en'?'Customer account':'Ügyfélfiók'):isLocationScoped?(language==='en'?'Salon workspace':'Szalon felület'):isStaff?(language==='en'?'Staff workspace':'Munkatársi felület'):(language==='en'?'Admin workspace':'Admin felület');
- return <aside className="kleo-sidebar app-sidebar"><div className="kleo-sidebar-hero-card"><div className="kleo-sidebar-header"><div className="kleo-sidebar-logo-wrap"><img src={Logo} alt="Kleopátra" className="kleo-sidebar-logo"/></div><div className="kleo-sidebar-brand"><div className="kleo-sidebar-title">Kleoszalon</div><div className="kleo-sidebar-subtitle">{subtitle}</div></div></div>{!isStaff&&!isCustomer&&<SidebarCalendar onSelectDate={dateSelect}/>}</div><nav className="kleo-sidebar-nav"><ul className="kleo-sidebar-menu">{visible.map(m=>{const has=m.children.length>0,expanded=open.includes(m.id);return <li key={m.id} className={`kleo-sidebar-menu-item ${expanded?'kleo-sidebar-menu-item--open':''}`}>{has?<button type="button" onClick={()=>setOpen(p=>p.includes(m.id)?p.filter(x=>x!==m.id):[...p,m.id])} className="kleo-sidebar-menu-button"><Icon name={m.icon}/><span className="kleo-sidebar-menu-label">{translateMenuLabel(m.name,language)}</span><span className="kleo-sidebar-menu-chevron">{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</span></button>:<NavLink to={norm(m.route)} className={()=>`kleo-sidebar-menu-button kleo-sidebar-menu-link ${routeActive(m.route,location)?'active':''}`}><Icon name={m.icon}/><span className="kleo-sidebar-menu-label">{translateMenuLabel(m.name,language)}</span></NavLink>}{has&&expanded&&<ul className="kleo-sidebar-submenu">{m.children.map(c=><li key={c.id}><NavLink to={norm(c.route)} className={()=>`kleo-sidebar-submenu-item ${routeActive(c.route,location)?'active':''}`}>{translateMenuLabel(c.name,language)}</NavLink></li>)}</ul>}</li>})}</ul></nav></aside>
+ return <aside className={`kleo-sidebar app-sidebar ${isAccounting?'is-accounting-sidebar':''}`}><div className="kleo-sidebar-hero-card"><div className="kleo-sidebar-header"><div className="kleo-sidebar-logo-wrap"><img src={Logo} alt="Kleopátra" className="kleo-sidebar-logo"/></div><div className="kleo-sidebar-brand"><div className="kleo-sidebar-title">Kleoszalon</div><div className="kleo-sidebar-subtitle">{subtitle}</div></div></div>{!isAccounting&&!isStaff&&!isCustomer&&<SidebarCalendar onSelectDate={dateSelect}/>}</div><nav className="kleo-sidebar-nav"><ul className="kleo-sidebar-menu">{visible.map(m=>{const has=m.children.length>0,expanded=open.includes(m.id);return <li key={m.id} className={`kleo-sidebar-menu-item ${expanded?'kleo-sidebar-menu-item--open':''}`}>{has?<button type="button" onClick={()=>setOpen(p=>p.includes(m.id)?p.filter(x=>x!==m.id):[...p,m.id])} className="kleo-sidebar-menu-button"><Icon name={m.icon}/><span className="kleo-sidebar-menu-label">{translateMenuLabel(m.name,language)}</span><span className="kleo-sidebar-menu-chevron">{expanded?<ChevronDown size={16}/>:<ChevronRight size={16}/>}</span></button>:<NavLink to={norm(m.route)} className={()=>`kleo-sidebar-menu-button kleo-sidebar-menu-link ${routeActive(m.route,location)?'active':''}`}><Icon name={m.icon}/><span className="kleo-sidebar-menu-label">{translateMenuLabel(m.name,language)}</span></NavLink>}{has&&expanded&&<ul className="kleo-sidebar-submenu">{m.children.map(c=><li key={c.id}><NavLink to={norm(c.route)} className={()=>`kleo-sidebar-submenu-item ${routeActive(c.route,location)?'active':''}`}>{translateMenuLabel(c.name,language)}</NavLink></li>)}</ul>}</li>})}</ul></nav></aside>
 }
 function buildTree(raw:RawMenuItem[],role:any):MenuItem[]{const rs=roleList(role),see=(r?:string|null)=>!r||r==='all'||r==='*'||rs.includes('admin')||rs.includes(String(r).toLowerCase()),f=raw.filter(x=>see(x.required_role)),sort=(a:RawMenuItem,b:RawMenuItem)=>(a.order_index??9999)-(b.order_index??9999);if(f.some(x=>Array.isArray(x.submenus))){const n=(x:RawMenuItem):MenuItem=>({id:x.id,name:x.name,icon:x.icon||undefined,route:x.route||undefined,children:(x.submenus||[]).sort(sort).map(n)});return f.sort(sort).map(n)}const map=new Map<number,MenuItem&{parent_id:number|null}>();f.forEach(x=>map.set(x.id,{id:x.id,name:x.name,icon:x.icon||undefined,route:x.route||undefined,parent_id:x.parent_id??null,children:[]}));const roots:Array<MenuItem&{parent_id:number|null}>=[];map.forEach(x=>x.parent_id&&map.has(x.parent_id)?map.get(x.parent_id)!.children.push(x):roots.push(x));return roots.sort((a,b)=>a.id-b.id)}
