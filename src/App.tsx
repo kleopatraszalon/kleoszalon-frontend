@@ -20,6 +20,7 @@ const OperationsQualityPage = lazy(
 );
 const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
 const DailyActionsPage = lazy(() => import("./pages/DailyActionsPage"));
+const WallBoardDailyActionPage = lazy(() => import("./pages/WallBoardDailyActionPage"));
 const KleopatraMobileApp = lazy(() => import("./pages/KleopatraMobileApp"));
 const MobileAppAdminPage = lazy(() => import("./pages/MobileAppAdminPage"));
 const EmployeeMobileApp = lazy(() => import("./pages/EmployeeMobileApp"));
@@ -233,6 +234,7 @@ const router = createBrowserRouter([
     path: "/marketing/daily-deals",
     element: R(MANAGEMENT, <DailyActionsPage />),
   },
+  { path: "/marketing/wallboard", element: R(MANAGEMENT, <WallBoardDailyActionPage />) },
   { path: "/kleopatra-app", element: <KleopatraMobileApp /> },
   { path: "/admin/mobile-app", element: R(MANAGEMENT, <MobileAppAdminPage />) },
   {
