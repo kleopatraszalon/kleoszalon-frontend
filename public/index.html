@@ -21,7 +21,8 @@
         if (!anchor) return;
         try {
           var url = new URL(anchor.href, window.location.href);
-          if (url.origin === window.location.origin && url.pathname === '/flyer-designer.html') {
+          var standalone = ['/flyer-designer.html', '/marketing-studio.html'];
+          if (url.origin === window.location.origin && standalone.indexOf(url.pathname) >= 0) {
             event.preventDefault();
             event.stopPropagation();
             window.location.assign(url.href);
