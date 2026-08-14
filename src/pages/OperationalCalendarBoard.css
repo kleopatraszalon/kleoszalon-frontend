@@ -86,6 +86,28 @@
 
 .calendar-embedded .operational-calendar-scroll {
   max-height: 680px;
+  container-type: inline-size;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline-start: 76px;
+}
+
+/* A recepciós kezdőoldal fix napi nézet: egy nap = egy teljes látható naptárszélesség. */
+.calendar-embedded .operational-calendar-grid {
+  width: max-content;
+  min-width: 0 !important;
+  grid-template-columns: 76px repeat(5, minmax(calc(100cqw - 76px), calc(100cqw - 76px))) !important;
+}
+
+.calendar-embedded .operational-column-header,
+.calendar-embedded .operational-column-body {
+  scroll-snap-align: start;
+  scroll-margin-inline-start: 76px;
+}
+
+/* A dashboardon csak a napi nézet marad; a többi mód a Teljes naptár gombból érhető el. */
+.calendar-embedded .operational-mode-switcher {
+  display: none;
 }
 
 .operational-calendar-scroll.is-loading {

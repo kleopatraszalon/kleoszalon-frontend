@@ -1,6 +1,7 @@
 import React from "react";
 import { CalendarDays, ClipboardPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import DashboardChecklistCard from "../components/DashboardChecklistCard";
 import AppointmentsCalendarCore from "./AppointmentsCalendarCore";
 
 export default function ReceptionDashboardPage() {
@@ -38,7 +39,7 @@ export default function ReceptionDashboardPage() {
           </span>
           <h1 style={{ margin: 0, color: "#2d2227", fontSize: 26 }}>Napi időpontnaptár</h1>
           <p style={{ margin: "6px 0 0", color: "#76676e", fontSize: 13 }}>
-            Az aktuális nap mindig bal oldalon jelenik meg. Az egy időben futó foglalások egymás mellett láthatók.
+            A mai nap nyílik meg elsőként. Minden nap egy teljes naptárszélességet kap, a további napok oldalirányban görgethetők.
           </p>
         </div>
 
@@ -59,6 +60,8 @@ export default function ReceptionDashboardPage() {
           </button>
         </div>
       </section>
+
+      <DashboardChecklistCard />
 
       <AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5} />
     </main>
