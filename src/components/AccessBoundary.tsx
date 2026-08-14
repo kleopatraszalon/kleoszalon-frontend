@@ -65,7 +65,12 @@ export default function AccessBoundary({ children }: { children: React.ReactNode
   const customerAllowed=selfDashboard||location.pathname.startsWith("/customer/");
   const {loading,error,feature,menu}=useCapabilities(); const rule=ruleFor(location.pathname,location.search);
   if(customer){if(customerAllowed)return <>{children}</>;return <Denied title="Ez nem ügyfélfunkció" detail="Az ügyfélfiókból csak a saját irányítópult és az időpontfoglalás érhető el."/>}
-  if(accounting&&!accountingPathAllowed(location.pathname,location.search))return <Denied title="Ez nem könyvelési funkció" detail="A Könyvelés fiók admin jogosultsága kizárólag a könyvelési, pénzügyi, NAV, bér-, beszerzési, raktár/készlet, riport- és kapcsolódó forrásadatokra terjed ki."/>;
+  if(accounting){
+    if(!accountingPathAllowed(location.pathname,location.search))return <Denied title="Ez nem könyvelési funkció" detail="A Könyvelés fiók admin jogosultsága kizárólag a könyvelési, pénzügyi, NAV, bér-, beszerzési, raktár/készlet, riport- és kapcsolódó forrásadatokra terjed ki."/>;
+    // A könyvelői munkatér saját, szigorú útvonal-whitelistet használ. A backend továbbra is
+    // endpoint-szinten hitelesít, ezért egy részben lefutott RBAC migráció nem blokkolhatja a teljes UI-t.
+    return <>{children}</>;
+  }
   if(storeManager&&!storeManagerPathAllowed(location.pathname,location.search))return <Denied title="Ez nem üzletvezetői funkció" detail="Az üzletvezető kizárólag a saját üzlet napi működéséhez tartozó dolgozókat, beosztást, időpontokat, ügyfeleket, munkalapokat, készletet, beszerzést és check listákat kezelheti."/>;
   if(staff&&selfDashboard)return <>{children}</>;
   if(!rule)return <>{children}</>; if(loading)return <div style={{padding:32}}>Jogosultság ellenőrzése…</div>; if(error)return <Denied title="A jogosultságok nem ellenőrizhetők" detail={error}/>;
