@@ -2,7 +2,7 @@ import React,{useEffect,useMemo,useRef,useState}from"react";
 import{Bell,Bot,CalendarDays,ChevronLeft,ChevronRight,Clock3,Download,Gift,Home,LocateFixed,LogIn,LogOut,MapPin,Navigation,RefreshCw,Scissors,Send,ShieldCheck,Sparkles,Star,TicketCheck,UserCheck,UserPlus,WalletCards,X}from"lucide-react";
 import api from"../api/api";import{AppLanguage,LanguageSelector,tr}from"./KleopatraMobileI18n";import"./KleopatraMobileApp.css";import"./KleopatraMobileEntry.css";import"./KleopatraMobileEntryModel.css";import"./KleopatraMobileVersion.css";import"./KleopatraAssistant.css";import"./KleopatraInstall.css";import"./KleopatraStoreButtons.css";import"./KleopatraEmptyDeal.css";import"./KleopatraTulipHero.css";import"./KleopatraDealsCarousel.css";import"./KleopatraRuntimeTheme.css";import"./KleopatraMobileI18n.css";
 const LOGO="/kleopatra-logo.png";
-const APP_VERSION="1.5.0",VERSION_KEY="kleopatra_app_version",VAPID_KEY="kleopatra_vapid_public_key",LANGUAGE_KEY="kleopatra_app_language";
+const APP_VERSION="1.5.1",VERSION_KEY="kleopatra_app_version",VAPID_KEY="kleopatra_vapid_public_key",LANGUAGE_KEY="kleopatra_app_language";
 const toKey=(v:string)=>{const p="=".repeat((4-v.length%4)%4),b=atob((v+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...b].map(x=>x.charCodeAt(0)))};
 const km=(a:{lat:number;lng:number},b:any)=>{const r=(n:number)=>n*Math.PI/180,d1=r(+b.latitude-a.lat),d2=r(+b.longitude-a.lng),h=Math.sin(d1/2)**2+Math.cos(r(a.lat))*Math.cos(r(+b.latitude))*Math.sin(d2/2)**2;return 12742*Math.atan2(Math.sqrt(h),Math.sqrt(1-h))};
 const map=(s:any)=>{const a=+s.latitude,o=+s.longitude,d=.009;return`https://www.openstreetmap.org/export/embed.html?bbox=${o-d}%2C${a-d}%2C${o+d}%2C${a+d}&layer=mapnik&marker=${a}%2C${o}`};
