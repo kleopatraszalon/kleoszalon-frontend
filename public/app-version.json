@@ -1,5 +1,5 @@
 {
-  "version": "1.4.9",
-  "released_at": "2026-08-13T11:35:00+02:00",
-  "message": "Az app arculata és szövege mostantól a VIR admin felületén szerkeszthető."
+  "version": "1.5.0",
+  "released_at": "2026-08-14T09:00:00+02:00",
+  "message": "Az app magyar, angol, német és orosz nyelven is használható."
 }

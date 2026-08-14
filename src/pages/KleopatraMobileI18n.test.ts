@@ -1,0 +1,2 @@
+import{DICT,LANGUAGES,tr}from"./KleopatraMobileI18n";
+test("the app provides four complete languages with Hungarian as primary",()=>{expect(LANGUAGES.map(x=>x[0])).toEqual(["hu","en","de","ru"]);const keys=Object.keys(DICT.hu);for(const language of LANGUAGES.map(x=>x[0]))expect(Object.keys(DICT[language])).toEqual(keys);expect(tr("hu","login")).toBe("Belépés");expect(tr("ru","login")).toBe("Войти")});
