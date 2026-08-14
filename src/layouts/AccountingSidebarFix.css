@@ -1,23 +1,20 @@
 .app-layout-shell:has(.is-accounting-sidebar){--sidebar-width:310px}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar{width:310px!important;min-width:310px!important;background:linear-gradient(180deg,#1a120d 0%,#100b08 100%);}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-hero-card{margin:8px 12px 10px!important;padding:10px 12px!important;border-radius:14px;overflow:hidden}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-header{display:flex!important;align-items:center!important;gap:10px!important;min-width:0}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-logo-wrap{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 62px!important;width:62px!important;height:52px!important;overflow:hidden!important;border-radius:10px!important;background:#fff!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-logo{display:block!important;max-width:56px!important;max-height:46px!important;width:auto!important;height:auto!important;object-fit:contain!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-brand{display:block!important;min-width:0!important;overflow:hidden!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-title{font-size:13px!important;line-height:1.2!important;font-weight:800!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-subtitle{margin-top:3px!important;font-size:10px!important;line-height:1.2!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-nav{padding:6px 10px 24px!important;overflow-y:auto!important;overflow-x:hidden!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu{display:flex!important;flex-direction:column!important;gap:6px!important;width:100%!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-item{display:block!important;width:100%!important;overflow:visible!important;border-radius:10px!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-button{display:grid!important;grid-template-columns:20px minmax(0,1fr) 18px!important;align-items:center!important;gap:10px!important;width:100%!important;min-height:42px!important;padding:9px 10px!important;border-radius:10px!important;box-sizing:border-box!important;text-decoration:none!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-link{grid-template-columns:20px minmax(0,1fr)!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-icon{grid-column:1!important;width:18px!important;min-width:18px!important;height:18px!important;margin:0!important;justify-self:center!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-label{grid-column:2!important;display:block!important;min-width:0!important;margin:0!important;font-size:13px!important;font-weight:650!important;line-height:1.25!important;white-space:normal!important;overflow-wrap:break-word!important;text-align:left!important;justify-self:stretch!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-chevron{grid-column:3!important;justify-self:end!important;margin:0!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-submenu{display:flex!important;flex-direction:column!important;gap:2px!important;width:auto!important;margin:3px 0 7px 30px!important;padding:0 0 0 12px!important;border-left:1px solid rgba(205,169,104,.24)!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-submenu>li{display:block!important;width:100%!important;margin:0!important;padding:0!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-submenu-item{display:flex!important;align-items:center!important;width:100%!important;min-height:34px!important;padding:7px 10px!important;box-sizing:border-box!important;border-radius:8px!important;font-size:12px!important;line-height:1.25!important;text-decoration:none!important;white-space:normal!important;overflow-wrap:break-word!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-button:hover,.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-submenu-item:hover{background:rgba(255,255,255,.055)!important}
-.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-menu-link.active,.app-layout-shell>.kleo-sidebar.is-accounting-sidebar .kleo-sidebar-submenu-item.active{background:rgba(205,169,104,.14)!important;box-shadow:inset 3px 0 0 #cdaa68!important}
+.app-layout-shell>.kleo-sidebar.is-accounting-sidebar{width:310px!important;min-width:310px!important;background:linear-gradient(180deg,#1a120d 0%,#100b08 100%);padding:10px!important;overflow:hidden!important}
+.is-accounting-sidebar .accounting-sidebar-head{display:flex;align-items:center;gap:12px;padding:10px 10px 14px;border-bottom:1px solid rgba(205,169,104,.18)}
+.is-accounting-sidebar .accounting-sidebar-logo{display:grid;place-items:center;flex:0 0 72px;width:72px;height:54px;border-radius:10px;background:#fff;overflow:hidden}
+.is-accounting-sidebar .accounting-sidebar-logo img{display:block;max-width:64px;max-height:46px;width:auto;height:auto;object-fit:contain}
+.is-accounting-sidebar .accounting-sidebar-title{min-width:0}.is-accounting-sidebar .accounting-sidebar-title b{display:block;color:#fff;font-size:13px;line-height:1.2}.is-accounting-sidebar .accounting-sidebar-title small{display:block;margin-top:4px;color:#b9a98f;font-size:10px}
+.is-accounting-sidebar .accounting-sidebar-nav{height:calc(100dvh - 98px);padding:10px 2px 24px;overflow-y:auto;overflow-x:hidden}
+.is-accounting-sidebar .accounting-main-link,.is-accounting-sidebar .accounting-group-button{display:grid!important;grid-template-columns:20px minmax(0,1fr) 18px;align-items:center;gap:10px;width:100%;min-height:42px;padding:9px 10px;border:0;border-radius:9px;background:transparent;color:#f5efe8;text-decoration:none;text-align:left;box-sizing:border-box;font:inherit;cursor:pointer}
+.is-accounting-sidebar .accounting-main-link{grid-template-columns:20px minmax(0,1fr)}
+.is-accounting-sidebar .accounting-main-link span,.is-accounting-sidebar .accounting-group-button span{min-width:0;font-size:13px;line-height:1.25;font-weight:650;white-space:normal;overflow-wrap:break-word}
+.is-accounting-sidebar .accounting-main-link svg,.is-accounting-sidebar .accounting-group-button svg{width:18px;height:18px;color:#cdaa68}
+.is-accounting-sidebar .accounting-main-link:hover,.is-accounting-sidebar .accounting-group-button:hover{background:rgba(255,255,255,.055)}
+.is-accounting-sidebar .accounting-main-link.active{background:rgba(205,169,104,.14);box-shadow:inset 3px 0 0 #cdaa68}
+.is-accounting-sidebar .accounting-group{margin-top:4px}
+.is-accounting-sidebar .accounting-submenu{display:flex;flex-direction:column;gap:2px;margin:2px 0 7px 29px;padding:0 0 0 12px;border-left:1px solid rgba(205,169,104,.22)}
+.is-accounting-sidebar .accounting-submenu a{display:block;min-height:34px;padding:8px 10px;border-radius:8px;color:#d9cec2;text-decoration:none;font-size:12px;line-height:1.25;box-sizing:border-box}
+.is-accounting-sidebar .accounting-submenu a:hover{background:rgba(255,255,255,.05);color:#fff}
+.is-accounting-sidebar .accounting-submenu a.active{background:rgba(205,169,104,.12);color:#fff;box-shadow:inset 2px 0 0 #cdaa68}
+.is-accounting-sidebar .accounting-divider{height:1px;margin:8px 10px;background:rgba(255,255,255,.07)}
 @media(max-width:900px){.app-layout-shell>.kleo-sidebar.is-accounting-sidebar{width:min(88vw,320px)!important;min-width:0!important}}
