@@ -3,6 +3,7 @@ import { CalendarDays, Clock3, LayoutGrid, List, Plus, Search, Sparkles, Users }
 import { useLocation, useNavigate } from "react-router-dom";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { apiFetch } from "../utils/api";
+import { appointmentOperationalStatus } from "../utils/appointmentOperationalStatus";
 import { AppointmentNewModal } from "../components/AppointmentNewModal";
 import AppointmentDrawer from "../components/AppointmentDrawer";
 import BookingOperationsPanel from "./booking/BookingOperationsPanel";
@@ -33,6 +34,7 @@ type Appointment = {
   employee_id: string | null;
   client_name?: string | null;
   status?: string | null;
+  operational_status?: string | null;
   service_names?: string[] | null;
 };
 
@@ -64,7 +66,7 @@ type Props = {
 const START_MINUTES = 7 * 60;
 const END_MINUTES = 21 * 60;
 const SLOT_MINUTES = 15;
-const SLOT_HEIGHT = 18;
+const SLOT_HEIGHT = 30;
 const PX_PER_MINUTE = SLOT_HEIGHT / SLOT_MINUTES;
 const TIMELINE_HEIGHT = (END_MINUTES - START_MINUTES) * PX_PER_MINUTE;
 
@@ -228,6 +230,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [reloadKey, setReloadKey] = useState(0);
+  const [statusNow, setStatusNow] = useState(() => Date.now());
   const [modal, setModal] = useState<{ open: boolean; employeeId?: string; date?: string; startMinutes?: number; duration?: number }>({ open: false });
   const [drawerId, setDrawerId] = useState<string | null>(null);
 
@@ -239,6 +242,11 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
     }),
     [anchorDate, dayCount, mode],
   );
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setStatusNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (embedded) return;
@@ -407,6 +415,10 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   };
 
   const patchAppointment = async (item: Appointment, column: CalendarColumn, clientY: number, currentTarget: HTMLElement) => {
+    if (appointmentOperationalStatus(item, statusNow).closed) {
+      setError("Lezárt munkalaphoz tartozó időpont nem helyezhető át.");
+      return;
+    }
     if (mode === "services" && appointmentServiceKey(item) !== column.serviceKey) {
       setError("Szolgáltatás-oszlopok között húzással nem módosítható a szolgáltatás. Nyisd meg az időpontot vagy a munkalapot a szolgáltatás cseréjéhez.");
       return;
@@ -457,9 +469,14 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
     (sum, item) => sum + Math.max(0, (new Date(item.end_time).getTime() - new Date(item.start_time).getTime()) / 60000),
     0,
   );
-  const columnWidth = mode === "days" ? 300 : mode === "services" ? 230 : 190;
+  const maxConcurrentLanes = useMemo(
+    () => Math.max(1, ...columns.map((column) => layoutAppointments(appointmentsForColumn(column)).reduce((max, item) => Math.max(max, item.lanes), 1))),
+    [appointmentsForColumn, columns],
+  );
+  const baseColumnWidth = mode === "days" ? 360 : mode === "services" ? 290 : 250;
+  const columnWidth = Math.max(baseColumnWidth, maxConcurrentLanes * 170);
   const boardMinWidth = 76 + Math.max(1, columns.length) * columnWidth;
-  const now = new Date();
+  const now = new Date(statusNow);
   const today = isoDate(now);
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const nowTop = (nowMinutes - START_MINUTES) * PX_PER_MINUTE;
@@ -625,14 +642,21 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                       const left = (lane / lanes) * 100;
                       const width = 100 / lanes;
                       const employee = item.employee_id ? employeeById.get(String(item.employee_id)) : "";
+                      const operational = appointmentOperationalStatus(item, statusNow);
+                      const eventHeight = Math.max(40, (clippedEnd - clippedStart) * PX_PER_MINUTE - 4);
+                      const compact = eventHeight < 68;
                       return (
                         <button
                           type="button"
                           key={item.id}
-                          draggable
-                          className="operational-calendar-event"
-                          title="Kattintás: munkalap létrehozása / megnyitása"
+                          draggable={!operational.closed}
+                          className={`operational-calendar-event ${operational.className} ${operational.closed ? "is-closed" : ""} ${compact ? "is-compact" : ""}`}
+                          title={`${operational.label} · Kattintás: munkalap létrehozása / megnyitása`}
                           onDragStart={(event) => {
+                            if (operational.closed) {
+                              event.preventDefault();
+                              return;
+                            }
                             draggedAppointmentId.current = item.id;
                             event.dataTransfer.effectAllowed = "move";
                             event.dataTransfer.setData("text/appointment-id", item.id);
@@ -646,7 +670,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                           }}
                           style={{
                             top: (clippedStart - START_MINUTES) * PX_PER_MINUTE + 2,
-                            height: Math.max(28, (clippedEnd - clippedStart) * PX_PER_MINUTE - 4),
+                            height: eventHeight,
                             left: `calc(${left}% + 4px)`,
                             width: `calc(${width}% - 8px)`,
                             background: palette.background,
@@ -654,10 +678,15 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                             color: palette.text,
                           }}
                         >
-                          <b>{formatTime(item.start_time)} – {formatTime(item.end_time)}</b>
+                          <div className="operational-event-topline">
+                            <b>{formatTime(item.start_time)} – {formatTime(item.end_time)}</b>
+                            <span className="operational-status-badge">{operational.label}</span>
+                          </div>
                           <strong>{item.client_name || item.title || "Vendég"}</strong>
-                          <small>{serviceLabel}</small>
-                          {mode !== "staff" && employee && <small>{employee}</small>}
+                          <div className="operational-event-details">
+                            <small>{serviceLabel}</small>
+                            {mode !== "staff" && employee && <small>{employee}</small>}
+                          </div>
                         </button>
                       );
                     })}
