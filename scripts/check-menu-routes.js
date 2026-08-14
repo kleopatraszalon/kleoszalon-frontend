@@ -26,6 +26,6 @@ for(const route of critical){
 for(const route of scopedMenuRoutes)if(!staticMenus.includes(route))failures.push(`A szerepkör-alapú statikus menüben hiányzik: ${route}`);
 const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(app);
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
-if(!sidebar.includes("MENU_CACHE_KEY='kleo.menu.cache.v13'")) failures.push('A menü-cache verzió nem v13.');
+if(!sidebar.includes("MENU_CACHE_KEY='kleo.menu.cache.v15'")) failures.push('A menü-cache verzió nem v15.');
 if(failures.length){console.error('MENÜ ROUTE AUDIT HIBA');failures.forEach(x=>console.error(' - '+x));process.exit(1)}
 console.log(`Menü route audit OK: ${critical.length} router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);
