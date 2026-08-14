@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<meta name="theme-color" content="#120c08" />
+<title>Kleopátra – Szórólaptervező</title>
+<style>
+:root{--ink:#120c08;--gold:#b69861;--gold2:#d5c4a4;--pink:#ec008c;--muted:#6f6a66;--line:#e5ddd7;--panel:#fff;--soft:#f7f4f1;--shadow:0 16px 46px rgba(34,22,15,.12)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Montserrat,Inter,"Open Sans",Arial,sans-serif;color:var(--ink);background:#efeae6}button,input,select,textarea{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}.topbar{display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:50;box-shadow:0 8px 24px rgba(0,0,0,.16)}.topbar img{height:42px;width:auto;filter:brightness(0) invert(1)}.topbar h1{font-size:17px;margin:0}.topbar small{display:block;color:#d7cbc4;margin-top:2px}.topbar .spacer{flex:1}.topbar a,.topbar button{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;border-radius:10px;padding:9px 12px;text-decoration:none}.topbar .primary{background:var(--pink);border-color:var(--pink);font-weight:800}.workspace{display:grid;grid-template-columns:260px minmax(620px,1fr) 290px;gap:14px;padding:14px;align-items:start}.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 8px 24px rgba(54,36,26,.06);overflow:hidden}.panel h2{font-size:13px;letter-spacing:.05em;text-transform:uppercase;margin:0;padding:15px 16px 10px}.panel .section{border-top:1px solid #eee6e1;padding:12px 14px}.stack{display:grid;gap:8px}.two{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tool{display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 9px;border:1px solid #ddd2cb;background:#fff;border-radius:10px;color:var(--ink);font-weight:700;font-size:12px}.tool:hover{border-color:var(--gold);background:#fffcf8}.tool.pink{background:var(--pink);color:#fff;border-color:var(--pink)}.tool.dark{background:var(--ink);color:#fff;border-color:var(--ink)}.tool.warn{color:#9d2f31}.palette{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.swatch{height:34px;border-radius:9px;border:1px solid #d6cdc7;position:relative}.swatch::after{content:attr(title);display:none}.templates{display:grid;gap:8px}.template{display:grid;grid-template-columns:42px 1fr;gap:9px;align-items:center;padding:8px;border:1px solid #e0d6cf;border-radius:10px;background:#fff;text-align:left}.template:hover{border-color:var(--gold)}.thumb{width:42px;height:56px;background:#fff;border:1px solid #ddd;position:relative;overflow:hidden}.thumb.gold::before{content:"";position:absolute;inset:4px;border:2px solid var(--gold)}.thumb.pink::before{content:"";position:absolute;left:0;right:0;bottom:0;height:16px;background:var(--pink)}.thumb.dark::before{content:"";position:absolute;inset:0 0 28px;background:var(--ink)}.canvas-shell{background:#d9d2cd;border-radius:16px;padding:24px;min-height:calc(100vh - 98px);overflow:auto;display:flex;align-items:flex-start;justify-content:center}.page-wrap{position:relative}.page{width:595px;height:842px;background:#fff;position:relative;overflow:hidden;box-shadow:var(--shadow);transform-origin:top center;user-select:none}.safe-zone{position:absolute;inset:26px;border:1px dashed rgba(182,152,97,.38);pointer-events:none;z-index:9998}.drop-hint{position:absolute;inset:14px;border:2px dashed var(--pink);display:none;align-items:center;justify-content:center;background:rgba(255,255,255,.88);color:var(--pink);font-size:19px;font-weight:900;z-index:10000}.page.dragover .drop-hint{display:flex}.flyer-item{position:absolute;touch-action:none;cursor:move;transform-origin:center center}.flyer-item.selected{outline:2px solid var(--pink);outline-offset:2px}.flyer-item.locked{cursor:default}.flyer-item img{width:100%;height:100%;display:block;pointer-events:none}.flyer-item.text{display:flex;align-items:center;white-space:pre-wrap;overflow:hidden;padding:4px}.flyer-item.shape{border-radius:0}.resize{display:none;position:absolute;width:14px;height:14px;right:-8px;bottom:-8px;background:#fff;border:2px solid var(--pink);border-radius:50%;z-index:20;cursor:nwse-resize}.selected .resize{display:block}.badge{display:none;position:absolute;left:0;top:-24px;background:var(--pink);color:#fff;padding:3px 7px;border-radius:5px;font-size:10px;white-space:nowrap;z-index:21}.selected .badge{display:block}.props label{display:grid;gap:5px;font-size:11px;color:#625d59;font-weight:800}.props input,.props select,.props textarea{width:100%;border:1px solid #dcd2cc;border-radius:9px;padding:9px;background:#fff;color:var(--ink)}.props textarea{min-height:92px;resize:vertical}.row{display:flex;gap:7px;align-items:center}.row>*{flex:1}.mini{padding:8px;border:1px solid #dcd2cc;background:#fff;border-radius:8px;font-size:11px;font-weight:700}.muted{font-size:11px;line-height:1.45;color:#77716d}.zoom{display:flex;align-items:center;gap:9px;color:#fff}.zoom input{width:130px}.status{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;box-shadow:0 8px 24px rgba(0,0,0,.18);opacity:0;pointer-events:none;transition:.2s;z-index:200}.status.show{opacity:1}.kbd{display:inline-block;border:1px solid #d7ccc5;background:#f8f4f1;border-radius:5px;padding:1px 5px;color:#665d57}.brand-note{background:#fff8fc;border:1px solid #f0bfd9;border-radius:10px;padding:10px;color:#6c4d5a;font-size:11px;line-height:1.45}.hidden{display:none!important}
+@media(max-width:1180px){.workspace{grid-template-columns:220px minmax(590px,1fr)}.props-panel{grid-column:1/-1}.props-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.props-grid .wide{grid-column:span 2}}
+@media(max-width:850px){.topbar{flex-wrap:wrap}.workspace{grid-template-columns:1fr;padding:8px}.canvas-shell{order:-1;padding:10px;min-height:0;justify-content:flex-start}.page-wrap{margin:auto}.tools-panel,.props-panel{width:100%}.page{transform-origin:top left}.props-grid{grid-template-columns:1fr 1fr}.topbar .spacer{display:none}.zoom{width:100%}}
+@media print{body{background:#fff}.topbar,.tools-panel,.props-panel,.safe-zone,.status{display:none!important}.workspace,.canvas-shell{display:block;padding:0;background:#fff}.page-wrap{margin:0}.page{box-shadow:none;transform:none!important;width:210mm!important;height:297mm!important}.flyer-item.selected{outline:none}.resize,.badge{display:none!important}@page{size:A4 portrait;margin:0}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <img src="/kleopatra-logo.png" alt="Kleopátra" />
+    <div><h1>Szórólaptervező</h1><small>Marketing • arculathű nyomdai és digitális kreatív</small></div>
+    <div class="spacer"></div>
+    <div class="zoom"><span>Nagyítás</span><input id="zoom" type="range" min="45" max="115" value="78" /><b id="zoomLabel">78%</b></div>
+    <button id="saveBtn">Mentés</button>
+    <button id="pngBtn" class="primary">PNG export</button>
+    <button id="printBtn">Nyomtatás / PDF</button>
+    <a href="/marketing/newsletter">Vissza a Marketinghez</a>
+  </header>
+
+  <main class="workspace">
+    <aside class="panel tools-panel">
+      <h2>Elemek</h2>
+      <div class="section stack">
+        <button class="tool dark" data-add="headline">+ Főcím</button>
+        <button class="tool" data-add="text">+ Szöveg</button>
+        <button class="tool pink" data-add="cta">+ CTA / ajánlat</button>
+        <button class="tool" id="imageBtn">+ Kép beszúrása</button>
+        <input id="imageInput" type="file" accept="image/*" multiple class="hidden" />
+        <div class="two"><button class="tool" data-add="goldbar">Arany sáv</button><button class="tool" data-add="pinkbar">Magenta blokk</button></div>
+      </div>
+      <h2>Sablonok</h2>
+      <div class="section templates">
+        <button class="template" data-template="classic"><span class="thumb gold"></span><span><b>Elegáns fehér</b><br><small>Arany keret, sok fehér tér</small></span></button>
+        <button class="template" data-template="promo"><span class="thumb pink"></span><span><b>Akciós</b><br><small>Magenta fókusz, arany részletek</small></span></button>
+        <button class="template" data-template="dark"><span class="thumb dark"></span><span><b>Prémium sötét</b><br><small>Sötétbarna + arany</small></span></button>
+      </div>
+      <h2>Arculati paletta</h2>
+      <div class="section">
+        <div class="palette"><button class="swatch" data-color="#120c08" style="background:#120c08" title="Sötétbarna"></button><button class="swatch" data-color="#b69861" style="background:#b69861" title="Arany"></button><button class="swatch" data-color="#ec008c" style="background:#ec008c" title="Magenta"></button><button class="swatch" data-color="#ffffff" style="background:#fff" title="Fehér"></button></div>
+        <p class="muted">A kézikönyv szerinti alapszínek. A magenta fókusz- és CTA-színként használandó.</p>
+      </div>
+      <h2>Oldal</h2>
+      <div class="section stack">
+        <select id="pagePreset"><option value="a4p">A4 álló</option><option value="a4l">A4 fekvő</option><option value="a5p">A5 álló</option></select>
+        <button class="tool" id="resetBtn">Alapsablon visszaállítása</button>
+        <div class="brand-note"><b>Arculati védelem:</b> a hivatalos Kleopátra-logó minden sablonon automatikusan megjelenik. A szerkesztő a kézikönyv fehér–sötétbarna–arany–magenta rendszerét használja.</div>
+      </div>
+    </aside>
+
+    <section class="canvas-shell" id="canvasShell">
+      <div class="page-wrap" id="pageWrap">
+        <div class="page" id="page" tabindex="0" aria-label="Szórólap szerkesztővászon">
+          <div class="safe-zone"></div><div class="drop-hint">Engedd el a képet a beszúráshoz</div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="panel props-panel">
+      <h2>Kijelölt elem</h2>
+      <div class="section props props-grid" id="props">
+        <p class="muted wide" id="emptyProps">Kattints egy elemre. Mozgatás: húzd az elemet. Méretezés: jobb alsó fogantyú. Finom mozgatás: <span class="kbd">←</span> <span class="kbd">↑</span> <span class="kbd">→</span> <span class="kbd">↓</span>.</p>
+        <label class="wide prop textOnly">Szöveg<textarea id="propText"></textarea></label>
+        <label class="prop textOnly">Betűméret<input id="propFont" type="number" min="8" max="120" /></label>
+        <label class="prop textOnly">Betűsúly<select id="propWeight"><option value="400">Normál</option><option value="600">Félkövér</option><option value="700">Félkövér 700</option><option value="800">Erős</option><option value="900">Extra erős</option></select></label>
+        <label class="prop textOnly">Igazítás<select id="propAlign"><option value="left">Bal</option><option value="center">Közép</option><option value="right">Jobb</option></select></label>
+        <label class="prop">Szín<input id="propColor" type="color" /></label>
+        <label class="prop shapeOnly">Háttér<input id="propBg" type="color" /></label>
+        <label class="prop imageOnly">Képkitöltés<select id="propFit"><option value="cover">Kitöltés</option><option value="contain">Teljes kép</option></select></label>
+        <label class="prop">Átlátszóság<input id="propOpacity" type="range" min="10" max="100" /></label>
+        <label class="prop">Forgatás<input id="propRotate" type="range" min="-180" max="180" /></label>
+        <label class="prop">X<input id="propX" type="number" /></label><label class="prop">Y<input id="propY" type="number" /></label>
+        <label class="prop">Szélesség<input id="propW" type="number" min="20" /></label><label class="prop">Magasság<input id="propH" type="number" min="20" /></label>
+        <div class="row wide"><button class="mini" id="backBtn">Hátrébb</button><button class="mini" id="frontBtn">Előrébb</button></div>
+        <div class="row wide"><button class="mini" id="duplicateBtn">Duplikálás</button><button class="mini" id="lockBtn">Zárolás</button><button class="mini" id="deleteBtn" style="color:#a12c34">Törlés</button></div>
+      </div>
+      <h2>Tippek</h2>
+      <div class="section muted"><p><b>Kép beszúrása:</b> gombbal vagy egyszerűen húzd rá a JPG/PNG/WebP fájlt a lapra.</p><p><b>Mentés:</b> automatikusan is történik a böngészőben. A „Mentés” azonnal rögzíti az aktuális állapotot.</p><p><b>Nyomtatás:</b> PDF mentéshez válaszd a böngésző nyomtatási párbeszédablakában a „Mentés PDF-ként” lehetőséget, margó nélkül.</p></div>
+    </aside>
+  </main>
+</div>
+<div class="status" id="status"></div>
+<script>
+(() => {
+  const token=localStorage.getItem('kleo_token')||localStorage.getItem('token');
+  if(!token){location.replace('/login');return;}
+  const page=document.getElementById('page'), pageWrap=document.getElementById('pageWrap'), zoom=document.getElementById('zoom'), zoomLabel=document.getElementById('zoomLabel');
+  const statusEl=document.getElementById('status');
+  const STORAGE='kleo.flyerDesigner.v2'; let items=[], selected=null, seq=1, pageSpec={key:'a4p',w:595,h:842}; let drag=null, resize=null, saveTimer=null;
+  const specs={a4p:{key:'a4p',w:595,h:842},a4l:{key:'a4l',w:842,h:595},a5p:{key:'a5p',w:420,h:595}};
+  const $=id=>document.getElementById(id); const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  function toast(t){statusEl.textContent=t;statusEl.classList.add('show');clearTimeout(statusEl._t);statusEl._t=setTimeout(()=>statusEl.classList.remove('show'),1800)}
+  function id(){return 'i'+Date.now().toString(36)+(seq++).toString(36)}
+  function base(type,x,y,w,h,extra={}){return {id:id(),type,x,y,w,h,z:items.length+1,opacity:1,rotate:0,locked:false,...extra}}
+  function textItem(text,x,y,w,h,font=28,weight=700,color='#120c08',align='left',extra={}){return base('text',x,y,w,h,{text,font,weight,color,align,line:1.12,...extra})}
+  function shapeItem(x,y,w,h,bg,radius=0,extra={}){return base('shape',x,y,w,h,{bg,radius,...extra})}
+  function imageItem(src,x,y,w,h,fit='cover',extra={}){return base('image',x,y,w,h,{src,fit,...extra})}
+  function logoItem(x,y,w,h){return imageItem('/kleopatra-logo.png',x,y,w,h,'contain',{name:'Hivatalos logó',isLogo:true})}
+  function classic(){items=[shapeItem(18,18,pageSpec.w-36,pageSpec.h-36,'transparent',0,{border:'#b69861',borderWidth:2,name:'Arany keret'}),logoItem(170,52,255,84),textItem('Ragyogj velünk\nminden nap!',70,190,pageSpec.w-140,118,43,800,'#120c08','center',{name:'Főcím'}),textItem('Prémium szépségápolás, személyre szabva.',90,323,pageSpec.w-180,56,18,400,'#5d5a55','center',{name:'Alcím'}),shapeItem(80,402,pageSpec.w-160,4,'#b69861',2,{name:'Arany elválasztó'}),textItem('FOGLALJ IDŐPONTOT ONLINE',95,470,pageSpec.w-190,60,18,800,'#ffffff','center',{bg:'#ec008c',radius:8,name:'CTA'}),textItem('kleopatra.hu',90,pageSpec.h-92,pageSpec.w-180,30,15,700,'#120c08','center',{name:'Webcím'})]; selected=null;render();scheduleSave()}
+  function promo(){items=[logoItem(170,42,255,82),textItem('A HÉT AJÁNLATA',55,165,pageSpec.w-110,54,18,900,'#ec008c','center',{name:'Kiemelés'}),textItem('-20%',55,220,pageSpec.w-110,125,78,900,'#120c08','center',{name:'Akció'}),textItem('Válassz egy prémium kezelést, és ragyogj még magabiztosabban!',70,360,pageSpec.w-140,84,21,600,'#5d5a55','center',{name:'Leírás'}),shapeItem(0,pageSpec.h-165,pageSpec.w,165,'#ec008c',0,{name:'Magenta lábléc'}),textItem('Időpontfoglalás: kleopatra.hu',55,pageSpec.h-126,pageSpec.w-110,54,20,800,'#ffffff','center',{name:'CTA'})];selected=null;render();scheduleSave()}
+  function dark(){items=[shapeItem(0,0,pageSpec.w,310,'#120c08',0,{name:'Sötét fejléc'}),logoItem(170,48,255,82),textItem('MINDENNAPI LUXUS',60,165,pageSpec.w-120,82,34,800,'#ffffff','center',{name:'Főcím'}),shapeItem(90,332,pageSpec.w-180,4,'#b69861',2,{name:'Arany elválasztó'}),textItem('Kleopátra Szépségszalonok',70,385,pageSpec.w-140,64,24,700,'#120c08','center',{name:'Cím'}),textItem('Elegáns környezet • szakértő csapat • személyre szabott kezelések',72,470,pageSpec.w-144,88,18,400,'#5d5a55','center',{name:'Leírás'}),textItem('FOGLALÁS',125,620,pageSpec.w-250,58,18,800,'#ffffff','center',{bg:'#ec008c',radius:8,name:'CTA'}),textItem('kleopatra.hu',90,pageSpec.h-86,pageSpec.w-180,30,15,700,'#b69861','center',{name:'Webcím'})];selected=null;render();scheduleSave()}
+  function applyTemplate(t){if(t==='promo')promo();else if(t==='dark')dark();else classic();toast('Sablon betöltve')}
+  function setSpec(key,keep=false){const next=specs[key]||specs.a4p;const old={...pageSpec};pageSpec={...next};page.style.width=pageSpec.w+'px';page.style.height=pageSpec.h+'px';if(keep&&items.length){const sx=pageSpec.w/old.w,sy=pageSpec.h/old.h;items=items.map(i=>({...i,x:i.x*sx,y:i.y*sy,w:i.w*sx,h:i.h*sy}))}else classic();render();applyZoom();scheduleSave()}
+  function render(){page.querySelectorAll('.flyer-item').forEach(n=>n.remove());[...items].sort((a,b)=>a.z-b.z).forEach(i=>{const el=document.createElement('div');el.className='flyer-item '+i.type+(selected===i.id?' selected':'')+(i.locked?' locked':'');el.dataset.id=i.id;Object.assign(el.style,{left:i.x+'px',top:i.y+'px',width:i.w+'px',height:i.h+'px',zIndex:String(i.z),opacity:String(i.opacity),transform:`rotate(${i.rotate||0}deg)`});if(i.type==='text'){el.textContent=i.text;Object.assign(el.style,{fontSize:i.font+'px',fontWeight:String(i.weight),color:i.color,textAlign:i.align,justifyContent:i.align==='center'?'center':i.align==='right'?'flex-end':'flex-start',lineHeight:String(i.line||1.12),background:i.bg||'transparent',borderRadius:(i.radius||0)+'px'});}else if(i.type==='shape'){el.style.background=i.bg||'transparent';el.style.borderRadius=(i.radius||0)+'px';if(i.border)el.style.border=(i.borderWidth||1)+'px solid '+i.border;}else{const im=document.createElement('img');im.src=i.src;im.alt='';im.style.objectFit=i.fit||'cover';el.appendChild(im)}const badge=document.createElement('span');badge.className='badge';badge.textContent=i.name||({text:'Szöveg',image:'Kép',shape:'Alakzat'}[i.type]);el.appendChild(badge);const h=document.createElement('span');h.className='resize';el.appendChild(h);page.appendChild(el)});updateProps()}
+  function getSel(){return items.find(i=>i.id===selected)||null}
+  function select(idv){selected=idv;render()}
+  page.addEventListener('pointerdown',e=>{const el=e.target.closest('.flyer-item');if(!el){selected=null;render();return}const i=items.find(x=>x.id===el.dataset.id);if(!i)return;selected=i.id;render();if(i.locked)return;const scale=Number(zoom.value)/100;if(e.target.classList.contains('resize')){resize={id:i.id,sx:e.clientX,sy:e.clientY,w:i.w,h:i.h,scale};}else{drag={id:i.id,sx:e.clientX,sy:e.clientY,x:i.x,y:i.y,scale};}e.preventDefault()});
+  window.addEventListener('pointermove',e=>{if(drag){const i=items.find(x=>x.id===drag.id);if(!i)return;i.x=clamp(drag.x+(e.clientX-drag.sx)/drag.scale,0,pageSpec.w-i.w);i.y=clamp(drag.y+(e.clientY-drag.sy)/drag.scale,0,pageSpec.h-i.h);render();}else if(resize){const i=items.find(x=>x.id===resize.id);if(!i)return;i.w=clamp(resize.w+(e.clientX-resize.sx)/resize.scale,20,pageSpec.w-i.x);i.h=clamp(resize.h+(e.clientY-resize.sy)/resize.scale,20,pageSpec.h-i.y);render()}});
+  window.addEventListener('pointerup',()=>{if(drag||resize)scheduleSave();drag=null;resize=null});
+  function add(kind){let i;if(kind==='headline')i=textItem('ÚJ FŐCÍM',70,210,pageSpec.w-140,78,36,800,'#120c08','center',{name:'Főcím'});if(kind==='text')i=textItem('Írd ide a szórólap szövegét…',75,330,pageSpec.w-150,100,18,400,'#5d5a55','left',{name:'Szöveg'});if(kind==='cta')i=textItem('FOGLALJ MOST',130,560,pageSpec.w-260,58,18,800,'#ffffff','center',{bg:'#ec008c',radius:8,name:'CTA'});if(kind==='goldbar')i=shapeItem(90,430,pageSpec.w-180,5,'#b69861',2,{name:'Arany sáv'});if(kind==='pinkbar')i=shapeItem(80,470,pageSpec.w-160,75,'#ec008c',8,{name:'Magenta blokk'});if(i){items.push(i);selected=i.id;render();scheduleSave()}}
+  document.querySelectorAll('[data-add]').forEach(b=>b.addEventListener('click',()=>add(b.dataset.add)));
+  document.querySelectorAll('[data-template]').forEach(b=>b.addEventListener('click',()=>applyTemplate(b.dataset.template)));
+  document.querySelectorAll('[data-color]').forEach(b=>b.addEventListener('click',()=>{const i=getSel();if(!i)return;if(i.type==='shape'||i.bg)i.bg=b.dataset.color;else i.color=b.dataset.color;render();scheduleSave()}));
+  $('imageBtn').onclick=()=>$('imageInput').click();$('imageInput').onchange=e=>addFiles(e.target.files);
+  function addFiles(files,point){[...files].filter(f=>f.type.startsWith('image/')).forEach((f,k)=>{const r=new FileReader();r.onload=()=>{const w=220,h=160,x=point?clamp(point.x-w/2,0,pageSpec.w-w):70+k*20,y=point?clamp(point.y-h/2,0,pageSpec.h-h):260+k*20;const i=imageItem(r.result,x,y,w,h,'cover',{name:f.name});items.push(i);selected=i.id;render();scheduleSave()};r.readAsDataURL(f)})}
+  ['dragenter','dragover'].forEach(t=>page.addEventListener(t,e=>{e.preventDefault();page.classList.add('dragover')}));['dragleave','drop'].forEach(t=>page.addEventListener(t,e=>{e.preventDefault();page.classList.remove('dragover')}));page.addEventListener('drop',e=>{const rect=page.getBoundingClientRect(),scale=Number(zoom.value)/100;addFiles(e.dataTransfer.files,{x:(e.clientX-rect.left)/scale,y:(e.clientY-rect.top)/scale})});
+  function bind(idv,key,parse=v=>v){$(idv).addEventListener('input',e=>{const i=getSel();if(!i)return;i[key]=parse(e.target.value);if(key==='x')i.x=clamp(i.x,0,pageSpec.w-i.w);if(key==='y')i.y=clamp(i.y,0,pageSpec.h-i.h);render();scheduleSave()})}
+  bind('propText','text',String);bind('propFont','font',Number);bind('propWeight','weight',Number);bind('propAlign','align',String);bind('propColor','color',String);bind('propBg','bg',String);bind('propFit','fit',String);bind('propOpacity','opacity',v=>Number(v)/100);bind('propRotate','rotate',Number);bind('propX','x',Number);bind('propY','y',Number);bind('propW','w',Number);bind('propH','h',Number);
+  function updateProps(){const i=getSel();document.querySelectorAll('.prop').forEach(n=>n.classList.toggle('hidden',!i));$('emptyProps').classList.toggle('hidden',!!i);if(!i)return;document.querySelectorAll('.textOnly').forEach(n=>n.classList.toggle('hidden',i.type!=='text'));document.querySelectorAll('.imageOnly').forEach(n=>n.classList.toggle('hidden',i.type!=='image'));document.querySelectorAll('.shapeOnly').forEach(n=>n.classList.toggle('hidden',i.type!=='shape'&&!i.bg));$('propText').value=i.text||'';$('propFont').value=i.font||18;$('propWeight').value=i.weight||400;$('propAlign').value=i.align||'left';$('propColor').value=validColor(i.color)||'#120c08';$('propBg').value=validColor(i.bg)||'#ffffff';$('propFit').value=i.fit||'cover';$('propOpacity').value=Math.round((i.opacity??1)*100);$('propRotate').value=i.rotate||0;$('propX').value=Math.round(i.x);$('propY').value=Math.round(i.y);$('propW').value=Math.round(i.w);$('propH').value=Math.round(i.h);$('lockBtn').textContent=i.locked?'Feloldás':'Zárolás'}
+  function validColor(v){return /^#[0-9a-f]{6}$/i.test(v||'')?v:null}
+  $('deleteBtn').onclick=()=>{const i=getSel();if(!i)return;if(i.isLogo&&!confirm('A kézikönyv szerint a logó használata javasolt. Biztosan eltávolítod?'))return;items=items.filter(x=>x.id!==i.id);selected=null;render();scheduleSave()};
+  $('duplicateBtn').onclick=()=>{const i=getSel();if(!i)return;const c={...i,id:id(),x:clamp(i.x+18,0,pageSpec.w-i.w),y:clamp(i.y+18,0,pageSpec.h-i.h),z:Math.max(0,...items.map(x=>x.z))+1,isLogo:false,name:(i.name||'Elem')+' másolat'};items.push(c);selected=c.id;render();scheduleSave()};
+  $('frontBtn').onclick=()=>{const i=getSel();if(!i)return;i.z=Math.max(0,...items.map(x=>x.z))+1;render();scheduleSave()};$('backBtn').onclick=()=>{const i=getSel();if(!i)return;i.z=Math.min(...items.map(x=>x.z))-1;render();scheduleSave()};$('lockBtn').onclick=()=>{const i=getSel();if(!i)return;i.locked=!i.locked;render();scheduleSave()};
+  window.addEventListener('keydown',e=>{const i=getSel();if(!i||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;if((e.key==='Delete'||e.key==='Backspace')&&!i.locked){$('deleteBtn').click();e.preventDefault();return}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();$('duplicateBtn').click();return}const step=e.shiftKey?10:1;if(e.key==='ArrowLeft')i.x-=step;else if(e.key==='ArrowRight')i.x+=step;else if(e.key==='ArrowUp')i.y-=step;else if(e.key==='ArrowDown')i.y+=step;else return;i.x=clamp(i.x,0,pageSpec.w-i.w);i.y=clamp(i.y,0,pageSpec.h-i.h);render();scheduleSave();e.preventDefault()});
+  function snapshot(){return {version:2,pageSpec,items,updatedAt:new Date().toISOString()}}function save(){localStorage.setItem(STORAGE,JSON.stringify(snapshot()));toast('Terv elmentve')}function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>localStorage.setItem(STORAGE,JSON.stringify(snapshot())),350)}$('saveBtn').onclick=save;
+  $('resetBtn').onclick=()=>{if(confirm('Visszaállítsuk az arculati alapsablont?'))classic()};$('pagePreset').onchange=e=>setSpec(e.target.value,true);
+  function applyZoom(){const z=Number(zoom.value)/100;page.style.transform=`scale(${z})`;pageWrap.style.width=(pageSpec.w*z)+'px';pageWrap.style.height=(pageSpec.h*z)+'px';zoomLabel.textContent=zoom.value+'%'}zoom.oninput=applyZoom;
+  $('printBtn').onclick=()=>{selected=null;render();setTimeout(()=>window.print(),80)};
+  function loadImg(src){return new Promise((resolve,reject)=>{const im=new Image();im.onload=()=>resolve(im);im.onerror=reject;im.src=src})}
+  function drawCover(ctx,img,x,y,w,h,fit){if(fit==='contain'){const r=Math.min(w/img.width,h/img.height),dw=img.width*r,dh=img.height*r;ctx.drawImage(img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);return}const r=Math.max(w/img.width,h/img.height),sw=w/r,sh=h/r,sx=(img.width-sw)/2,sy=(img.height-sh)/2;ctx.drawImage(img,sx,sy,sw,sh,x,y,w,h)}
+  function wrap(ctx,text,maxW){const out=[];String(text).split('\n').forEach((para,pi)=>{const words=para.split(/\s+/),line=[];words.forEach(word=>{const test=[...line,word].join(' ');if(line.length&&ctx.measureText(test).width>maxW){out.push(line.join(' '));line.length=0}line.push(word)});out.push(line.join(' '));if(pi<String(text).split('\n').length-1&&para==='')out.push('')});return out}
+  async function exportPng(){toast('PNG készül…');const scale=2.2,c=document.createElement('canvas');c.width=Math.round(pageSpec.w*scale);c.height=Math.round(pageSpec.h*scale);const ctx=c.getContext('2d');ctx.scale(scale,scale);ctx.fillStyle='#fff';ctx.fillRect(0,0,pageSpec.w,pageSpec.h);for(const i of [...items].sort((a,b)=>a.z-b.z)){ctx.save();ctx.globalAlpha=i.opacity??1;ctx.translate(i.x+i.w/2,i.y+i.h/2);ctx.rotate((i.rotate||0)*Math.PI/180);ctx.translate(-i.w/2,-i.h/2);if(i.type==='shape'){if(i.bg&&i.bg!=='transparent'){ctx.fillStyle=i.bg;ctx.fillRect(0,0,i.w,i.h)}if(i.border){ctx.strokeStyle=i.border;ctx.lineWidth=i.borderWidth||1;ctx.strokeRect(0,0,i.w,i.h)}}else if(i.type==='image'){try{const im=await loadImg(i.src);drawCover(ctx,im,0,0,i.w,i.h,i.fit)}catch{}}else if(i.type==='text'){if(i.bg&&i.bg!=='transparent'){ctx.fillStyle=i.bg;ctx.fillRect(0,0,i.w,i.h)}ctx.fillStyle=i.color||'#120c08';ctx.font=`${i.weight||400} ${i.font||18}px Montserrat,Arial,sans-serif`;ctx.textBaseline='middle';ctx.textAlign=i.align||'left';const lines=wrap(ctx,i.text||'',Math.max(10,i.w-8)),lh=(i.font||18)*(i.line||1.12),total=lines.length*lh;let yy=(i.h-total)/2+lh/2;const xx=i.align==='center'?i.w/2:i.align==='right'?i.w-4:4;lines.forEach(line=>{ctx.fillText(line,xx,yy);yy+=lh})}ctx.restore()}const a=document.createElement('a');a.download='kleopatra-szorolap-'+new Date().toISOString().slice(0,10)+'.png';a.href=c.toDataURL('image/png',1);a.click();toast('PNG elkészült')}$('pngBtn').onclick=exportPng;
+  const raw=localStorage.getItem(STORAGE);if(raw){try{const s=JSON.parse(raw);if(s&&Array.isArray(s.items)){items=s.items;pageSpec=specs[s.pageSpec?.key]||specs.a4p;$('pagePreset').value=pageSpec.key;page.style.width=pageSpec.w+'px';page.style.height=pageSpec.h+'px';render();applyZoom()}else classic()}catch{classic()}}else classic();applyZoom();
+})();
+</script>
+</body>
+</html>

@@ -14,5 +14,20 @@
   <body>
     <noscript>A rendszer használatához JavaScript szükséges.</noscript>
     <div id="root"></div>
+    <script>
+      document.addEventListener('click', function (event) {
+        var target = event.target;
+        var anchor = target && target.closest ? target.closest('a') : null;
+        if (!anchor) return;
+        try {
+          var url = new URL(anchor.href, window.location.href);
+          if (url.origin === window.location.origin && url.pathname === '/flyer-designer.html') {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.assign(url.href);
+          }
+        } catch (_) {}
+      }, true);
+    </script>
   </body>
 </html>
