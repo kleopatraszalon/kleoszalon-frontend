@@ -258,7 +258,6 @@ const router = createBrowserRouter([
     path: "/modules/settings/chat-supervision",
     element: R(MANAGEMENT, <ModulePlaceholderPage />),
   },
-  { path: "/hr/positions", element: A(<EmployeesList />) },
   { path: "/modules/team/import", element: R(MANAGEMENT, <StaffImportPage />) },
   { path: "/modules/customers/:view", element: A(<ClientsCRMPage />) },
   { path: "/bejelentkezesek", element: A(<Bejelentkezesek />) },
