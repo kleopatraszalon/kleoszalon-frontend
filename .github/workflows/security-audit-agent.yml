@@ -14,8 +14,13 @@ jobs:
         with:
           node-version: 20
           cache: npm
-      - run: npm install --no-fund
+      - name: Install dependencies
+        run: npm ci --no-fund
+      - name: Critical navigation regression audit
+        run: node scripts/check-menu-routes.js
+      - name: Production build
+        run: CI=false npm run build
       - name: Production dependency audit
-        run: npm audit --omit=dev --json || true
-      - name: Full dependency audit
+        run: npm audit --omit=dev --audit-level=high
+      - name: Full dependency audit report
         run: npm audit --json || true
