@@ -2,6 +2,7 @@ const fs=require('fs');
 const app=fs.readFileSync('src/App.tsx','utf8');
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
 const accountingSidebar=fs.existsSync('src/components/AccountingSidebar.tsx')?fs.readFileSync('src/components/AccountingSidebar.tsx','utf8'):'';
+const mobileSidebarCss=fs.existsSync('src/layouts/MobileSidebarFix.css')?fs.readFileSync('src/layouts/MobileSidebarFix.css','utf8'):'';
 const staticMenus=sidebar+'\n'+accountingSidebar;
 const critical=[
   '/appointments/calendar','/workorders','/modules/team/timetable','/modules/team/attendance',
@@ -27,5 +28,10 @@ for(const route of scopedMenuRoutes)if(!staticMenus.includes(route))failures.pus
 const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(app);
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
 if(!sidebar.includes("MENU_CACHE_KEY='kleo.menu.cache.v15'")) failures.push('A menü-cache verzió nem v15.');
+if(!sidebar.includes("<SidebarCalendar onSelectDate={dateSelect}/>")) failures.push('A SidebarCalendar komponens hiányzik a navigációból.');
+const calendarRule=/\.app-layout-shell\s*>\s*\.kleo-sidebar\s+\.sidebar-calendar\s*\{([^}]*)\}/m.exec(mobileSidebarCss);
+if(!calendarRule) failures.push('A mobil naptár CSS-szabály hiányzik.');
+else if(/display\s*:\s*none\s*!important/i.test(calendarRule[1])) failures.push('A mobil naptár CSS-ben el van rejtve.');
+else if(!/display\s*:\s*block\s*!important/i.test(calendarRule[1])) failures.push('A mobil naptár nincs explicit láthatóra állítva.');
 if(failures.length){console.error('MENÜ ROUTE AUDIT HIBA');failures.forEach(x=>console.error(' - '+x));process.exit(1)}
-console.log(`Menü route audit OK: ${critical.length} router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);
+console.log(`Menü route audit OK: ${critical.length} router, ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal és a mobil naptár láthatósága ellenőrizve.`);
