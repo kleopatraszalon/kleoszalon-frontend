@@ -21,3 +21,19 @@ test("Stage17 uses shared language, audit, recycle-bin and filter infrastructure
   expect(master).toMatch(/system-hardening/);
   expect(master).toMatch(/\/archive/);
 });
+
+test("Stage17 bilingual coverage includes login, staff and CRM operational pages",()=>{
+  const dictionary=read("src/i18n/LanguageProvider.tsx");
+  const login=read("src/pages/Login.tsx");
+  const staff=read("src/pages/EmployeesList.tsx");
+  const crm=read("src/pages/ClientsCRMCore.tsx");
+  expect(dictionary).toMatch(/"staff\.title"/);
+  expect(dictionary).toMatch(/"crm\.new_customer"/);
+  expect(login).toMatch(/useLanguage/);
+  expect(login).toMatch(/LanguageSwitcher/);
+  expect(staff).toMatch(/useLanguage/);
+  expect(staff).toMatch(/staff\.search/);
+  expect(crm).toMatch(/useLanguage/);
+  expect(crm).toMatch(/crm\.tab\./);
+  expect(crm).toMatch(/Intl\.DateTimeFormat\(locale/);
+});
