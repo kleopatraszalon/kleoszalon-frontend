@@ -21,4 +21,4 @@ root.render(
     </LanguageProvider>
   </React.StrictMode>
 );
-if("serviceWorker" in navigator)window.addEventListener("load",async()=>{try{const registration=await navigator.serviceWorker.register("/sw.js?v=1.4.9",{updateViaCache:"none"});await registration.update()}catch{}});
+if("serviceWorker" in navigator)window.addEventListener("load",async()=>{try{const registration=await navigator.serviceWorker.register("/sw.js?v=1.5.0",{updateViaCache:"none"});await registration.update()}catch{}});
