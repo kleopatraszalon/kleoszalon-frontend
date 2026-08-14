@@ -10,11 +10,7 @@ function roles(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String
 function ruleFor(pathname: string, search: string): Rule | null {
   const q = new URLSearchParams(search);
   const procurement = pathname === "/warehouse" && q.get("view") === "procurement";
-  if (procurement) {
-    const section = q.get("section") || "dashboard";
-    const known = new Set(["dashboard","suggestions","approvals","orders","suppliers","prices","performance","deviations"]);
-    return { feature: "procurement", menu: `procurement.${known.has(section) ? section : "dashboard"}` };
-  }
+  if (procurement) { const section=q.get("section")||"dashboard"; const known=new Set(["dashboard","suggestions","approvals","orders","suppliers","prices","performance","deviations"]); return {feature:"procurement",menu:`procurement.${known.has(section)?section:"dashboard"}`}; }
   if (pathname === "/admin/access-control" || pathname === "/modules/team/roles" || pathname === "/settings/roles") return { feature: "hr", menu: "team.roles" };
   if (pathname === "/finance/cash") return { feature: "finance", menu: "finance.cash", financial: true };
   if (pathname === "/finance/invoice" || pathname.startsWith("/finance/invoices")) return { feature: "finance", menu: "finance.invoices", financial: true };
@@ -42,56 +38,25 @@ function ruleFor(pathname: string, search: string): Rule | null {
   return null;
 }
 
-function storeManagerPathAllowed(pathname:string,search:string){
-  const q=new URLSearchParams(search);
-  if(["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(pathname))return true;
-  if(pathname==="/appointments/calendar"||pathname.startsWith("/modules/appointments/"))return true;
-  if(pathname==="/modules/team/timetable"||pathname==="/modules/team/attendance"||pathname==="/timetable/update")return true;
-  if(pathname==="/employees"||pathname.startsWith("/employees/")||pathname==="/hr"||pathname==="/hr/positions")return true;
-  if(pathname.startsWith("/modules/customers/")||pathname==="/modules/clients"||pathname==="/modules/crm")return true;
-  if(pathname==="/workorders"||pathname.startsWith("/workorders/"))return true;
-  if(pathname==="/warehouse"||pathname==="/warehouse/list"||pathname==="/warehouse/products"||pathname==="/logisztika"){
-    if(pathname!=="/warehouse"||q.get("view")!=="procurement")return true;
-    return ["dashboard","suggestions","orders"].includes(q.get("section")||"dashboard");
-  }
-  if(pathname==="/knowledge-base/checklists"||pathname==="/knowledge-base")return true;
-  return false;
-}
+function storeManagerPathAllowed(pathname:string,search:string){const q=new URLSearchParams(search);if(["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(pathname))return true;if(pathname==="/appointments/calendar"||pathname.startsWith("/modules/appointments/"))return true;if(pathname==="/modules/team/timetable"||pathname==="/modules/team/attendance"||pathname==="/timetable/update")return true;if(pathname==="/employees"||pathname.startsWith("/employees/")||pathname==="/hr"||pathname==="/hr/positions")return true;if(pathname.startsWith("/modules/customers/")||pathname==="/modules/clients"||pathname==="/modules/crm")return true;if(pathname==="/workorders"||pathname.startsWith("/workorders/"))return true;if(pathname==="/warehouse"||pathname==="/warehouse/list"||pathname==="/warehouse/products"||pathname==="/logisztika"){if(pathname!=="/warehouse"||q.get("view")!=="procurement")return true;return["dashboard","suggestions","orders"].includes(q.get("section")||"dashboard")}if(pathname==="/knowledge-base/checklists"||pathname==="/knowledge-base")return true;return false}
 
 export default function AccessBoundary({ children }: { children: React.ReactNode }) {
-  const location = useLocation();
-  const { user }=useCurrentUser();
-  const userRoles=roles(user?.role);
+  const location=useLocation(); const {user}=useCurrentUser(); const userRoles=roles(user?.role);
   const customer=userRoles.some(r=>["customer","client","guest","ugyfel","ügyfél","vendeg","vendég"].includes(r));
+  const accounting=userRoles.some(r=>["accounting","bookkeeper","konyveles","könyvelés"].includes(r));
   const storeManager=userRoles.some(r=>["location_manager","üzletvezető","uzletvezeto","store_manager","branch_manager"].includes(r));
   const elevated=storeManager||userRoles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto"].includes(r));
-  const staff=!customer&&!elevated&&userRoles.some(r=>["employee","receptionist"].includes(r));
+  const staff=!customer&&!accounting&&!elevated&&userRoles.some(r=>["employee","receptionist"].includes(r));
   const selfDashboard=["/","/dashboard","/dashboard/summary","/dashboard/quick"].includes(location.pathname);
   const customerAllowed=selfDashboard||location.pathname.startsWith("/customer/");
-  const { loading, error, feature, menu } = useCapabilities();
-  const rule = ruleFor(location.pathname, location.search);
-
-  if(customer){
-    if(customerAllowed)return <>{children}</>;
-    return <Denied title="Ez nem ügyfélfunkció" detail="Az ügyfélfiókból csak a saját irányítópult és az időpontfoglalás érhető el."/>;
-  }
-  if(storeManager&&!storeManagerPathAllowed(location.pathname,location.search)){
-    return <Denied title="Ez nem üzletvezetői funkció" detail="Az üzletvezető kizárólag a saját üzlet napi működéséhez tartozó dolgozókat, beosztást, időpontokat, ügyfeleket, munkalapokat, készletet, beszerzést és check listákat kezelheti."/>;
-  }
+  const {loading,error,feature,menu}=useCapabilities(); const rule=ruleFor(location.pathname,location.search);
+  if(customer){if(customerAllowed)return <>{children}</>;return <Denied title="Ez nem ügyfélfunkció" detail="Az ügyfélfiókból csak a saját irányítópult és az időpontfoglalás érhető el."/>}
+  if(accounting&&selfDashboard)return <>{children}</>;
+  if(storeManager&&!storeManagerPathAllowed(location.pathname,location.search))return <Denied title="Ez nem üzletvezetői funkció" detail="Az üzletvezető kizárólag a saját üzlet napi működéséhez tartozó dolgozókat, beosztást, időpontokat, ügyfeleket, munkalapokat, készletet, beszerzést és check listákat kezelheti."/>;
   if(staff&&selfDashboard)return <>{children}</>;
-  if (!rule) return <>{children}</>;
-  if (loading) return <div style={{ padding: 32 }}>Jogosultság ellenőrzése…</div>;
-  if (error) return <Denied title="A jogosultságok nem ellenőrizhetők" detail={error} />;
-
-  const featureAllowed = !rule.feature || feature(rule.feature);
-  const menuAllowed = !rule.menu || menu(rule.menu, "can_view");
-  const financialAllowed = !rule.financial || !rule.menu || menu(rule.menu, "can_view_financial");
-  if (!featureAllowed || !menuAllowed || !financialAllowed) {
-    return <Denied title="Nincs hozzáférése ehhez a modulhoz" detail="A menüpont, funkció vagy érzékeny adat nincs engedélyezve az aktuális szerepkör számára. A jogosultság a Beállítások és adminisztráció → Jogosultságok oldalon módosítható." />;
-  }
+  if(!rule)return <>{children}</>; if(loading)return <div style={{padding:32}}>Jogosultság ellenőrzése…</div>; if(error)return <Denied title="A jogosultságok nem ellenőrizhetők" detail={error}/>;
+  const featureAllowed=!rule.feature||feature(rule.feature); const menuAllowed=!rule.menu||menu(rule.menu,"can_view"); const financialAllowed=!rule.financial||!rule.menu||menu(rule.menu,"can_view_financial");
+  if(!featureAllowed||!menuAllowed||!financialAllowed)return <Denied title="Nincs hozzáférése ehhez a modulhoz" detail="A menüpont, funkció vagy érzékeny adat nincs engedélyezve az aktuális szerepkör számára. A jogosultság a Beállítások és adminisztráció → Jogosultságok oldalon módosítható."/>;
   return <>{children}</>;
 }
-
-function Denied({ title, detail }: { title: string; detail: string }) {
-  return <main style={{ minHeight: "55vh", display: "grid", placeItems: "center", padding: 32 }}><section style={{ maxWidth: 620, width: "100%", border: "1px solid #eadde8", borderRadius: 18, padding: 28, background: "#fff", boxShadow: "0 14px 40px rgba(45,25,40,.08)" }}><ShieldAlert size={32} /><h2 style={{ margin: "14px 0 8px" }}>{title}</h2><p style={{ margin: 0, lineHeight: 1.6, opacity: .72 }}>{detail}</p></section></main>;
-}
+function Denied({title,detail}:{title:string;detail:string}){return <main style={{minHeight:"55vh",display:"grid",placeItems:"center",padding:32}}><section style={{maxWidth:620,width:"100%",border:"1px solid #eadde8",borderRadius:18,padding:28,background:"#fff",boxShadow:"0 14px 40px rgba(45,25,40,.08)"}}><ShieldAlert size={32}/><h2 style={{margin:"14px 0 8px"}}>{title}</h2><p style={{margin:0,lineHeight:1.6,opacity:.72}}>{detail}</p></section></main>}
