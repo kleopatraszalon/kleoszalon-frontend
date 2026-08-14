@@ -22,6 +22,9 @@ const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
 const DailyActionsPage = lazy(() => import("./pages/DailyActionsPage"));
 const KleopatraMobileApp = lazy(() => import("./pages/KleopatraMobileApp"));
 const MobileAppAdminPage = lazy(() => import("./pages/MobileAppAdminPage"));
+const EmployeeMobileApp = lazy(() => import("./pages/EmployeeMobileApp"));
+const GuestReviewTabletPage = lazy(() => import("./pages/GuestReviewTabletPage"));
+const VirSpecParityPage = lazy(() => import("./pages/VirSpecParityPage"));
 const LoyaltyProgramPage = lazy(() => import("./pages/LoyaltyProgramPage"));
 const LoyaltyModulePage = lazy(() => import("./pages/LoyaltyModulePage"));
 const EmployeeWorkContextPage = lazy(
@@ -155,6 +158,8 @@ const router = createBrowserRouter([
       </PublicOnly>
     ),
   },
+  { path: "/vendeg-ertekeles", element: <GuestReviewTabletPage /> },
+  { path: "/employee-app", element: <EmployeeMobileApp /> },
   { path: "/booking/manage/:token", element: <PublicBookingManagePage /> },
   { path: "/foglalas/kezeles/:token", element: <PublicBookingManagePage /> },
   { path: "/booking", element: <PublicBookingPage /> },
@@ -369,6 +374,7 @@ const router = createBrowserRouter([
   { path: "/modules/team/attendance", element: A(<HrAttendancePage />) },
   { path: "/staff/chat", element: A(<StaffChatPage />) },
   { path: "/admin/vir", element: R(MANAGEMENT, <VirDashboardPage />) },
+  { path: "/admin/vir/spec-parity", element: R(MANAGEMENT, <VirSpecParityPage />) },
   {
     path: "/admin/vir/staff/:id",
     element: R(MANAGEMENT, <VirStaffDetailPage />),
