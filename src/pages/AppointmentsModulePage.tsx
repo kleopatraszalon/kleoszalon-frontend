@@ -5,6 +5,7 @@ import {
   Clock3, Copy, ExternalLink, Filter, Link2, ListFilter,
   LayoutGrid, List, MoreHorizontal, Plus, RefreshCw, Search, Settings2, Users, X,
 } from "lucide-react";
+import { appointmentOperationalStatus } from "../utils/appointmentOperationalStatus";
 import BookingNotificationAutomation from "./booking/BookingNotificationAutomation";
 import "./AppointmentsModulePage.css";
 import "./AppointmentsListCalendarToggle.css";
@@ -16,6 +17,7 @@ const API_BASE =
 
 type Appointment = {
   id: string; title: string; start: string; end: string; status: string | null;
+  operational_status?: string | null;
   price: number | null; client_name: string | null; service_name: string | null;
   location_name: string | null; employee_name?: string;
 };
@@ -37,15 +39,7 @@ function addDays(value: string, days: number) { const d = new Date(`${value}T12:
 function formatDate(value: string) { return new Intl.DateTimeFormat("hu-HU", { year: "numeric", month: "long", day: "numeric", weekday: "long" }).format(new Date(`${value}T12:00:00`)); }
 function formatTime(value: string) { return new Intl.DateTimeFormat("hu-HU", { hour: "2-digit", minute: "2-digit" }).format(new Date(value)); }
 function formatMoney(value: number | null) { return `${Number(value || 0).toLocaleString("hu-HU")} Ft`; }
-function statusLabel(status?: string | null) {
-  const key = (status || "planned").toLowerCase();
-  if (["completed", "done", "finished"].includes(key)) return "Teljesítve";
-  if (["cancelled", "canceled"].includes(key)) return "Lemondva";
-  if (["no_show", "no-show", "missed"].includes(key)) return "Nem jelent meg";
-  if (["confirmed", "active"].includes(key)) return "Megerősítve";
-  return "Tervezett";
-}
-function statusClass(status?: string | null) { return statusLabel(status).toLowerCase().replace(/ /g, "-").normalize("NFD").replace(/[\u0300-\u036f]/g, ""); }
+function operational(item: Appointment, now: number) { return appointmentOperationalStatus(item, now); }
 
 export default function AppointmentsModulePage() {
   const { view = "list" } = useParams();
@@ -57,6 +51,7 @@ export default function AppointmentsModulePage() {
   const [query, setQuery] = useState("");
   const [location, setLocation] = useState("all");
   const [notice, setNotice] = useState("");
+  const [statusNow, setStatusNow] = useState(() => Date.now());
   const [channels, setChannels] = useState({ website: true, instagram: true, google: false, direct: true });
 
   const toast = (message: string) => { setNotice(message); window.setTimeout(() => setNotice(""), 2500); };
@@ -74,6 +69,10 @@ export default function AppointmentsModulePage() {
   }, [date]);
 
   useEffect(() => { loadSchedule(); }, [loadSchedule]);
+  useEffect(() => {
+    const timer = window.setInterval(() => setStatusNow(Date.now()), 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const appointments = useMemo(() => schedule.locations.flatMap((loc) =>
     loc.employees.flatMap((employee) => (employee.appointments || []).map((item) => ({ ...item, employee_name: employee.full_name, location_name: item.location_name || loc.name })))
@@ -82,7 +81,7 @@ export default function AppointmentsModulePage() {
     const haystack = `${item.client_name} ${item.service_name} ${item.employee_name} ${item.location_name}`.toLowerCase();
     return (location === "all" || item.location_name === location) && haystack.includes(query.toLowerCase());
   }), [appointments, location, query]);
-  const cancelled = appointments.filter((item) => ["Lemondva", "Nem jelent meg"].includes(statusLabel(item.status)));
+  const cancelled = appointments.filter((item) => ["cancelled", "no_show"].includes(operational(item, statusNow).key));
   const revenue = appointments.reduce((sum, item) => sum + Number(item.price || 0), 0);
 
   const toolbar = (
@@ -111,8 +110,8 @@ export default function AppointmentsModulePage() {
         {Object.entries(viewConfig).map(([key, item]) => <button key={key} className={view === key ? "active" : ""} onClick={() => navigate(`/modules/appointments/${key}`)}>{item.title.replace(" (4+ kéz)", "")}</button>)}
       </nav>
 
-      {view === "list" && <>{toolbar}<section className="ap-kpis"><article><CalendarDays/><div><strong>{appointments.length}</strong><span>Összes időpont</span></div></article><article><Check/><div><strong>{appointments.filter(a => statusLabel(a.status) === "Teljesítve").length}</strong><span>Teljesítve</span></div></article><article><CircleAlert/><div><strong>{cancelled.length}</strong><span>Lemondás / kiesés</span></div></article><article><Clock3/><div><strong>{formatMoney(revenue)}</strong><span>Napi foglalási érték</span></div></article></section><AppointmentTable items={filtered} loading={loading}/></>}
-      {view === "attendance" && <>{toolbar}<section className="ap-kpis"><article><X/><div><strong>{cancelled.filter(a => statusLabel(a.status) === "Lemondva").length}</strong><span>Lemondva</span></div></article><article><CircleAlert/><div><strong>{cancelled.filter(a => statusLabel(a.status) === "Nem jelent meg").length}</strong><span>Nem jelent meg</span></div></article><article><Users/><div><strong>{appointments.length ? Math.round(cancelled.length / appointments.length * 100) : 0}%</strong><span>Kiesési arány</span></div></article><article><BellRing/><div><strong>0</strong><span>Automatikus visszahívás</span></div></article></section><AppointmentTable items={filtered.filter(a => ["Lemondva", "Nem jelent meg"].includes(statusLabel(a.status)))} loading={loading}/></>}
+      {view === "list" && <>{toolbar}<section className="ap-kpis"><article><CalendarDays/><div><strong>{appointments.length}</strong><span>Összes időpont</span></div></article><article><Check/><div><strong>{appointments.filter(a => operational(a, statusNow).closed).length}</strong><span>Lezárt munkalap</span></div></article><article><CircleAlert/><div><strong>{cancelled.length}</strong><span>Lemondás / kiesés</span></div></article><article><Clock3/><div><strong>{formatMoney(revenue)}</strong><span>Napi foglalási érték</span></div></article></section><AppointmentTable items={filtered} loading={loading} statusNow={statusNow}/></>}
+      {view === "attendance" && <>{toolbar}<section className="ap-kpis"><article><X/><div><strong>{cancelled.filter(a => operational(a, statusNow).key === "cancelled").length}</strong><span>Lemondva</span></div></article><article><CircleAlert/><div><strong>{cancelled.filter(a => operational(a, statusNow).key === "no_show").length}</strong><span>Nem jelent meg</span></div></article><article><Users/><div><strong>{appointments.length ? Math.round(cancelled.length / appointments.length * 100) : 0}%</strong><span>Kiesési arány</span></div></article><article><BellRing/><div><strong>0</strong><span>Automatikus visszahívás</span></div></article></section><AppointmentTable items={filtered.filter(a => ["cancelled", "no_show"].includes(operational(a, statusNow).key))} loading={loading} statusNow={statusNow}/></>}
       {view === "online-booking" && <OnlineBooking channels={channels} setChannels={setChannels} toast={toast}/>} 
       {view === "notifications" && <BookingNotificationAutomation toast={toast}/>} 
       {view === "complex-services" && <ServiceSetup complex toast={toast}/>} 
@@ -122,8 +121,8 @@ export default function AppointmentsModulePage() {
   );
 }
 
-function AppointmentTable({ items, loading }: { items: Appointment[]; loading: boolean }) {
-  return <section className="ap-card ap-list"><div className="ap-card-title"><div><h2>Foglalások</h2><p>{items.length} találat</p></div><button><ListFilter size={17}/> Oszlopok</button></div><div className="ap-table-head"><span>Idő</span><span>Vendég és szolgáltatás</span><span>Munkatárs</span><span>Telephely</span><span>Állapot</span><span>Összeg</span><span/></div>{loading ? <div className="ap-empty">Adatok betöltése…</div> : items.length ? items.map(item => <div className="ap-table-row" key={item.id}><strong>{formatTime(item.start)}<small>{formatTime(item.end)}-ig</small></strong><span><b>{item.client_name || "Vendég nélkül"}</b><small>{item.service_name || item.title || "Szolgáltatás"}</small></span><span>{item.employee_name || "–"}</span><span>{item.location_name || "–"}</span><span><em className={`ap-status ${statusClass(item.status)}`}>{statusLabel(item.status)}</em></span><span>{formatMoney(item.price)}</span><button aria-label="További műveletek"><MoreHorizontal size={18}/></button></div>) : <div className="ap-empty"><CalendarDays size={34}/><h3>Nincs megjeleníthető időpont</h3><p>{formatDate(isoDate(new Date()))} környékén a kiválasztott feltételekkel nincs találat.</p></div>}</section>;
+function AppointmentTable({ items, loading, statusNow }: { items: Appointment[]; loading: boolean; statusNow: number }) {
+  return <section className="ap-card ap-list"><div className="ap-card-title"><div><h2>Foglalások</h2><p>{items.length} találat</p></div><button><ListFilter size={17}/> Oszlopok</button></div><div className="ap-table-head"><span>Idő</span><span>Vendég és szolgáltatás</span><span>Munkatárs</span><span>Telephely</span><span>Állapot</span><span>Összeg</span><span/></div>{loading ? <div className="ap-empty">Adatok betöltése…</div> : items.length ? items.map(item => { const status = operational(item, statusNow); return <div className={`ap-table-row ${status.closed ? "is-closed" : ""}`} key={item.id}><strong>{formatTime(item.start)}<small>{formatTime(item.end)}-ig</small></strong><span><b>{item.client_name || "Vendég nélkül"}</b><small>{item.service_name || item.title || "Szolgáltatás"}</small></span><span>{item.employee_name || "–"}</span><span>{item.location_name || "–"}</span><span><em className={`ap-status ${status.className}`}>{status.label}</em></span><span>{formatMoney(item.price)}</span><button aria-label="További műveletek"><MoreHorizontal size={18}/></button></div>; }) : <div className="ap-empty"><CalendarDays size={34}/><h3>Nincs megjeleníthető időpont</h3><p>{formatDate(isoDate(new Date()))} környékén a kiválasztott feltételekkel nincs találat.</p></div>}</section>;
 }
 
 function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) { return <button className={`ap-toggle ${checked ? "on" : ""}`} onClick={onChange} role="switch" aria-checked={checked}><span/></button>; }
