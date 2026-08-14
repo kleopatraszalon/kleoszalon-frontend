@@ -5,6 +5,7 @@ export type CanonicalRole =
   | "salon_manager"
   | "receptionist"
   | "employee"
+  | "accounting"
   | "customer";
 
 const aliases: Record<string, CanonicalRole> = {
@@ -14,6 +15,7 @@ const aliases: Record<string, CanonicalRole> = {
   salon_manager:"salon_manager","szalonvezető":"salon_manager",szalonvezeto:"salon_manager",
   receptionist:"receptionist",reception:"receptionist","recepciós":"receptionist",recepcios:"receptionist",
   employee:"employee",staff:"employee",worker:"employee","munkatárs":"employee",munkatars:"employee",colleague:"employee",
+  accounting:"accounting",bookkeeper:"accounting","könyvelés":"accounting",konyveles:"accounting",
   customer:"customer",client:"customer",guest:"customer","ügyfél":"customer",ugyfel:"customer","vendég":"customer",vendeg:"customer",
 };
 
