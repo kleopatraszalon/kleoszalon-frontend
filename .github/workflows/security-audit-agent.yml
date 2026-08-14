@@ -34,21 +34,26 @@ jobs:
           rm -rf kleopatra-landing/kleopatra-landing || true
           npm install --package-lock-only --ignore-scripts --no-fund
 
-      - name: Commit normalization if needed
+      - name: Apply non-breaking dependency security fixes
+        run: npm audit fix --no-fund || true
+
+      - name: Commit normalization and safe audit fixes if needed
         run: |
           if ! git diff --quiet || ! git diff --cached --quiet; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add src/App.tsx package-lock.json
+            git add src/App.tsx package.json package-lock.json
             git add -u kleopatra-landing/kleopatra-landing || true
-            git commit -m "fix: normalize routes lockfile and broken gitlink"
+            git commit -m "fix: apply safe dependency security updates"
             git push origin HEAD:agent/security-regression-hardening-20260814
           else
-            echo "No normalization changes required."
+            echo "No safe dependency changes required."
           fi
 
-      - name: Install dependencies
+      - name: Clean install dependencies
         run: npm ci --no-fund
+      - name: Full frontend test suite
+        run: CI=true npm test -- --watchAll=false
       - name: Critical navigation regression audit
         run: node scripts/check-menu-routes.js
       - name: Production build
@@ -56,4 +61,5 @@ jobs:
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
       - name: Full dependency audit report
+        if: always()
         run: npm audit --json || true
