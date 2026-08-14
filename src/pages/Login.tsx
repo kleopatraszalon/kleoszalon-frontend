@@ -4,6 +4,8 @@ import { Eye, EyeOff } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import { useLanguage } from "../i18n/LanguageProvider";
 
 const API_BASE =
   window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
@@ -45,6 +47,8 @@ function PasswordInput({
   visible: boolean;
   onToggle: () => void;
 }) {
+  const { t } = useLanguage();
+  const toggleLabel = visible ? t("login.hide_password") : t("login.show_password");
   return (
     <div style={{ position: "relative" }}>
       <input
@@ -60,8 +64,8 @@ function PasswordInput({
       <button
         type="button"
         onClick={onToggle}
-        aria-label={visible ? "Jelszó elrejtése" : "Jelszó megjelenítése"}
-        title={visible ? "Jelszó elrejtése" : "Jelszó megjelenítése"}
+        aria-label={toggleLabel}
+        title={toggleLabel}
         style={{
           position: "absolute",
           right: 8,
@@ -88,6 +92,7 @@ function PasswordInput({
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { language, t } = useLanguage();
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -119,7 +124,7 @@ const LoginPage: React.FC = () => {
       navigate("/", { replace: true });
     } catch (err) {
       console.error("Auth persist error:", err);
-      setError("Nem sikerült elmenteni a belépési adatokat.");
+      setError(t("login.persist_error"));
     }
   };
 
@@ -127,7 +132,7 @@ const LoginPage: React.FC = () => {
     ev.preventDefault();
     setError(null);
     if (!identifier.trim() || !password) {
-      setError("Add meg az e-mail címedet vagy felhasználónevedet és a jelszavadat.");
+      setError(t("login.required"));
       return;
     }
 
@@ -139,13 +144,13 @@ const LoginPage: React.FC = () => {
       });
       const body: LoginResponse = await res.json().catch(() => ({}));
       if (!res.ok || body.success === false) {
-        setError(body.error || `Sikertelen belépés (HTTP ${res.status}).`);
+        setError(body.error || (language === "en" ? `Sign-in failed (HTTP ${res.status}).` : `Sikertelen belépés (HTTP ${res.status}).`));
         return;
       }
       persistAuthAndGoHome(body);
     } catch (err) {
       console.error("Login error:", err);
-      setError("Váratlan hiba történt a bejelentkezés során.");
+      setError(t("login.unexpected"));
     } finally {
       setLoading(false);
     }
@@ -157,17 +162,14 @@ const LoginPage: React.FC = () => {
         <div className="login-card-bg" style={{ backgroundImage: `url(${bg})` }} />
         <div className="login-card-overlay" />
         <div className="login-card-inner">
-          <div className="login-header">
+          <div className="login-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
             <div className="login-logo"><img src={logo} alt="Kleopátra Szépségszalonok" /></div>
+            <LanguageSwitcher compact />
           </div>
 
-          <p className="login-tagline">
-            Modern szépségszalon-hálózat prémium szolgáltatásokkal, átlátható foglalási rendszerrel és professzionális munkatársakkal – mindezt egyetlen felületen kezelve.
-          </p>
-          <h1 className="login-title">Kleoszalon Belépés</h1>
-          <p className="login-subtitle">
-            Egyetlen belépési felület ügyfeleknek, munkatársaknak és adminisztrátoroknak. A rendszer automatikusan a megfelelő jogosultságot és telephelyet használja.
-          </p>
+          <p className="login-tagline">{t("login.tagline")}</p>
+          <h1 className="login-title">{t("login.title")}</h1>
+          <p className="login-subtitle">{t("login.subtitle")}</p>
 
           {idleLogout && (
             <div
@@ -184,14 +186,14 @@ const LoginPage: React.FC = () => {
                 lineHeight: 1.4,
               }}
             >
-              Biztonsági okból 5 perc tétlenség után automatikusan kijelentkeztettünk. A folytatáshoz jelentkezz be újra.
+              {t("login.idle")}
             </div>
           )}
           {error && <div className="login-error">{error}</div>}
 
           <form onSubmit={handleLogin}>
             <div className="login-field">
-              <label className="login-label">E-mail vagy felhasználónév</label>
+              <label className="login-label">{t("login.identifier")}</label>
               <input
                 type="text"
                 className="login-input"
@@ -199,12 +201,12 @@ const LoginPage: React.FC = () => {
                 onChange={(e) => setIdentifier(e.target.value)}
                 required
                 autoComplete="username"
-                placeholder="E-mail cím vagy felhasználónév"
+                placeholder={t("login.identifier_placeholder")}
               />
             </div>
 
             <div className="login-field">
-              <label className="login-label">Jelszó</label>
+              <label className="login-label">{t("login.password")}</label>
               <PasswordInput
                 value={password}
                 onChange={setPassword}
@@ -215,17 +217,17 @@ const LoginPage: React.FC = () => {
 
             <div className="login-row">
               <span />
-              <button type="button" className="login-link" disabled title="Hamarosan">Elfelejtett jelszó?</button>
+              <button type="button" className="login-link" disabled title={language === "en" ? "Coming soon" : "Hamarosan"}>{t("login.forgot")}</button>
             </div>
 
             <button type="submit" className="login-button" disabled={loading}>
-              {loading ? "Belépés..." : "Belépés"}
+              {loading ? t("login.loading") : t("login.submit")}
             </button>
 
             <div className="login-footer">
-              Új ügyfél vagy?{" "}
+              {t("login.register_intro")} {" "}
               <button type="button" onClick={() => navigate("/register")} className="login-footer-link">
-                Ügyfél regisztráció
+                {t("login.register")}
               </button>
             </div>
           </form>
