@@ -1,0 +1,2 @@
+import fs from'fs';import path from'path';
+test('monthly 2018 closeout exposes AI, manager comment and immutable close action',()=>{const src=fs.readFileSync(path.join(__dirname,'OperationsQualityPage.tsx'),'utf8');for(const marker of['Automatikus havi lapok + AI','AI vezetői asszisztens','Vezetői megjegyzés','Hónap lezárása','/legacy-2018/monthly/'])expect(src).toContain(marker);expect(src).toContain('Nem dönt bérről, előléptetésről, elbocsátásról vagy fegyelmi intézkedésről.');});
