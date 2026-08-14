@@ -108,7 +108,7 @@ export default function InventoryLotsPage(){
   return <div style={{maxWidth:1500,margin:"0 auto",padding:"24px 20px 48px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:18,flexWrap:"wrap",marginBottom:20}}>
       <div><div style={{fontSize:13,fontWeight:800,letterSpacing:".12em",textTransform:"uppercase",opacity:.55}}>Készletgazdálkodás</div><h1 style={{margin:"5px 0 8px",fontSize:32}}>Sarzs, lejárat és FEFO</h1><div style={{maxWidth:850,opacity:.7,lineHeight:1.55}}>A rendszer a lejáratos termékek kiadásakor automatikusan a legkorábban lejáró, még felhasználható sarzst fogyasztja. A lejárt tételeket a FEFO nem adja ki automatikusan.</div></div>
-      <button style={secondary} onClick={()=>location.assign("/warehouse/operations")}>← Raktárak és készletműveletek</button>
+      <button style={secondary} onClick={()=>window.location.assign("/warehouse/operations")}>← Raktárak és készletműveletek</button>
     </div>
 
     {error&&<div style={{...card,borderColor:"#fecaca",background:"#fff7f7",color:"#991b1b",marginBottom:16,fontWeight:650}}>{error}</div>}
