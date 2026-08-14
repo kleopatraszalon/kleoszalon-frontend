@@ -1,7 +1,7 @@
 import React,{useEffect,useMemo,useState}from'react';
 import axios from'axios';
 import{NavLink,useLocation,useNavigate}from'react-router-dom';
-import{BookOpenText,Boxes,CalendarDays,ChartNoAxesCombined,ChevronDown,ChevronRight,Circle,ClipboardCheck,Database,Gift,LayoutDashboard,ShoppingBag,UserCog,Users,WalletCards,type LucideIcon}from'lucide-react';
+import{BookOpenText,Boxes,CalendarDays,ChartNoAxesCombined,ChevronDown,ChevronRight,Circle,ClipboardCheck,Database,Gift,LayoutDashboard,MonitorPlay,ShoppingBag,UserCog,Users,WalletCards,type LucideIcon}from'lucide-react';
 import Logo from'../assets/kleo_logo.png';
 import SidebarCalendar from'./SidebarCalendar';
 import{translateMenuLabel,useLanguage}from'../i18n/LanguageProvider';
@@ -11,7 +11,7 @@ const MENU_CACHE_KEY='kleo.menu.cache.v15';
 interface RawMenuItem{id:number;name:string;icon?:string|null;route?:string|null;parent_id?:number|null;required_role?:string|null;order_index?:number|null;submenus?:RawMenuItem[]}
 interface MenuItem{id:number;name:string;icon?:string;route?:string;children:MenuItem[]}
 interface SidebarProps{user?:{role?:string|string[]|null}|null}
-const icons:Record<string,LucideIcon>={LayoutDashboard,CalendarDays,Users,Gift,UserCog,WalletCards,Boxes,ChartNoAxesCombined,ShoppingBag,ClipboardCheck,BookOpenText,Database};
+const icons:Record<string,LucideIcon>={LayoutDashboard,CalendarDays,Users,Gift,UserCog,WalletCards,Boxes,ChartNoAxesCombined,ShoppingBag,ClipboardCheck,BookOpenText,Database,MonitorPlay};
 const Icon=({name}:{name?:string})=>{const C=(name&&icons[name])||Circle;return <C className="kleo-sidebar-menu-icon" size={17} strokeWidth={1.8}/>};
 const LEGACY_ROUTES:Record<string,string>={'/products':'/warehouse/products','/masterdata/products':'/warehouse/products','/inventory/products':'/warehouse/products','/inventory':'/warehouse','/procurement':'/warehouse?view=procurement&section=dashboard','/warehouse/procurement':'/warehouse?view=procurement&section=dashboard','/appointments':'/appointments/calendar','/clients':'/modules/customers/clients','/crm':'/modules/customers/crm','/team':'/employees','/staff':'/employees','/workorders/list':'/workorders'};
 const norm=(r?:string)=>{if(!r)return'#';let s=r.trim();if(!s.startsWith('/'))s='/'+s;s=s.replace(/\/{2,}/g,'/');const[p,...rest]=s.split('?');const canonical=LEGACY_ROUTES[p]||p;if(canonical.includes('?'))return canonical;return rest.length?`${canonical}?${rest.join('?')}`:canonical};
@@ -56,6 +56,8 @@ const ACCOUNTING:MenuItem[]=[
  {id:99307,name:'Könyvelési tudástár',icon:'BookOpenText',route:'/knowledge-base',children:[]}
 ];
 const FALLBACK:MenuItem[]=[{id:90001,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:90007,name:'Pénzügyek',icon:'WalletCards',route:'/finance',children:[]},{id:90008,name:'Raktár és készlet',icon:'Boxes',route:'/warehouse',children:[]},{id:90009,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];
+const SPEC_PARITY:MenuItem={id:99401,name:'VIR specifikáció',icon:'ClipboardCheck',route:'/admin/vir/spec-parity',children:[]};
+const WALLBOARD:MenuItem={id:99402,name:'WallBoard / TV napi akció',icon:'MonitorPlay',route:'/marketing/wallboard',children:[]};
 
 export default function Sidebar({user}:SidebarProps){
  const location=useLocation(),navigate=useNavigate(),{language}=useLanguage(),rk=useMemo(()=>roleList(user?.role),[user?.role]);
@@ -68,7 +70,7 @@ export default function Sidebar({user}:SidebarProps){
  const[menus,setMenus]=useState<MenuItem[]>(FALLBACK),[open,setOpen]=useState<number[]>(()=>isAccounting?[99302,99303,99304]:[]);
  useEffect(()=>{if(isCustomer||isAccounting||isLocationScoped||isStaff)return;void(async()=>{const token=localStorage.getItem('token')||localStorage.getItem('kleo_token'),config={withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}};try{const r=await axios.get(`${API_BASE}/menus`,config),tree=buildTree(Array.isArray(r.data)?r.data:[],user?.role||null);if(tree.length){setMenus(tree);localStorage.setItem(MENU_CACHE_KEY,JSON.stringify(tree));return}}catch{}try{const p=JSON.parse(localStorage.getItem(MENU_CACHE_KEY)||'null');if(Array.isArray(p)&&p.length)setMenus(p)}catch{}})()},[user,isCustomer,isAccounting,isLocationScoped,isStaff]);
  useEffect(()=>{if(isAccounting)setOpen(p=>Array.from(new Set([...p,99302,99303,99304])));},[isAccounting]);
- const visible=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:menus;
+ const visible=useMemo(()=>{const base=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:menus;if(isAdmin||isManager){const extras=[WALLBOARD,SPEC_PARITY].filter(extra=>!base.some(x=>x.route===extra.route));return extras.length?[...base,...extras]:base}return base},[isCustomer,isAccounting,isLocationScoped,isStaff,isAdmin,isManager,menus]);
  useEffect(()=>{const parents:number[]=[];const walk=(xs:MenuItem[],ps:number[]=[])=>xs.forEach(x=>{if(x.route&&routeActive(x.route,location))parents.push(...ps);if(x.children.length)walk(x.children,[...ps,x.id])});walk(visible);if(parents.length)setOpen(p=>Array.from(new Set([...p,...parents])))},[location.pathname,location.search,visible]);
  const dateSelect=(d:Date)=>{const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;navigate(`/appointments/calendar?date=${s}`)};
  const subtitle=isAccounting?(language==='en'?'Accounting workspace':'Könyvelési felület'):isCustomer?(language==='en'?'Customer account':'Ügyfélfiók'):isLocationScoped?(language==='en'?'Salon workspace':'Szalon felület'):isStaff?(language==='en'?'Staff workspace':'Munkatársi felület'):(language==='en'?'Admin workspace':'Admin felület');
