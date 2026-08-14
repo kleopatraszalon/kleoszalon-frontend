@@ -21,3 +21,38 @@ test("Stage17 uses shared language, audit, recycle-bin and filter infrastructure
   expect(master).toMatch(/system-hardening/);
   expect(master).toMatch(/\/archive/);
 });
+
+test("Stage17 bilingual coverage includes login, staff and CRM operational pages",()=>{
+  const dictionary=read("src/i18n/LanguageProvider.tsx");
+  const login=read("src/pages/Login.tsx");
+  const staff=read("src/pages/EmployeesList.tsx");
+  const crm=read("src/pages/ClientsCRMCore.tsx");
+  expect(dictionary).toMatch(/"staff\.title"/);
+  expect(dictionary).toMatch(/"crm\.new_customer"/);
+  expect(login).toMatch(/useLanguage/);
+  expect(login).toMatch(/LanguageSwitcher/);
+  expect(staff).toMatch(/useLanguage/);
+  expect(staff).toMatch(/staff\.search/);
+  expect(crm).toMatch(/useLanguage/);
+  expect(crm).toMatch(/crm\.tab\./);
+  expect(crm).toMatch(/Intl\.DateTimeFormat\(locale/);
+});
+
+test("Stage17 bilingual coverage includes service and product master catalogs",()=>{
+  const services=read("src/pages/ServicesCatalogPage.tsx");
+  const products=read("src/pages/ProductCatalogPage.tsx");
+  const newService=read("src/components/ServiceNewModal.tsx");
+  expect(services).toMatch(/useLanguage/);
+  expect(services).toMatch(/toLocaleString\(locale\)/);
+  expect(services).toMatch(/Active only/);
+  expect(products).toMatch(/useLanguage/);
+  expect(products).toMatch(/toLocaleString\(locale\)/);
+  expect(products).toMatch(/Other product type/);
+  expect(products).toMatch(/All subcategories/);
+  expect(newService).toMatch(/useLanguage/);
+  expect(newService).toMatch(/Add new service/);
+  expect(newService).toMatch(/parent_service_id/);
+  expect(newService).toMatch(/promo_valid_from/);
+  expect(newService).toMatch(/online_bookable/);
+  expect(newService).toMatch(/is_combo/);
+});
