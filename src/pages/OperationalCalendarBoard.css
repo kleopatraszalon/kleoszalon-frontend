@@ -199,7 +199,7 @@
     linear-gradient(to bottom, rgba(225, 216, 221, .78) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(237, 231, 234, .55) 1px, transparent 1px);
   background-position: 0 0, 0 0;
-  background-size: 100% 36px, 100% 18px;
+  background-size: 100% 60px, 100% 30px;
   cursor: crosshair;
 }
 
@@ -208,26 +208,28 @@
 }
 
 .operational-calendar-event {
+  --status-accent: rgba(80, 70, 75, .45);
   position: absolute;
   z-index: 3;
   display: flex;
   min-width: 0;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
+  gap: 2px;
   overflow: hidden;
   box-sizing: border-box;
-  padding: 5px 7px;
+  padding: 6px 8px 6px 10px;
   border: 1px solid;
-  border-radius: 6px;
-  box-shadow: 0 2px 5px rgba(63, 43, 52, .11);
+  border-radius: 7px;
+  box-shadow: inset 4px 0 0 var(--status-accent), 0 2px 5px rgba(63, 43, 52, .11);
   cursor: pointer;
   text-align: left;
-  transition: box-shadow .14s ease, transform .14s ease;
+  transition: box-shadow .14s ease, transform .14s ease, opacity .14s ease;
 }
 
 .operational-calendar-event:hover {
   z-index: 4;
-  box-shadow: 0 5px 13px rgba(63, 43, 52, .18);
+  box-shadow: inset 4px 0 0 var(--status-accent), 0 5px 13px rgba(63, 43, 52, .18);
   transform: translateY(-1px);
 }
 
@@ -235,33 +237,168 @@
   cursor: grabbing;
 }
 
+.operational-event-topline {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
 .operational-calendar-event b,
 .operational-calendar-event strong,
 .operational-calendar-event small {
   display: block;
+  min-width: 0;
   max-width: 100%;
+}
+
+.operational-calendar-event b {
   overflow: hidden;
+  flex: 1 1 auto;
+  margin: 0;
+  font-size: 10px;
+  font-weight: 850;
+  font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.operational-calendar-event b {
-  margin-bottom: 2px;
-  font-size: 9px;
-  font-weight: 800;
-  font-variant-numeric: tabular-nums;
+.operational-calendar-event strong {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.operational-calendar-event strong {
-  font-size: 11px;
-  line-height: 1.15;
+.operational-event-details {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
 }
 
 .operational-calendar-event small {
-  margin-top: 2px;
+  overflow: hidden;
+  font-size: 10px;
+  line-height: 1.18;
+  opacity: .9;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operational-status-badge {
+  flex: 0 0 auto;
+  max-width: 52%;
+  overflow: hidden;
+  padding: 2px 6px;
+  border: 1px solid rgba(75, 65, 70, .15);
+  border-radius: 999px;
+  background: rgba(255,255,255,.76);
+  color: currentColor;
   font-size: 9px;
-  line-height: 1.15;
-  opacity: .86;
+  font-weight: 900;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operational-calendar-event.is-compact {
+  gap: 1px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.operational-calendar-event.is-compact strong {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  -webkit-line-clamp: 1;
+}
+
+.operational-calendar-event.is-compact .operational-event-details {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.operational-calendar-event.is-compact .operational-event-details small {
+  display: inline;
+  font-size: 9px;
+}
+
+.operational-calendar-event.is-compact .operational-event-details small + small::before {
+  content: " · ";
+}
+
+.operational-calendar-event.status-waiting {
+  --status-accent: #b9852f;
+}
+
+.operational-calendar-event.status-late {
+  --status-accent: #d94848;
+}
+
+.operational-calendar-event.status-late .operational-status-badge {
+  border-color: #efb0b0;
+  background: #fff0f0;
+  color: #a72d2d;
+}
+
+.operational-calendar-event.status-arrived {
+  --status-accent: #2f9b68;
+}
+
+.operational-calendar-event.status-arrived .operational-status-badge {
+  border-color: #a8dbc1;
+  background: #edf9f2;
+  color: #23734e;
+}
+
+.operational-calendar-event.status-in-progress {
+  --status-accent: #3d74c5;
+}
+
+.operational-calendar-event.status-in-progress .operational-status-badge {
+  border-color: #adc7eb;
+  background: #eef4ff;
+  color: #315f9f;
+}
+
+.operational-calendar-event.status-cancelled,
+.operational-calendar-event.status-no-show {
+  --status-accent: #b85b67;
+  opacity: .72;
+}
+
+.operational-calendar-event.is-closed,
+.operational-calendar-event.status-closed {
+  --status-accent: #8d8d8d;
+  border-color: #c4c4c4 !important;
+  background: #e8e8e8 !important;
+  color: #666 !important;
+  box-shadow: inset 4px 0 0 #8d8d8d, 0 1px 3px rgba(70,70,70,.12);
+  cursor: default;
+  filter: grayscale(.82) saturate(.18);
+  opacity: .84;
+}
+
+.operational-calendar-event.is-closed:hover,
+.operational-calendar-event.status-closed:hover {
+  box-shadow: inset 4px 0 0 #8d8d8d, 0 2px 5px rgba(70,70,70,.14);
+  transform: none;
+}
+
+.operational-calendar-event.is-closed .operational-status-badge,
+.operational-calendar-event.status-closed .operational-status-badge {
+  border-color: #bcbcbc;
+  background: #d7d7d7;
+  color: #555;
 }
 
 .operational-now-line {
@@ -330,5 +467,11 @@
 
   .operational-mode-switcher button {
     flex: 0 0 auto;
+  }
+
+  .operational-status-badge {
+    max-width: 48%;
+    padding-inline: 4px;
+    font-size: 8px;
   }
 }
