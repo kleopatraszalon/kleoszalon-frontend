@@ -1,7 +1,8 @@
 import React,{useState}from"react";
 import{NavLink}from"react-router-dom";
-import{Archive,BarChart3,BookOpenText,Boxes,Building2,Calculator,ChevronDown,ChevronRight,FileSpreadsheet,Landmark,LayoutDashboard,ReceiptText,ShoppingBag,Users,WalletCards}from"lucide-react";
+import{BarChart3,BookOpenText,Boxes,Calculator,ChevronDown,ChevronRight,FileSpreadsheet,LayoutDashboard,ShoppingBag,WalletCards}from"lucide-react";
 import Logo from"../assets/kleo_logo.png";
+import"../layouts/AccountingSidebarFix.css";
 
 type LinkItem={label:string;to:string};
 type Group={label:string;icon:React.ReactNode;items:LinkItem[]};
