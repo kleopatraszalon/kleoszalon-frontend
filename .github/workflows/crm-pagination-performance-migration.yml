@@ -1,0 +1,61 @@
+name: CRM frontend pagination performance migration
+on:
+  push:
+    branches:
+      - agent/security-regression-hardening-20260814
+    paths:
+      - .github/workflows/crm-pagination-performance-migration.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/security-regression-hardening-20260814
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Paginate CRM client list
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/pages/ClientsCRMCore.tsx')
+          s=p.read_text(encoding='utf-8')
+          tabs='''const tabs=[{key:"list",icon:Users},{key:"profiles",icon:UserRound},{key:"forms",icon:ClipboardList},{key:"segments",icon:Tag},{key:"import",icon:Merge}] as const;'''
+          if tabs not in s: raise SystemExit('tabs anchor not found')
+          s=s.replace(tabs,tabs+'\nconst CLIENT_PAGE_SIZE=100;',1)
+          state='''const[clients,setClients]=useState<Client[]>([]);const[stats,setStats]=useState<Stats>({total:0,active:0,new_this_month:0,with_no_show:0});'''
+          if state not in s: raise SystemExit('state anchor not found')
+          s=s.replace(state,'''const[clients,setClients]=useState<Client[]>([]);const[clientOffset,setClientOffset]=useState(0);const[hasMoreClients,setHasMoreClients]=useState(true);const[stats,setStats]=useState<Stats>({total:0,active:0,new_this_month:0,with_no_show:0});''',1)
+          old='''const load=useCallback(async()=>{setLoading(true);setError("");try{const params=new URLSearchParams({q:query,status});if(tagId)params.set("tag_id",tagId);const[list,s,tags]=await Promise.all([api<Client[]>(`clients?${params}`),api<Stats>("clients/stats"),api<any[]>("clients/segments")]);setClients(list);setStats(s);setSegments(tags);setOpenGroups({});if(view==="forms")setForms(await api<FormTemplate[]>("clients/forms"));if(view==="import")setDuplicates(await api<Duplicate[]>("clients/duplicates"));}catch(e:any){setError(e.message||text("Nem sikerült betölteni az ügyfeleket.","Customers could not be loaded."))}finally{setLoading(false)}},[query,status,tagId,view,language]);'''
+          new='''const load=useCallback(async()=>{setLoading(true);setError("");try{const params=new URLSearchParams({q:query,status,limit:String(CLIENT_PAGE_SIZE),offset:"0"});if(tagId)params.set("tag_id",tagId);const[list,s,tags]=await Promise.all([api<Client[]>(`clients?${params}`),api<Stats>("clients/stats"),api<any[]>("clients/segments")]);setClients(list);setClientOffset(list.length);setHasMoreClients(list.length===CLIENT_PAGE_SIZE);setStats(s);setSegments(tags);setOpenGroups({});if(view==="forms")setForms(await api<FormTemplate[]>("clients/forms"));if(view==="import")setDuplicates(await api<Duplicate[]>("clients/duplicates"));}catch(e:any){setError(e.message||text("Nem sikerült betölteni az ügyfeleket.","Customers could not be loaded."))}finally{setLoading(false)}},[query,status,tagId,view,language]);\nconst loadMoreClients=useCallback(async()=>{if(loading||!hasMoreClients)return;setLoading(true);setError("");try{const params=new URLSearchParams({q:query,status,limit:String(CLIENT_PAGE_SIZE),offset:String(clientOffset)});if(tagId)params.set("tag_id",tagId);const next=await api<Client[]>(`clients?${params}`);setClients(current=>[...current,...next]);setClientOffset(current=>current+next.length);setHasMoreClients(next.length===CLIENT_PAGE_SIZE);}catch(e:any){setError(e.message||text("Nem sikerült további ügyfeleket betölteni.","More customers could not be loaded."))}finally{setLoading(false)}},[clientOffset,hasMoreClients,loading,query,status,tagId,language]);'''
+          if old not in s: raise SystemExit('load block not found')
+          s=s.replace(old,new,1)
+          marker='''</div></section>}\n{view==="segments"'''
+          button='''</div>{hasMoreClients&&!loading&&<div style={{display:"flex",justifyContent:"center",padding:"16px 0"}}><button className="crm-secondary" onClick={loadMoreClients}>{text("További ügyfelek betöltése","Load more customers")}</button></div>}</section>}\n{view==="segments"'''
+          if marker not in s: raise SystemExit('list section marker not found')
+          s=s.replace(marker,button,1)
+          p.write_text(s,encoding='utf-8')
+      - name: Clean install
+        run: npm ci
+      - name: Full frontend regression
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
+      - name: Production build
+        env:
+          CI: false
+        run: npm run build
+      - name: Commit verified pagination
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/ClientsCRMCore.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "perf: paginate CRM customer list"
+          git push origin HEAD:agent/security-regression-hardening-20260814
