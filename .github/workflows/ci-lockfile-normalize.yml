@@ -73,10 +73,9 @@ jobs:
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
             git add package-lock.json
             git commit -m 'ci: normalize frontend package lockfile'
+            git pull --rebase origin agent/ci-final-hardening-20260815
             git push origin HEAD:agent/ci-final-hardening-20260815
           fi
 
       - name: Enforce high/critical production dependency gate
         run: node -e "const a=require('./audit-prod.json'); const v=a.metadata?.vulnerabilities||{}; console.log(v); if((v.high||0)+(v.critical||0)>0) process.exit(1)"
-
-# Final rerun after branch stabilization.
