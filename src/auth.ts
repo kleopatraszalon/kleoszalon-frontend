@@ -1,18 +1,27 @@
-// src/api/auth.ts
-export type LoginResponse = { token: string; user: { id: number; email: string; role: string } };
+import api from "./api/api";
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  const res = await fetch('/api/login', {            // ⬅️ proxy miatt elég a relatív útvonal
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
+export type LoginResponse = {
+  token: string;
+  user?: { id: number | string; email: string; role: string | string[] };
+  success?: boolean;
+  role?: string | string[];
+  account_type?: string;
+  location_id?: string | number | null;
+  location_name?: string | null;
+  full_name?: string | null;
+  email?: string | null;
+  login_name?: string | null;
+};
+
+/**
+ * Canonical login helper. It intentionally uses the shared API client instead
+ * of a relative fetch('/api/login'), because the admin UI is hosted on a
+ * different Render origin than the API in production.
+ */
+export async function login(identifier: string, password: string): Promise<LoginResponse> {
+  const response = await api.post<LoginResponse>("/login", {
+    identifier: identifier.trim(),
+    password,
   });
-
-  // 401: hibás adatok, 404: rossz útvonal, stb.
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = (data && (data.error || data.message)) || `Login failed (${res.status})`;
-    throw new Error(msg);
-  }
-  return data;
+  return response.data;
 }
