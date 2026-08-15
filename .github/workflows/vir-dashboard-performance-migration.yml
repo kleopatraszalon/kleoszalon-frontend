@@ -1,0 +1,56 @@
+name: VIR dashboard performance migration
+on:
+  push:
+    branches:
+      - agent/security-regression-hardening-20260814
+    paths:
+      - src/api/vir.ts
+      - .github/workflows/vir-dashboard-performance-migration.yml
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  migrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/security-regression-hardening-20260814
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Switch dashboard to aggregated endpoint
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/pages/VirDashboardPage.tsx')
+          s=p.read_text(encoding='utf-8')
+          old='''import {\n  getVirCancellationStats,\n  getVirDashboard,\n  getVirKioskConversion,\n  getVirRevenueSeries,\n  getVirSignageImpact,\n  getVirSourcePerformance,\n  getVirTopServices,\n  getVirTopStaff,\n  VirCancellationStatsRow,\n  VirDashboardSummary,\n  VirKioskConversionRow,\n  VirRevenueRow,\n  VirSignageImpactRow,\n  VirSourcePerformanceRow,\n  VirTopServiceRow,\n  VirTopStaffRow,\n} from "../api/vir";'''
+          new='''import {\n  getVirDashboardFast,\n  VirCancellationStatsRow,\n  VirDashboardSummary,\n  VirKioskConversionRow,\n  VirRevenueRow,\n  VirSignageImpactRow,\n  VirSourcePerformanceRow,\n  VirTopServiceRow,\n  VirTopStaffRow,\n} from "../api/vir";'''
+          if old not in s: raise SystemExit('VIR import block not found')
+          s=s.replace(old,new,1)
+          start=s.index('  const loadAll = useCallback(async')
+          end=s.index('\n\n  useEffect(() => {\n    if (!currentUser) return;', start)
+          replacement='''  const loadAll = useCallback(async (userOverride?: CurrentUser | null) => {\n    setLoading(true);\n    setError("");\n    try {\n      const user = userOverride ?? currentUser;\n      const effectiveLocationId = getEffectiveLocationId(user, locationId);\n      const common = { from, to, locationId: effectiveLocationId || undefined };\n\n      // A dashboard korábbi 9 VIR API-kérése helyett egy aggregált, rövid TTL-cache-elt\n      // végpontot használ. A ritkán változó célérték külön kérés marad.\n      const [fast, targetsData] = await Promise.all([\n        getVirDashboardFast({ ...common, limit: 10 }),\n        getVirTargets(effectiveLocationId || undefined),\n      ]);\n\n      setSummary(fast.summary);\n      setPrevSummary(fast.prevSummary);\n      setRevenueSeries(fast.revenueSeries || []);\n      setTopServices(fast.topServices || []);\n      setTopStaff(fast.topStaff || []);\n      setSourceRows(fast.sourceRows || []);\n      setCancelRows(fast.cancelRows || []);\n      setKioskRows(fast.kioskRows || []);\n      setSignageRows(fast.signageRows || []);\n      setTargets(targetsData);\n    } catch (e: any) {\n      setError(e?.message || "VIR betöltési hiba");\n    } finally {\n      setLoading(false);\n    }\n  }, [currentUser, from, locationId, to]);'''
+          s=s[:start]+replacement+s[end:]
+          p.write_text(s,encoding='utf-8')
+      - name: Clean install
+        run: npm ci
+      - name: Full frontend regression
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
+      - name: Production build
+        env:
+          CI: false
+        run: npm run build
+      - name: Commit verified performance migration
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/VirDashboardPage.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m "perf: reduce VIR dashboard network fan-out"
+          git push origin HEAD:agent/security-regression-hardening-20260814
