@@ -6,11 +6,7 @@ import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
-
-const API_BASE =
-  window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000/api"
-    : "https://kleoszalon-api-1.onrender.com/api";
+import api from "../api/api";
 
 type LoginResponse = {
   success?: boolean;
@@ -24,17 +20,6 @@ type LoginResponse = {
   login_name?: string | null;
   error?: string;
 };
-
-function apiUrl(path: string) {
-  return `${API_BASE}/${String(path).replace(/^\/+/, "")}`;
-}
-
-async function apiFetch(path: string, init: RequestInit = {}) {
-  const headers = new Headers(init.headers || {});
-  headers.set("Accept", "application/json");
-  if (init.body != null && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
-  return fetch(apiUrl(path), { ...init, headers, credentials: "include", cache: "no-store" });
-}
 
 function PasswordInput({
   value,
@@ -138,19 +123,28 @@ const LoginPage: React.FC = () => {
 
     setLoading(true);
     try {
-      const res = await apiFetch("login", {
-        method: "POST",
-        body: JSON.stringify({ identifier: identifier.trim(), password }),
+      const response = await api.post<LoginResponse>("/login", {
+        identifier: identifier.trim(),
+        password,
       });
-      const body: LoginResponse = await res.json().catch(() => ({}));
-      if (!res.ok || body.success === false) {
-        setError(body.error || (language === "en" ? `Sign-in failed (HTTP ${res.status}).` : `Sikertelen belépés (HTTP ${res.status}).`));
+      const body = response.data || {};
+      if (body.success === false) {
+        setError(body.error || t("login.unexpected"));
         return;
       }
       persistAuthAndGoHome(body);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Login error:", err);
-      setError(t("login.unexpected"));
+      const status = err?.response?.status;
+      const body = err?.response?.data as LoginResponse | undefined;
+      setError(
+        body?.error ||
+          (status
+            ? language === "en"
+              ? `Sign-in failed (HTTP ${status}).`
+              : `Sikertelen belépés (HTTP ${status}).`
+            : t("login.unexpected")),
+      );
     } finally {
       setLoading(false);
     }
