@@ -25,14 +25,7 @@ import {
   getEffectiveLocationId,
 } from "../utils/roleDashboard";
 import {
-  getVirCancellationStats,
-  getVirDashboard,
-  getVirKioskConversion,
-  getVirRevenueSeries,
-  getVirSignageImpact,
-  getVirSourcePerformance,
-  getVirTopServices,
-  getVirTopStaff,
+  getVirDashboardFast,
   VirCancellationStatsRow,
   VirDashboardSummary,
   VirKioskConversionRow,
@@ -176,37 +169,22 @@ export default function VirDashboardPage() {
       const effectiveLocationId = getEffectiveLocationId(user, locationId);
       const common = { from, to, locationId: effectiveLocationId || undefined };
 
-      const start = new Date(from);
-      const end = new Date(to);
-      const dayDiff = Math.max(1, Math.round((end.getTime() - start.getTime()) / 86400000) + 1);
-      const prevToDate = new Date(start);
-      prevToDate.setDate(prevToDate.getDate() - 1);
-      const prevFromDate = new Date(prevToDate);
-      prevFromDate.setDate(prevFromDate.getDate() - (dayDiff - 1));
-      const prevCommon = { from: isoDate(prevFromDate), to: isoDate(prevToDate), locationId: effectiveLocationId || undefined };
-
-      const [summaryData, prevSummaryData, revenueData, servicesData, staffData, sourceData, cancelData, kioskData, signageData, targetsData] = await Promise.all([
-        getVirDashboard(common),
-        getVirDashboard(prevCommon),
-        getVirRevenueSeries(common),
-        getVirTopServices(10),
-        getVirTopStaff(10),
-        getVirSourcePerformance({ locationId: effectiveLocationId || undefined }),
-        getVirCancellationStats(common),
-        getVirKioskConversion(common),
-        getVirSignageImpact({ locationId: effectiveLocationId || undefined }),
+      // A dashboard korábbi 9 VIR API-kérése helyett egy aggregált, rövid TTL-cache-elt
+      // végpontot használ. A ritkán változó célérték külön kérés marad.
+      const [fast, targetsData] = await Promise.all([
+        getVirDashboardFast({ ...common, limit: 10 }),
         getVirTargets(effectiveLocationId || undefined),
       ]);
 
-      setSummary(summaryData);
-      setPrevSummary(prevSummaryData);
-      setRevenueSeries(revenueData);
-      setTopServices(servicesData);
-      setTopStaff(staffData);
-      setSourceRows(sourceData);
-      setCancelRows(cancelData);
-      setKioskRows(kioskData);
-      setSignageRows(signageData);
+      setSummary(fast.summary);
+      setPrevSummary(fast.prevSummary);
+      setRevenueSeries(fast.revenueSeries || []);
+      setTopServices(fast.topServices || []);
+      setTopStaff(fast.topStaff || []);
+      setSourceRows(fast.sourceRows || []);
+      setCancelRows(fast.cancelRows || []);
+      setKioskRows(fast.kioskRows || []);
+      setSignageRows(fast.signageRows || []);
       setTargets(targetsData);
     } catch (e: any) {
       setError(e?.message || "VIR betöltési hiba");
