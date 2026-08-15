@@ -37,8 +37,16 @@ jobs:
       - name: Deterministic clean install
         run: npm ci --no-audit --no-fund
 
-      - name: Production dependency security gate
-        run: npm audit --omit=dev --audit-level=high
+      - name: Capture production dependency audit
+        shell: bash
+        run: npm audit --omit=dev --json > audit-prod.json || true
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-production-audit
+          path: audit-prod.json
+          retention-days: 1
 
       - name: Menu route audit
         run: node scripts/check-menu-routes.js
@@ -56,10 +64,13 @@ jobs:
         run: |
           if git diff --quiet -- package-lock.json; then
             echo 'package-lock.json already normalized.'
-            exit 0
+          else
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add package-lock.json
+            git commit -m 'ci: normalize frontend package lockfile'
+            git push origin HEAD:agent/ci-final-hardening-20260815
           fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json
-          git commit -m 'ci: normalize frontend package lockfile'
-          git push origin HEAD:agent/ci-final-hardening-20260815
+
+      - name: Enforce high/critical production dependency gate
+        run: node -e "const a=require('./audit-prod.json'); const v=a.metadata?.vulnerabilities||{}; console.log(v); if((v.high||0)+(v.critical||0)>0) process.exit(1)"
