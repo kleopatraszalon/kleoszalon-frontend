@@ -6,6 +6,16 @@ on:
     paths:
       - 'src/**'
       - 'public/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vir-frontend-regression.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'scripts/**'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/vir-frontend-regression.yml'
@@ -15,7 +25,7 @@ permissions:
   contents: read
 
 jobs:
-  test-and-build:
+  test-build-security:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -31,11 +41,11 @@ jobs:
           node-version: '20'
           cache: npm
 
-      # The repository lockfile is currently not npm-ci clean; the established
-      # frontend pipeline also uses npm install. Keep the RC gate executable
-      # while the lockfile drift remains visible as a separate hardening item.
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Deterministic clean install
+        run: npm ci --no-audit --no-fund
+
+      - name: Production dependency security gate
+        run: npm audit --omit=dev --audit-level=high
 
       - name: Menu route audit
         run: node scripts/check-menu-routes.js
