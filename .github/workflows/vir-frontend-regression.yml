@@ -1,0 +1,49 @@
+name: VIR frontend regression gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/vir-frontend-regression.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      CI: 'true'
+      REACT_APP_API_ORIGIN: https://kleoszalon-api-1.onrender.com
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      # The repository lockfile is currently not npm-ci clean; the established
+      # frontend pipeline also uses npm install. Keep the RC gate executable
+      # while the lockfile drift remains visible as a separate hardening item.
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Menu route audit
+        run: node scripts/check-menu-routes.js
+
+      - name: Run complete frontend regression suite
+        run: npm test -- --watchAll=false --runInBand
+
+      - name: Production build
+        env:
+          CI: 'false'
+        run: npm run build

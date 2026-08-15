@@ -1,27 +1,5 @@
-// src/api.ts
-import axios from "axios";
-
-const API_BASE =
-  (process.env as any).REACT_APP_API_URL ||
-  "https://kleoszalon-api-1.onrender.com";
-
-const api = axios.create({
-  baseURL: API_BASE,
-  withCredentials: false,
-});
-
-// Auth header (Bearer token) automatikus hozzáadása
-api.interceptors.request.use((config) => {
-  const t =
-    localStorage.getItem("kleo_token") ||
-    localStorage.getItem("token") ||
-    sessionStorage.getItem("kleo_token") ||
-    sessionStorage.getItem("token");
-  if (t) {
-    config.headers = config.headers ?? {};
-    (config.headers as any).Authorization = `Bearer ${t}`;
-  }
-  return config;
-});
-
-export default api;
+// Backward-compatible API entry point.
+// All frontend code must use the canonical client from src/api/api.ts so that
+// origin detection, /api prefixing, auth headers and credential handling stay
+// identical across the VIR admin and mobile/PWA surfaces.
+export { default } from "./api/api";
