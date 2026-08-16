@@ -15,4 +15,23 @@ describe('Platform tenant admin UI contract',()=>{
   expect(panel).toContain('/status');
   expect(panel).toContain("r.slug==='kleopatra'");
  });
+ test('supports one-click admin, location and plan-module provisioning',()=>{
+  expect(panel).toContain('Egykattintásos provisioning');
+  expect(panel).toContain('auto_invite_admin');
+  expect(panel).toContain('admin_email');
+  expect(panel).toContain('provision_location');
+  expect(panel).toContain('location_name');
+  expect(panel).toContain('location_city');
+  expect(panel).toContain('apply_plan_modules');
+  expect(panel).toContain('Csomag moduljainak automatikus beállítása');
+  expect(panel).toContain('Első admin automatikus meghívása');
+  expect(panel).toContain('Alap telephely létrehozása');
+ });
+ test('shows provisioning feedback and derived onboarding state',()=>{
+  expect(panel).toContain('admin_invitation');
+  expect(panel).toContain('default_location');
+  expect(panel).toContain('plan_modules');
+  expect(panel).toContain('onboarding_progress');
+  expect(panel).toContain('onboarding_next_step');
+ });
 });
