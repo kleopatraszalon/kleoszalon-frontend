@@ -24,8 +24,9 @@ test("calendar cards are enlarged and terminal work orders are greyed out", () =
   expect(css).toContain("filter: grayscale(.82) saturate(.18)");
 });
 
-test("receptionist dashboard keeps checklist and full-width scrolling days", () => {
-  expect(reception).toContain("<DashboardChecklistCard />");
+test("receptionist dashboard keeps configurable checklist and full-width scrolling days", () => {
+  expect(reception).toContain("showChecklist&&<DashboardChecklistCard/>");
+  expect(reception).toContain("showCalendar&&<AppointmentsCalendarCore");
   expect(reception).toContain('AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}');
   expect(css).toContain("scroll-snap-type: x mandatory");
   expect(css).toContain("calc(100cqw - 76px)");
