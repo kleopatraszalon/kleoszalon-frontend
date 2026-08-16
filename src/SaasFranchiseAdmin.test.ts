@@ -67,6 +67,15 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(settlements).toContain('Követelés könyvelése');
   });
 
+  test('partner billing and VAT can be edited before invoice draft creation', () => {
+    expect(settlements).toContain('/members/${billingReceivable.franchise_member_id}/billing');
+    expect(settlements).toContain('Partneradatok / ÁFA');
+    expect(settlements).toContain('Franchise partner számlázási adatai');
+    expect(settlements).toContain('billing_vat_rate:vat');
+    expect(settlements).toContain('ÁFA %');
+    expect(settlements).toContain('Partneradatok mentése');
+  });
+
   test('invoice draft is explicit, guarded and never presented as an automatically issued invoice', () => {
     expect(settlements).toContain('/create-invoice-draft');
     expect(settlements).toContain('FRANCHISE_VAT_RATE_REQUIRED');
