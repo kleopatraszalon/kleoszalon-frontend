@@ -10,7 +10,6 @@ const defaultBase =
     ? window.location.origin
     : "";
 
-// Ha nincs env-ben API base, akkor same-origin
 const API_BASE = (rawBase || defaultBase || "").replace(/\/+$/, "");
 
 export function getBaseUrl(): string {
@@ -28,10 +27,8 @@ export function withBase(path: string): string {
   const lowerBase = base.toLowerCase();
   const lowerPath = p.toLowerCase();
 
-  // Ha a BASE már /api-ra végződik, és az útvonal is /api/-val indul,
-  // akkor az útvonal elejéről levesszük a /api-t, hogy ne legyen duplikáció (/api/api/...).
   if (lowerBase.endsWith("/api") && lowerPath.startsWith("/api/")) {
-    p = p.slice(4); // "/api" = 4 karakter
+    p = p.slice(4);
   }
 
   return base + p;
@@ -39,13 +36,17 @@ export function withBase(path: string): string {
 
 export function authHeaders(): Record<string, string> {
   try {
-    // 🔹 Itt volt a gond: csak "token"-t nézett
     const token =
       localStorage.getItem("token") || localStorage.getItem("kleo_token");
     return token ? { Authorization: `Bearer ${token}` } : {};
   } catch {
     return {};
   }
+}
+
+function parsedBody(init:RequestInit){
+  if(typeof init.body!=="string")return null;
+  try{return JSON.parse(init.body)}catch{return null}
 }
 
 export async function apiFetch(
@@ -63,15 +64,30 @@ export async function apiFetch(
 
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
+    let data:any=null;
     try {
-      const data = await res.json();
-      if (data && (data as any).error) {
-        msg = (data as any).error;
-        if ((data as any).detail) msg += ` — ${(data as any).detail}`;
+      data = await res.json();
+      if (data && data.error) {
+        msg = data.error;
+        if (data.detail) msg += ` — ${data.detail}`;
       }
-      else if (data && (data as any).message) msg = (data as any).message;
+      else if (data && data.message) msg = data.message;
     } catch {
       // ignore JSON parse error
+    }
+
+    // A pénztári műszak hiánya nem teheti használhatatlanná a végleges munkalaplezárást.
+    // A normál pénztári útvonal marad az elsődleges; kizárólag a 409-es műszakblokkolásnál,
+    // és csak close_financially=true esetén használjuk az auditált recovery végpontot.
+    const requestUrl=typeof url==="string"?url:String((url as Request)?.url||"");
+    const match=requestUrl.match(/\/transactions\/(?:loyalty-)?cashier\/workorders\/([^/?]+)\/settle/i);
+    const body=parsedBody(init);
+    const shiftBlocked=res.status===409&&/(pénztár|műszak|nyitópénz|átadás)/i.test(String(msg));
+    if(match&&shiftBlocked&&body?.close_financially===true){
+      const recovery=withBase(`/api/workorders/${encodeURIComponent(decodeURIComponent(match[1]))}/settle-recovery`);
+      const retry=await fetch(recovery,{...init,headers:{...(init.headers||{}),...authHeaders(),"X-Kleo-Settlement-Recovery":"cashier-shift-409"}});
+      if(retry.ok)return retry;
+      try{const recoveryData=await retry.json();msg=recoveryData?.message||recoveryData?.error||`${retry.status} ${retry.statusText}`}catch{msg=`${retry.status} ${retry.statusText}`}
     }
     throw new Error(`API hiba: ${msg}`);
   }
