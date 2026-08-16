@@ -1,4 +1,5 @@
 import axios from "axios";
+import { idempotencyKeyFor } from "../utils/financialIdempotency";
 
 function norm(v?: string) {
   return (v ?? "")
@@ -72,6 +73,12 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
+  }
+
+  const idempotencyKey=idempotencyKeyFor(`${String(config.baseURL||"")}${String(config.url||"")}`,config.method);
+  if(idempotencyKey&&!config.headers?.["Idempotency-Key"]){
+    config.headers=config.headers||{};
+    config.headers["Idempotency-Key"]=idempotencyKey;
   }
 
   // A Voice Booking eredete akkor sem veszhet el, ha a vendég a felismerés után
