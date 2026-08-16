@@ -11,6 +11,7 @@ type Coworker = { id: string; full_name: string; email?: string; online?: boolea
 type Conversation = { id: string; other_name: string; last_message?: string; last_message_at?: string; unread_count?: number; other_online?: boolean | null; other_last_seen_at?: string | null; is_group?: boolean };
 type StaffMessage = { id: string | number; sender_key: string; sender_name?: string; content: string; created_at: string; is_mine?: boolean };
 type UsageStats = { global: { request_count: number; estimated_cost_usd: number }; mine: { request_count: number; estimated_cost_usd: number }; limits: { monthlyBudgetUsd: number; userMonthlyBudgetUsd: number; userMonthlyRequestLimit: number } };
+type UnreadCountResponse = { unread_count?: number };
 
 const welcome: ChatMessage = { role: "assistant", content: "Szia! Én vagyok a Kleoszalon VIR használati asszisztense. Kérdezz rá bármelyik menüre vagy folyamatra." };
 const seenText = (value?: string | null) => {
@@ -79,7 +80,7 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
     const tick = async () => {
       try {
         await api.post("/api/transactions/staff-chat/presence");
-        const { data } = await api.get("/api/transactions/staff-chat/unread-count");
+        const { data } = await api.get<UnreadCountResponse>("/api/transactions/staff-chat/unread-count");
         setUnreadCount(Number(data?.unread_count || 0));
       } catch {}
     };
@@ -121,7 +122,7 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
       const [people, convs, unread] = await Promise.all([
         api.get(`/api/transactions/staff-chat/coworkers${suffix}`),
         api.get(`/api/transactions/staff-chat/conversations${suffix}`),
-        api.get("/api/transactions/staff-chat/unread-count"),
+        api.get<UnreadCountResponse>("/api/transactions/staff-chat/unread-count"),
       ]);
       setCoworkers(people.data || []); setConversations(convs.data || []); setUnreadCount(Number(unread.data?.unread_count || 0));
     } catch (err: any) { setError(err?.response?.data?.message || err?.response?.data?.error || "A munkatársi chat nem tölthető be."); }
@@ -141,7 +142,7 @@ export default function AiHelpChat({ pageTitle }: { pageTitle?: string }) {
     finally { setStaffLoading(false); }
   }
   async function openConversation(conv: Conversation) { if (!canStaff) return; setConversationId(String(conv.id)); setConversationName(conv.other_name || "Beszélgetés"); await loadStaffMessages(String(conv.id)); await loadStaffHome(); }
-  async function loadStaffMessages(id: string) { if (!canStaff) return; try { const { data } = await api.get(`/api/transactions/staff-chat/conversations/${id}/messages`); setStaffMessages(data || []); const unread = await api.get("/api/transactions/staff-chat/unread-count"); setUnreadCount(Number(unread.data?.unread_count || 0)); } catch {} }
+  async function loadStaffMessages(id: string) { if (!canStaff) return; try { const { data } = await api.get(`/api/transactions/staff-chat/conversations/${id}/messages`); setStaffMessages(data || []); const unread = await api.get<UnreadCountResponse>("/api/transactions/staff-chat/unread-count"); setUnreadCount(Number(unread.data?.unread_count || 0)); } catch {} }
   async function sendStaffMessage(e?: FormEvent) { e?.preventDefault(); const text = staffInput.trim(); if (!canStaff || !text || !conversationId || staffLoading) return; setStaffLoading(true); setError(""); try { await api.post(`/api/transactions/staff-chat/conversations/${conversationId}/messages`, { content: text }); setStaffInput(""); await loadStaffMessages(conversationId); await loadStaffHome(); } catch (err: any) { setError(err?.response?.data?.message || err?.response?.data?.error || "Az üzenet nem küldhető el."); } finally { setStaffLoading(false); } }
 
   if (!capabilityLoading && !canAi && !canStaff) return null;
