@@ -19,9 +19,26 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(sidebar).toContain('if(isManager){const extras=[WALLBOARD,SPEC_PARITY]');
   });
 
-  test('page consumes tenant, location and franchise APIs', () => {
+  test('page consumes tenant, location, franchise and subscription APIs', () => {
     expect(page).toContain('/saas/context');
     expect(page).toContain('/saas/locations');
     expect(page).toContain('/saas/franchise-networks');
+    expect(page).toContain('/saas/subscription');
+    expect(page).toContain('/saas/subscription/change-plan');
+    expect(page).toContain('/saas/subscription/cancel');
+    expect(page).toContain('/saas/subscription/reactivate');
+  });
+
+  test('subscription controls preserve provider and tenant-role safety', () => {
+    expect(page).toContain('BILLING_PROVIDER_MANAGED');
+    expect(page).toContain("['owner','admin'].includes");
+    expect(page).toContain('at_period_end:true');
+    expect(page).not.toContain('at_period_end:false');
+  });
+
+  test('franchise finance panel reports rates without inventing booked revenue', () => {
+    expect(page).toContain('Franchise pénzügyi összesítő');
+    expect(page).toContain('Súlyozott royalty');
+    expect(page).toContain('nem könyvel tényleges royalty-bevételt');
   });
 });
