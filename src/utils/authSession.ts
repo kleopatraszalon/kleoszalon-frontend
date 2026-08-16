@@ -27,6 +27,14 @@ const SESSION_AUTH_KEYS = [
   LAST_ACTIVITY_KEY,
 ] as const;
 
+function logoutEndpoint(): string {
+  if (typeof window === "undefined") return "/api/logout";
+  const host = window.location.hostname;
+  if (host === "kleoszalon-frontend.onrender.com") return "https://kleoszalon-api-1.onrender.com/api/logout";
+  if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5000/api/logout";
+  return `${window.location.origin.replace(/\/$/, "")}/api/logout`;
+}
+
 export function hasStoredAuthToken(): boolean {
   try {
     return Boolean(
@@ -62,6 +70,19 @@ export function getLastActivityAt(): number | null {
 }
 
 export function clearAuthenticatedSession(): void {
+  // The backend owns an HttpOnly auth cookie as well as the browser-held bearer
+  // token. Keepalive makes the cookie invalidation survive an immediate redirect
+  // to /login after an idle timeout or explicit logout.
+  if (typeof fetch === "function") {
+    void fetch(logoutEndpoint(), {
+      method: "POST",
+      credentials: "include",
+      cache: "no-store",
+      keepalive: true,
+      headers: { "Content-Type": "application/json" },
+    }).catch(() => undefined);
+  }
+
   try {
     LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
   } catch {
