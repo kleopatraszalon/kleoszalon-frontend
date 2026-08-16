@@ -73,6 +73,7 @@ const ClientsCRMPage = lazy(() => import("./pages/ClientsCRMPage"));
 const StaffImportPage = lazy(() => import("./pages/StaffImportPage"));
 const SystemHealthPage = lazy(() => import("./pages/SystemHealthPage"));
 const UatTestCenterPage = lazy(() => import("./pages/UatTestCenterPage"));
+const SaasFranchiseAdminPage = lazy(() => import("./pages/SaasFranchiseAdminPage"));
 const LoyaltyPage = lazy(() => import("./pages/LoyaltyPage"));
 const LoyaltySalesRulesPage = lazy(
   () => import("./pages/LoyaltySalesRulesPage"),
@@ -179,6 +180,7 @@ const router = createBrowserRouter([
     element: R(MANAGEMENT, <SystemHealthPage />),
   },
   { path: "/admin/uat", element: R(MANAGEMENT, <UatTestCenterPage />) },
+  { path: "/admin/saas", element: R(ADMIN, <SaasFranchiseAdminPage />) },
   { path: "/admin/website", element: R(MANAGEMENT, <WebsiteAdminPage />) },
   {
     path: "/admin/website/pages",
