@@ -23,9 +23,15 @@ describe('Platform tenant admin UI contract',()=>{
   expect(panel).toContain('location_name');
   expect(panel).toContain('location_city');
   expect(panel).toContain('apply_plan_modules');
-  expect(panel).toContain('Csomag moduljainak automatikus beállítása');
-  expect(panel).toContain('Első admin automatikus meghívása');
-  expect(panel).toContain('Alap telephely létrehozása');
+ });
+ test('offers versioned provisioning profiles without hiding editable values',()=>{
+  expect(panel).toContain('PROVISIONING_PROFILES');
+  expect(panel).toContain('Provisioning profil');
+  expect(panel).toContain('Start – gyors indulás');
+  expect(panel).toContain('Pro – többfunkciós szalon');
+  expect(panel).toContain('Franchise – hálózati indulás');
+  expect(panel).toContain('Enterprise – teljes platform');
+  expect(panel).toContain("setProfileCode('manual')");
  });
  test('shows provisioning feedback and derived onboarding state',()=>{
   expect(panel).toContain('admin_invitation');
