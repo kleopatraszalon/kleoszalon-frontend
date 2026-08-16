@@ -1,4 +1,5 @@
 // src/utils/fetch.ts
+import { idempotencyKeyFor } from "./financialIdempotency";
 
 const rawBase =
   (process.env.REACT_APP_API_BASE as string | undefined) ||
@@ -55,10 +56,12 @@ export async function apiFetch(
 ): Promise<Response> {
   const url = typeof input === "string" ? withBase(input) : input;
 
-  const headers: HeadersInit = {
-    ...(init.headers || {}),
-    ...authHeaders(),
-  };
+  const headers = new Headers(typeof input === "string" ? undefined : input.headers);
+  new Headers(init.headers).forEach((value,key)=>headers.set(key,value));
+  Object.entries(authHeaders()).forEach(([key,value])=>headers.set(key,value));
+  const requestMethod=init.method||(typeof input === "string" ? "GET" : input.method);
+  const idempotencyKey=idempotencyKeyFor(typeof url === "string" ? url : url.url,requestMethod);
+  if(idempotencyKey&&!headers.has("Idempotency-Key"))headers.set("Idempotency-Key",idempotencyKey);
 
   const res = await fetch(url as RequestInfo, { ...init, headers });
 
@@ -85,7 +88,9 @@ export async function apiFetch(
     const shiftBlocked=res.status===409&&/(pénztár|műszak|nyitópénz|átadás)/i.test(String(msg));
     if(match&&shiftBlocked&&body?.close_financially===true){
       const recovery=withBase(`/api/workorders/${encodeURIComponent(decodeURIComponent(match[1]))}/settle-recovery`);
-      const retry=await fetch(recovery,{...init,headers:{...(init.headers||{}),...authHeaders(),"X-Kleo-Settlement-Recovery":"cashier-shift-409"}});
+      const recoveryHeaders=new Headers(headers);
+      recoveryHeaders.set("X-Kleo-Settlement-Recovery","cashier-shift-409");
+      const retry=await fetch(recovery,{...init,headers:recoveryHeaders});
       if(retry.ok)return retry;
       try{const recoveryData=await retry.json();msg=recoveryData?.message||recoveryData?.error||`${retry.status} ${retry.statusText}`}catch{msg=`${retry.status} ${retry.statusText}`}
     }
