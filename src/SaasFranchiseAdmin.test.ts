@@ -58,4 +58,25 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(settlements).toContain('payment_reference');
     expect(settlements).toContain("['owner','admin'].includes");
   });
+
+  test('approved settlements support receivable posting with an explicit due date', () => {
+    expect(settlements).toContain('/saas/franchise-accounting/receivables?period=');
+    expect(settlements).toContain('/post-receivable');
+    expect(settlements).toContain('due_date');
+    expect(settlements).toContain('Fizetési határidő');
+    expect(settlements).toContain('Követelés könyvelése');
+  });
+
+  test('invoice draft is explicit, guarded and never presented as an automatically issued invoice', () => {
+    expect(settlements).toContain('/create-invoice-draft');
+    expect(settlements).toContain('FRANCHISE_VAT_RATE_REQUIRED');
+    expect(settlements).toContain('FRANCHISE_BILLING_INCOMPLETE');
+    expect(settlements).toContain('pénzügyi ellenőrzés szükséges');
+    expect(settlements).toContain('nem kerül automatikusan NAV-beküldésre vagy kiállításra');
+  });
+
+  test('service royalty wording uses official invoice net basis and excludes tips', () => {
+    expect(settlements).toContain('hivatalosan kiállított munkalap-számla nettó összege');
+    expect(settlements).toContain('borravaló nem része az alapnak');
+  });
 });
