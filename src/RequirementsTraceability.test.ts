@@ -1,0 +1,9 @@
+import{requirementIdFor,summarizeTraceability,toRequirementTrace,traceabilityCsv}from'./requirements/traceability';
+
+describe('requirements traceability',()=>{
+ test('deterministic requirement id is generated from UAT code',()=>{expect(requirementIdFor('UAT-FIN-001')).toBe('REQ-FIN-001')});
+ test('acceptance criterion and test link are always present',()=>{const x=toRequirementTrace({code:'UAT-RBAC-001',title:'Jogosultság',expected_result:'Tiltott szerepkör 403 választ kap.',critical:true,status:'passed'});expect(x.requirementId).toBe('REQ-RBAC-001');expect(x.acceptanceCriteria).toContain('403');expect(x.testCode).toBe('UAT-RBAC-001');expect(x.priority).toBe('P0')});
+ test('release gate opens only with full passing coverage',()=>{const rows=[toRequirementTrace({code:'UAT-SYS-001',title:'Rendszer',expected_result:'OK',critical:true,status:'passed'}),toRequirementTrace({code:'UAT-FIN-001',title:'Pénzügy',expected_result:'OK',critical:true,status:'passed'})];expect(summarizeTraceability(rows)).toMatchObject({coveragePercent:100,criticalOpen:0,releaseReady:true})});
+ test('release gate blocks untested or failed requirements',()=>{const rows=[toRequirementTrace({code:'UAT-SYS-001',title:'Rendszer',expected_result:'OK',critical:true,status:'not_tested'}),toRequirementTrace({code:'UAT-FIN-001',title:'Pénzügy',expected_result:'OK',critical:true,status:'failed'})];const s=summarizeTraceability(rows);expect(s.releaseReady).toBe(false);expect(s.criticalOpen).toBe(2)});
+ test('CSV export contains traceability columns',()=>{const csv=traceabilityCsv([toRequirementTrace({code:'UAT-GDPR-001',title:'GDPR',expected_result:'Adatkérés teljesül.',status:'passed'})]);expect(csv).toContain('Requirement ID');expect(csv).toContain('REQ-GDPR-001');expect(csv).toContain('Acceptance criteria')});
+});
