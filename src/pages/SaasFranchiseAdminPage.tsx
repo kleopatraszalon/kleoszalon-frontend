@@ -1,16 +1,18 @@
 import React from"react";
 import PlatformTenantPanel from"./PlatformTenantPanel";
+import TenantOnboardingPanel from"./TenantOnboardingPanel";
 import SaasFranchiseAdminCorePage from"./SaasFranchiseAdminCorePage";
 import FranchiseSettlementPanel from"./FranchiseSettlementPanel";
 
 /**
  * SaaS / Franchise admin composition.
- * Platform-level tenant administration is isolated from tenant-local settings
- * and the auditable monthly royalty settlement workflow.
+ * Platform-level tenant administration and onboarding are isolated from
+ * tenant-local settings and the auditable monthly royalty settlement workflow.
  */
 export default function SaasFranchiseAdminPage(){
  return <>
   <PlatformTenantPanel/>
+  <TenantOnboardingPanel/>
   <SaasFranchiseAdminCorePage/>
   <FranchiseSettlementPanel/>
  </>;
