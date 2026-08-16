@@ -123,7 +123,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => {
     const url=urlOf(response.config);
-    if(isInterpretUrl(url)&&response.data?.voice_event_id)saveVoiceOrigin(response.data.voice_event_id);
+    const responseData:any=response.data;
+    if(isInterpretUrl(url)&&responseData?.voice_event_id)saveVoiceOrigin(responseData.voice_event_id);
     if(isPublicBookingPage()&&isFinalPublicBookingUrl(url)&&response.status>=200&&response.status<300)clearVoiceOrigin();
     return response;
   },
