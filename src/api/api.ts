@@ -59,6 +59,15 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
+  // A canonical kliens baseURL-je már /api-ra végződik. Több régi komponens még
+  // /api/... alakú útvonalat ad át; ezt itt központilag normalizáljuk, hogy soha
+  // ne keletkezzen /api/api/... 404. Abszolút URL-hez nem nyúlunk.
+  const requestUrl=String(config.url||"");
+  const configuredBase=String(config.baseURL||"");
+  if(!/^https?:\/\//i.test(requestUrl)&&/\/api\/?$/i.test(configuredBase)&&/^\/api(?:\/|$)/i.test(requestUrl)){
+    config.url=requestUrl.replace(/^\/api(?=\/|$)/i,"")||"/";
+  }
+
   const token = localStorage.getItem("kleo_token") || localStorage.getItem("token");
   if (token) {
     config.headers = config.headers || {};
