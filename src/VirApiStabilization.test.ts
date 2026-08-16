@@ -18,6 +18,12 @@ test("login uses the canonical API origin instead of the frontend origin", () =>
   expect(auth).not.toMatch(/fetch\(['"]\/api\/login/);
 });
 
+test("capability checks do not duplicate the canonical /api prefix", () => {
+  const capabilities = read("src/hooks/useCapabilities.ts");
+  expect(capabilities).toMatch(/api\.get\("\/access-control\/me\/capabilities"\)/);
+  expect(capabilities).not.toMatch(/api\.get\("\/api\/access-control\/me\/capabilities"\)/);
+});
+
 test("mobile/PWA surface uses the same API client and production endpoints", () => {
   const mobile = read("src/pages/KleopatraMobileApp.tsx");
   expect(mobile).toMatch(/import api from"\.\.\/api\/api"/);
