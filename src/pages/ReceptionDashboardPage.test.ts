@@ -6,16 +6,23 @@ const roleDashboard = fs.readFileSync(path.join(__dirname, "RoleDashboardPage.ts
 const appLayout = fs.readFileSync(path.join(__dirname, "..", "layouts", "AppLayout.tsx"), "utf8");
 const calendarCss = fs.readFileSync(path.join(__dirname, "OperationalCalendarBoard.css"), "utf8");
 
-test("receptionist dashboard is calendar-first and defaults to the day-columns view", () => {
+test("receptionist dashboard is calendar-first when calendar visibility is enabled", () => {
   expect(reception).toContain('AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}');
+  expect(reception).toContain("showCalendar&&<AppointmentsCalendarCore");
   expect(reception).not.toContain("DashboardDailyOperations");
   expect(reception).toContain("Recepciós irányítópult");
-  expect(reception).toContain("Napi időpontnaptár");
+  expect(reception).toContain("Napi munka");
 });
 
-test("receptionist dashboard includes the personal checklist", () => {
-  expect(reception).toContain('DashboardChecklistCard from "../components/DashboardChecklistCard"');
-  expect(reception).toContain("<DashboardChecklistCard />");
+test("receptionist dashboard keeps the personal checklist configurable", () => {
+  expect(reception).toContain('DashboardChecklistCard from"../components/DashboardChecklistCard"');
+  expect(reception).toContain("showChecklist&&<DashboardChecklistCard/>");
+});
+
+test("receptionist homepage exposes product sales by default", () => {
+  expect(reception).toContain("key:'product_sale'");
+  expect(reception).toContain("name:'Termékeladás'");
+  expect(reception).toContain("route:'/finance/product-sale'");
 });
 
 test("embedded receptionist day view uses one full visible width per day and horizontal snapping", () => {
