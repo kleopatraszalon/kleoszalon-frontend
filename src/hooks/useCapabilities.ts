@@ -33,7 +33,10 @@ function warm(){const t=token();return cached&&cached.token===t&&cached.expiresA
 async function request(force=false){
   const t=token();
   if(!force){const hit=warm();if(hit)return hit;if(pending?.token===t)return pending.promise}
-  const promise=api.get("/api/access-control/me/capabilities").then(r=>(r.data||fallback) as CapabilityPayload);
+  // A kanonikus axios kliens baseURL-je már /api végződésű, ezért itt csak
+  // a relatív végpontot adjuk meg. A korábbi /api/... forma /api/api/... URL-t
+  // állított elő, ami minden AccessBoundary-val védett oldalt hibára futtatott.
+  const promise=api.get("/access-control/me/capabilities").then(r=>(r.data||fallback) as CapabilityPayload);
   pending={token:t,promise};
   try{const data=await promise;cached={token:t,data,expiresAt:Date.now()+CAPABILITY_CACHE_MS};return data}
   finally{if(pending?.promise===promise)pending=null}
