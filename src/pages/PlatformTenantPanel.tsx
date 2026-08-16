@@ -20,7 +20,18 @@ type ProvisionForm={
  auto_invite_admin:boolean;admin_email:string;provision_location:boolean;location_name:string;location_city:string;location_address:string;location_email:string;apply_plan_modules:boolean;
 };
 
+type ProvisioningProfile={
+ code:string;label:string;description:string;defaults:Partial<ProvisionForm>;
+};
+
 const EMPTY_FORM:ProvisionForm={slug:'',name:'',legal_name:'',billing_email:'',plan_code:'start',status:'trial',auto_invite_admin:true,admin_email:'',provision_location:true,location_name:'',location_city:'',location_address:'',location_email:'',apply_plan_modules:true};
+const PROVISIONING_PROFILES:ProvisioningProfile[]=[
+ {code:'manual',label:'Egyedi beállítás',description:'A jelenlegi űrlapértékeket nem írja felül.',defaults:{}},
+ {code:'start',label:'Start – gyors indulás',description:'14 napos próba, Start csomag, modulok + első admin + alap telephely.',defaults:{plan_code:'start',status:'trial',apply_plan_modules:true,auto_invite_admin:true,provision_location:true,location_name:'Központi szalon'}},
+ {code:'pro',label:'Pro – többfunkciós szalon',description:'14 napos Pro próba HR, készlet és pénzügyi modulokkal.',defaults:{plan_code:'pro',status:'trial',apply_plan_modules:true,auto_invite_admin:true,provision_location:true,location_name:'Központi szalon'}},
+ {code:'franchise',label:'Franchise – hálózati indulás',description:'Franchise csomag, teljes hálózati modulcsomag és alap franchise telephely.',defaults:{plan_code:'franchise',status:'trial',apply_plan_modules:true,auto_invite_admin:true,provision_location:true,location_name:'Franchise központ'}},
+ {code:'enterprise',label:'Enterprise – teljes platform',description:'Enterprise csomag teljes modul-hozzáféréssel, admin és alap telephely provisioninggel.',defaults:{plan_code:'enterprise',status:'active',apply_plan_modules:true,auto_invite_admin:true,provision_location:true,location_name:'Központi telephely'}},
+];
 
 function invitationLabel(row:TenantRow){
  if(row.onboarding_ready||row.onboarding_next_step!=='admin')return row.user_count?'Admin aktív':'—';
@@ -34,10 +45,13 @@ function invitationLabel(row:TenantRow){
 export default function PlatformTenantPanel(){
  const[rows,setRows]=useState<TenantRow[]>([]),[allowed,setAllowed]=useState<boolean|null>(null),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const[form,setForm]=useState<ProvisionForm>(EMPTY_FORM);
+ const[profileCode,setProfileCode]=useState('start');
  const load=useCallback(async()=>{setLoading(true);setError('');try{const r=await axios.get(`${API_BASE}/saas/platform/tenants`,authConfig());setRows(Array.isArray(r.data?.rows)?r.data.rows:[]);setAllowed(true)}catch(e:any){if(e?.response?.status===403){setAllowed(false);return}setError(e?.response?.data?.error||'A platform tenant lista nem tölthető be.');setAllowed(true)}finally{setLoading(false)}},[]);
  useEffect(()=>{void load()},[load]);
  const customerRows=useMemo(()=>rows.filter(r=>r.slug!=='kleopatra'),[rows]);
- const createTenant=async(e:React.FormEvent)=>{e.preventDefault();setSaving(true);setError('');setMessage('');try{const r=await axios.post(`${API_BASE}/saas/platform/tenants`,form,authConfig());const p=r.data?.provisioning;const invite=p?.admin_invitation?.status;const details=[p?.default_location?.created?'alap telephely kész':null,p?.plan_modules?.applied?.length?`${p.plan_modules.applied.length} modul beállítva`:null,invite==='sent'?'admin meghívó elküldve':invite==='assigned'?'admin hozzárendelve':invite==='failed'?'admin meghívó újraküldendő':null].filter(Boolean).join(' · ');setForm(EMPTY_FORM);setMessage(`${r.data?.tenant?.name||'Az új tenant'} létrejött, az onboarding automatikusan elindult${details?` · ${details}`:''}.`);await load()}catch(e:any){setError(e?.response?.data?.error||'Az új tenant nem hozható létre.')}finally{setSaving(false)}};
+ const selectedProfile=useMemo(()=>PROVISIONING_PROFILES.find(p=>p.code===profileCode)||PROVISIONING_PROFILES[0],[profileCode]);
+ const applyProfile=(code:string)=>{setProfileCode(code);const profile=PROVISIONING_PROFILES.find(p=>p.code===code);if(!profile||code==='manual')return;setForm(current=>({...current,...profile.defaults,location_name:current.location_name||String(profile.defaults.location_name||''),admin_email:current.admin_email||current.billing_email,location_email:current.location_email||current.billing_email}));};
+ const createTenant=async(e:React.FormEvent)=>{e.preventDefault();setSaving(true);setError('');setMessage('');try{const r=await axios.post(`${API_BASE}/saas/platform/tenants`,form,authConfig());const p=r.data?.provisioning;const invite=p?.admin_invitation?.status;const details=[p?.default_location?.created?'alap telephely kész':null,p?.plan_modules?.applied?.length?`${p.plan_modules.applied.length} modul beállítva`:null,invite==='sent'?'admin meghívó elküldve':invite==='assigned'?'admin hozzárendelve':invite==='failed'?'admin meghívó újraküldendő':null].filter(Boolean).join(' · ');setForm(EMPTY_FORM);setProfileCode('start');setMessage(`${r.data?.tenant?.name||'Az új tenant'} létrejött, az onboarding automatikusan elindult${details?` · ${details}`:''}.`);await load()}catch(e:any){setError(e?.response?.data?.error||'Az új tenant nem hozható létre.')}finally{setSaving(false)}};
  const changeStatus=async(row:TenantRow,status:string)=>{if(row.slug==='kleopatra'&&status!=='active')return;setSaving(true);setError('');setMessage('');try{await axios.patch(`${API_BASE}/saas/platform/tenants/${row.id}/status`,{status},authConfig());setMessage(`${row.name} státusza frissült.`);await load()}catch(e:any){setError(e?.response?.data?.error||'A tenant státusza nem módosítható.')}finally{setSaving(false)}};
  if(allowed===false)return null;
  return <div className="saas-admin-page" style={{paddingBottom:0}}>
@@ -57,17 +71,21 @@ export default function PlatformTenantPanel(){
     <article><ShieldCheck/><div><strong>{rows.filter(r=>r.status==='active'||r.status==='trial').length}</strong><span>Aktív / trial</span></div></article>
    </div>
    <form onSubmit={createTenant} className="saas-form-grid" style={{marginTop:18}}>
+    <div style={{gridColumn:'1/-1',padding:12,border:'1px solid #e5e7eb',borderRadius:12}}>
+     <label>Provisioning profil<select value={profileCode} onChange={e=>applyProfile(e.target.value)}>{PROVISIONING_PROFILES.map(profile=><option key={profile.code} value={profile.code}>{profile.label}</option>)}</select></label>
+     <small style={{display:'block',marginTop:6}}>{selectedProfile.description}</small>
+    </div>
     <label>Tenant azonosító<input value={form.slug} onChange={e=>setForm({...form,slug:e.target.value.toLowerCase()})} placeholder="beauty-company" required/></label>
     <label>Megjelenő név<input value={form.name} onChange={e=>setForm({...form,name:e.target.value})} placeholder="Beauty Company Kft." required/></label>
     <label>Jogi név<input value={form.legal_name} onChange={e=>setForm({...form,legal_name:e.target.value})}/></label>
-    <label>Számlázási e-mail<input type="email" value={form.billing_email} onChange={e=>setForm({...form,billing_email:e.target.value})}/></label>
-    <label>Csomag<select value={form.plan_code} onChange={e=>setForm({...form,plan_code:e.target.value})}>{PLAN_OPTIONS.map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></label>
-    <label>Induló státusz<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="trial">14 napos próba</option><option value="active">Aktív</option></select></label>
+    <label>Számlázási e-mail<input type="email" value={form.billing_email} onChange={e=>setForm({...form,billing_email:e.target.value,admin_email:form.admin_email||e.target.value,location_email:form.location_email||e.target.value})}/></label>
+    <label>Csomag<select value={form.plan_code} onChange={e=>{setProfileCode('manual');setForm({...form,plan_code:e.target.value})}}>{PLAN_OPTIONS.map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></label>
+    <label>Induló státusz<select value={form.status} onChange={e=>{setProfileCode('manual');setForm({...form,status:e.target.value})}}><option value="trial">14 napos próba</option><option value="active">Aktív</option></select></label>
 
     <div style={{gridColumn:'1/-1',borderTop:'1px solid #e5e7eb',paddingTop:12}}><b>Egykattintásos provisioning</b><div style={{display:'flex',gap:18,flexWrap:'wrap',marginTop:8}}>
-     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.apply_plan_modules} onChange={e=>setForm({...form,apply_plan_modules:e.target.checked})}/>Csomag moduljainak automatikus beállítása</label>
-     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.auto_invite_admin} onChange={e=>setForm({...form,auto_invite_admin:e.target.checked})}/>Első admin automatikus meghívása</label>
-     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.provision_location} onChange={e=>setForm({...form,provision_location:e.target.checked})}/>Alap telephely létrehozása</label>
+     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.apply_plan_modules} onChange={e=>{setProfileCode('manual');setForm({...form,apply_plan_modules:e.target.checked})}}/>Csomag moduljainak automatikus beállítása</label>
+     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.auto_invite_admin} onChange={e=>{setProfileCode('manual');setForm({...form,auto_invite_admin:e.target.checked})}}/>Első admin automatikus meghívása</label>
+     <label style={{display:'inline-flex',flexDirection:'row',alignItems:'center',gap:7}}><input type="checkbox" checked={form.provision_location} onChange={e=>{setProfileCode('manual');setForm({...form,provision_location:e.target.checked})}}/>Alap telephely létrehozása</label>
     </div></div>
 
     <label>Első admin e-mail<input type="email" value={form.admin_email} disabled={!form.auto_invite_admin} required={form.auto_invite_admin} onChange={e=>setForm({...form,admin_email:e.target.value})} placeholder="admin@ceg.hu"/></label>
