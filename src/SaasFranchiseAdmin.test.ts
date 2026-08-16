@@ -30,7 +30,7 @@ describe('SaaS / Franchise admin wiring', () => {
   });
 
   test('subscription controls preserve provider and tenant-role safety', () => {
-    expect(page).toContain('BILLING_PROVIDER_MANAGED');
+    expect(page).toContain('external_subscription_id');
     expect(page).toContain("['owner','admin'].includes");
     expect(page).toContain('at_period_end:true');
     expect(page).not.toContain('at_period_end:false');
