@@ -5,6 +5,8 @@ describe('SaaS / Franchise admin wiring', () => {
   const app = fs.readFileSync(path.join(__dirname, 'App.tsx'), 'utf8');
   const sidebar = fs.readFileSync(path.join(__dirname, 'components/Sidebar.tsx'), 'utf8');
   const page = fs.readFileSync(path.join(__dirname, 'pages/SaasFranchiseAdminPage.tsx'), 'utf8');
+  const core = fs.readFileSync(path.join(__dirname, 'pages/SaasFranchiseAdminCorePage.tsx'), 'utf8');
+  const settlements = fs.readFileSync(path.join(__dirname, 'pages/FranchiseSettlementPanel.tsx'), 'utf8');
 
   test('admin-only route is registered', () => {
     expect(app).toContain('const SaasFranchiseAdminPage = lazy');
@@ -19,26 +21,41 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(sidebar).toContain('if(isManager){const extras=[WALLBOARD,SPEC_PARITY]');
   });
 
-  test('page consumes tenant, location, franchise and subscription APIs', () => {
-    expect(page).toContain('/saas/context');
-    expect(page).toContain('/saas/locations');
-    expect(page).toContain('/saas/franchise-networks');
-    expect(page).toContain('/saas/subscription');
-    expect(page).toContain('/saas/subscription/change-plan');
-    expect(page).toContain('/saas/subscription/cancel');
-    expect(page).toContain('/saas/subscription/reactivate');
+  test('page composes stable core configuration with settlement finance panel', () => {
+    expect(page).toContain('SaasFranchiseAdminCorePage');
+    expect(page).toContain('FranchiseSettlementPanel');
+  });
+
+  test('core consumes tenant, location, franchise and subscription APIs', () => {
+    expect(core).toContain('/saas/context');
+    expect(core).toContain('/saas/locations');
+    expect(core).toContain('/saas/franchise-networks');
+    expect(core).toContain('/saas/subscription');
+    expect(core).toContain('/saas/subscription/change-plan');
+    expect(core).toContain('/saas/subscription/cancel');
+    expect(core).toContain('/saas/subscription/reactivate');
   });
 
   test('subscription controls preserve provider and tenant-role safety', () => {
-    expect(page).toContain('external_subscription_id');
-    expect(page).toContain("['owner','admin'].includes");
-    expect(page).toContain('at_period_end:true');
-    expect(page).not.toContain('at_period_end:false');
+    expect(core).toContain('external_subscription_id');
+    expect(core).toContain("['owner','admin'].includes");
+    expect(core).toContain('at_period_end:true');
+    expect(core).not.toContain('at_period_end:false');
   });
 
-  test('franchise finance panel reports rates without inventing booked revenue', () => {
-    expect(page).toContain('Franchise pénzügyi összesítő');
-    expect(page).toContain('Súlyozott royalty');
-    expect(page).toContain('nem könyvel tényleges royalty-bevételt');
+  test('franchise finance summary does not invent booked revenue before ledger integration', () => {
+    expect(core).toContain('Franchise pénzügyi összesítő');
+    expect(core).toContain('Súlyozott royalty');
+    expect(core).toContain('nem könyvel tényleges royalty-bevételt');
+  });
+
+  test('monthly settlements use audited backend state transitions and currency-safe summary', () => {
+    expect(settlements).toContain('/saas/franchise-finance/summary');
+    expect(settlements).toContain('/saas/franchise-finance/settlements/generate');
+    expect(settlements).toContain('/approve');
+    expect(settlements).toContain('/mark-paid');
+    expect(settlements).toContain('summary_by_currency');
+    expect(settlements).toContain('payment_reference');
+    expect(settlements).toContain("['owner','admin'].includes");
   });
 });
