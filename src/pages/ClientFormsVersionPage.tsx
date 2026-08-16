@@ -6,7 +6,7 @@ import "./ClientFormsVersionPage.css";
 
 type FieldType="text"|"textarea"|"yes_no"|"checkbox"|"select"|"date"|"number";
 type FormField={key:string;label:string;type:FieldType;required:boolean;options?:string[];help_text?:string|null};
-type FormSchema={fields:FormField[]};
+type FormSchema={fields:FormField[];gdpr_purpose?:string};
 type FormItem={id:string;title:string;description?:string|null;form_type:string;is_active:boolean;current_version:number;current_version_id?:string|null;current_status?:string|null;privacy_notice_version?:string|null;effective_from?:string|null;content_schema?:FormSchema;version_count:number;draft_count:number};
 type FormVersion={id:string;form_id:string;version_no:number;title:string;description?:string|null;form_type:string;content_schema:FormSchema;privacy_notice_version?:string|null;status:"draft"|"published"|"retired";effective_from?:string|null;effective_to?:string|null;created_by?:string|null;published_by?:string|null;created_at:string;updated_at:string};
 type DetailPayload={form:FormItem;versions:FormVersion[];can_edit:boolean};
@@ -18,7 +18,7 @@ async function api<T>(path:string,options:RequestInit={}):Promise<T>{const respo
 const dateTime=(value?:string|null)=>value?new Intl.DateTimeFormat("hu-HU",{dateStyle:"medium",timeStyle:"short"}).format(new Date(value)):"—";
 const statusLabel=(status?:string|null)=>status==="published"?"Közzétett":status==="draft"?"Tervezet":status==="retired"?"Lezárt":"Nincs verzió";
 const blankField=(index:number):FormField=>({key:`field_${index+1}`,label:`Új kérdés ${index+1}`,type:"text",required:false,options:[],help_text:null});
-const toDraft=(v:FormVersion):DraftState=>({title:v.title||"",description:v.description||"",form_type:v.form_type||"questionnaire",privacy_notice_version:v.privacy_notice_version||"",content_schema:{fields:Array.isArray(v.content_schema?.fields)?v.content_schema.fields.map(f=>({...f,options:[...(f.options||[])]})):[]}});
+const toDraft=(v:FormVersion):DraftState=>({title:v.title||"",description:v.description||"",form_type:v.form_type||"questionnaire",privacy_notice_version:v.privacy_notice_version||"",content_schema:{fields:Array.isArray(v.content_schema?.fields)?v.content_schema.fields.map(f=>({...f,options:[...(f.options||[])]})):[],gdpr_purpose:v.content_schema?.gdpr_purpose||""}});
 
 export default function ClientFormsVersionPage(){
   const navigate=useNavigate();
