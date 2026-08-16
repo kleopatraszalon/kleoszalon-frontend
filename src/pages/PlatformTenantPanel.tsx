@@ -56,7 +56,7 @@ export default function PlatformTenantPanel(){
     <label>Számlázási e-mail<input type="email" value={form.billing_email} onChange={e=>setForm({...form,billing_email:e.target.value})}/></label>
     <label>Csomag<select value={form.plan_code} onChange={e=>setForm({...form,plan_code:e.target.value})}>{PLAN_OPTIONS.map(([code,name])=><option key={code} value={code}>{name}</option>)}</select></label>
     <label>Induló státusz<select value={form.status} onChange={e=>setForm({...form,status:e.target.value})}><option value="trial">14 napos próba</option><option value="active">Aktív</option></select></label>
-    <button type="submit" disabled={saving}><Plus size={16}/>{saving?'Mentés…':'Új tenant + onboarding'}</button>
+    <button type="submit" disabled={saving} title="Új tenant + onboarding"><Plus size={16}/>{saving?'Mentés…':'Új tenant létrehozása'}</button>
     <button type="button" className="is-secondary" onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/>Frissítés</button>
    </form>
    <div className="saas-table-wrap" style={{marginTop:18}}><table><thead><tr><th>Tenant</th><th>Csomag</th><th>Státusz</th><th>Provisioning</th><th>Következő lépés</th><th>Első admin</th><th>Telephely</th><th>Felhasználó</th><th>Művelet</th></tr></thead><tbody>{rows.length?rows.map(r=>{
