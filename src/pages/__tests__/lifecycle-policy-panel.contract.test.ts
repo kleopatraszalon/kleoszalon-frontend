@@ -10,4 +10,5 @@ describe('Lifecycle policy admin panel',()=>{
  it('shows warning grace suspend and queue KPIs',()=>{expect(panel).toContain('Trial figyelmeztetés');expect(panel).toContain('Grace állapot');expect(panel).toContain('Felfüggesztési jelölt');expect(panel).toContain('Queue pending');});
  it('shows scheduler health and manual run control',()=>{expect(panel).toContain('/lifecycle-policy/health');expect(panel).toContain("action('run-now'");expect(panel).toContain('Scheduler futtatása most');expect(panel).toContain('Scheduler futástörténet');});
  it('supports dead-letter retry for failed notifications',()=>{expect(panel).toContain('notifications/${id}/retry');expect(panel).toContain('Dead-letter / failed');expect(panel).toContain('Újrapróbálás');});
+ it('shows ops alerts and acknowledgement resolution controls',()=>{expect(panel).toContain('/lifecycle-policy/alerts');expect(panel).toContain("action('alerts/reconcile'");expect(panel).toContain("'acknowledge'");expect(panel).toContain("'resolve'");expect(panel).toContain('Operátori riasztások');});
 });
