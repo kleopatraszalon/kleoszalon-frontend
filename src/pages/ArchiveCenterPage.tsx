@@ -1,3 +1,73 @@
-import React,{useCallback,useEffect,useState}from"react";import{Archive,RefreshCw,Search}from"lucide-react";import api from"../api/api";import LanguageSwitcher from"../components/LanguageSwitcher";import ArchiveRestoreButton from"../components/ArchiveRestoreButton";import{useLanguage}from"../i18n/LanguageProvider";
-type Entity={key:string;label:string;deleted_count:number};type Row={entity:string;entity_label:string;id:string;name:string;deleted_at?:string;deleted_by?:string;delete_reason?:string;location_id?:string};
-export default function ArchiveCenterPage(){const{t,locale}=useLanguage();const[entities,setEntities]=useState<Entity[]>([]),[rows,setRows]=useState<Row[]>([]),[entity,setEntity]=useState(""),[q,setQ]=useState(""),[loading,setLoading]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");const load=useCallback(async()=>{setLoading(true);setError("");try{const params:any={limit:300};if(entity)params.entity=entity;if(q.trim())params.q=q.trim();const[a,b]=await Promise.all([api.get("/clients/system-hardening/entities"),api.get("/clients/system-hardening/archived",{params})]);setEntities(Array.isArray(a.data)?a.data:[]);setRows(Array.isArray(b.data)?b.data:[])}catch(e:any){setError(e?.response?.data?.message||e?.message||t("recycle.load_error"))}finally{setLoading(false)}},[entity,q,t]);useEffect(()=>{void load()},[load]);const restored=()=>{setNotice(t("recycle.restored"));void load()};return <main className="archive-center"><header style={{display:"flex",justifyContent:"space-between",gap:16,alignItems:"flex-start",marginBottom:16}}><div><span>{t("recycle.eyebrow")}</span><h1 style={{display:"flex",alignItems:"center",gap:8}}><Archive/>{t("recycle.title")}</h1><p>{t("recycle.description")}</p></div><div style={{display:"flex",gap:8}}><LanguageSwitcher compact/><button onClick={()=>void load()} disabled={loading}><RefreshCw size={16}/>{t("common.refresh")}</button></div></header>{error&&<div style={{padding:10,background:"#fff2f2",border:"1px solid #efb4b4",borderRadius:10,marginBottom:12}}>{error}</div>}{notice&&<div style={{padding:10,background:"#f0fff7",border:"1px solid #a8dfbf",borderRadius:10,marginBottom:12}}>{notice}</div>}<section style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:12}}><label style={{display:"flex",alignItems:"center",gap:7,flex:1,minWidth:280}}><Search size={16}/><input style={{width:"100%",height:38}} value={q} onChange={e=>setQ(e.target.value)} placeholder={t("recycle.search")}/></label><select style={{height:38,minWidth:220}} value={entity} onChange={e=>setEntity(e.target.value)}><option value="">{t("recycle.entity")}</option>{entities.map(x=><option key={x.key} value={x.key}>{x.label} ({x.deleted_count})</option>)}</select></section><section style={{overflow:"auto"}}><table style={{width:"100%",borderCollapse:"collapse",minWidth:920}}><thead><tr><th>{t("recycle.entity")}</th><th>Név / Name</th><th>{t("recycle.deleted_at")}</th><th>{t("recycle.deleted_by")}</th><th>{t("recycle.reason")}</th><th/></tr></thead><tbody>{rows.length?rows.map(row=><tr key={`${row.entity}-${row.id}`}><td>{row.entity_label}</td><td><b>{row.name}</b><small style={{display:"block"}}>{row.location_id||""}</small></td><td>{row.deleted_at?new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(row.deleted_at)):"—"}</td><td>{row.deleted_by||"—"}</td><td>{row.delete_reason||"—"}</td><td><ArchiveRestoreButton entity={row.entity} recordId={row.id} onRestored={restored}/></td></tr>):<tr><td colSpan={6}>{loading?t("common.loading"):t("recycle.empty")}</td></tr>}</tbody></table></section></main>}
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Archive, RefreshCw, Search } from "lucide-react";
+import api from "../api/api";
+import LanguageSwitcher from "../components/LanguageSwitcher";
+import ArchiveRestoreButton from "../components/ArchiveRestoreButton";
+import { useLanguage } from "../i18n/LanguageProvider";
+import { applyColumnFilters, ColumnFilter } from "../utils/tableFilters";
+
+type Entity = { key: string; label: string; deleted_count: number };
+type Row = { entity: string; entity_label: string; id: string; name: string; deleted_at?: string; deleted_by?: string; delete_reason?: string; location_id?: string };
+const controlStyle: React.CSSProperties = { width: "100%", minWidth: 90, height: 30, fontSize: 12, padding: "3px 6px", boxSizing: "border-box" };
+
+export default function ArchiveCenterPage() {
+  const { t, locale, language } = useLanguage();
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [rows, setRows] = useState<Row[]>([]);
+  const [entity, setEntity] = useState("");
+  const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [columnFilters, setColumnFilters] = useState({ entity: "", name: "", deletedAt: "", deletedBy: "", reason: "" });
+
+  const load = useCallback(async () => {
+    setLoading(true); setError("");
+    try {
+      const params: any = { limit: 300 };
+      if (entity) params.entity = entity;
+      if (q.trim()) params.q = q.trim();
+      const [a, b] = await Promise.all([api.get("/clients/system-hardening/entities"), api.get("/clients/system-hardening/archived", { params })]);
+      setEntities(Array.isArray(a.data) ? a.data : []);
+      setRows(Array.isArray(b.data) ? b.data : []);
+    } catch (e: any) {
+      setError(e?.response?.data?.message || e?.message || t("recycle.load_error"));
+    } finally { setLoading(false); }
+  }, [entity, q, t]);
+  useEffect(() => { void load(); }, [load]);
+
+  const filters = useMemo<ColumnFilter<Row>[]>(() => [
+    { id: "entity", kind: "select", value: columnFilters.entity, getValue: row => row.entity },
+    { id: "name", kind: "text", value: columnFilters.name, getValue: row => `${row.name} ${row.location_id || ""}` },
+    { id: "deletedAt", kind: "text", value: columnFilters.deletedAt, getValue: row => row.deleted_at ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.deleted_at)) : "" },
+    { id: "deletedBy", kind: "text", value: columnFilters.deletedBy, getValue: row => row.deleted_by || "" },
+    { id: "reason", kind: "text", value: columnFilters.reason, getValue: row => row.delete_reason || "" },
+  ], [columnFilters, locale]);
+  const filteredRows = useMemo(() => applyColumnFilters(rows, filters, locale), [rows, filters, locale]);
+  const setColumn = (key: keyof typeof columnFilters, value: string) => setColumnFilters(prev => ({ ...prev, [key]: value }));
+  const restored = () => { setNotice(t("recycle.restored")); void load(); };
+
+  return <main className="archive-center">
+    <header style={{ display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start", marginBottom: 16 }}>
+      <div><span>{t("recycle.eyebrow")}</span><h1 style={{ display: "flex", alignItems: "center", gap: 8 }}><Archive />{t("recycle.title")}</h1><p>{t("recycle.description")}</p></div>
+      <div style={{ display: "flex", gap: 8 }}><LanguageSwitcher compact /><button onClick={() => void load()} disabled={loading}><RefreshCw size={16} />{t("common.refresh")}</button></div>
+    </header>
+    {error && <div style={{ padding: 10, background: "#fff2f2", border: "1px solid #efb4b4", borderRadius: 10, marginBottom: 12 }}>{error}</div>}
+    {notice && <div style={{ padding: 10, background: "#f0fff7", border: "1px solid #a8dfbf", borderRadius: 10, marginBottom: 12 }}>{notice}</div>}
+    <section style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+      <label style={{ display: "flex", alignItems: "center", gap: 7, flex: 1, minWidth: 280 }}><Search size={16} /><input style={{ width: "100%", height: 38 }} value={q} onChange={e => setQ(e.target.value)} placeholder={t("recycle.search")} /></label>
+      <select style={{ height: 38, minWidth: 220 }} value={entity} onChange={e => setEntity(e.target.value)}><option value="">{t("recycle.entity")}</option>{entities.map(x => <option key={x.key} value={x.key}>{x.label} ({x.deleted_count})</option>)}</select>
+      <span style={{ alignSelf: "center", fontSize: 13 }}>{language === "en" ? `${filteredRows.length} rows` : `${filteredRows.length} találat`}</span>
+    </section>
+    <section style={{ overflow: "auto" }}><table style={{ width: "100%", borderCollapse: "collapse", minWidth: 920 }}><thead>
+      <tr><th>{t("recycle.entity")}</th><th>Név / Name</th><th>{t("recycle.deleted_at")}</th><th>{t("recycle.deleted_by")}</th><th>{t("recycle.reason")}</th><th /></tr>
+      <tr className="archive-column-filters">
+        <th><select aria-label="archive-entity-filter" style={controlStyle} value={columnFilters.entity} onChange={e => setColumn("entity", e.target.value)}><option value="">{t("common.all")}</option>{entities.map(x => <option key={x.key} value={x.key}>{x.label}</option>)}</select></th>
+        <th><input aria-label="archive-name-filter" style={controlStyle} value={columnFilters.name} onChange={e => setColumn("name", e.target.value)} placeholder={language === "en" ? "Filter" : "Szűrés"} /></th>
+        <th><input aria-label="archive-date-filter" style={controlStyle} value={columnFilters.deletedAt} onChange={e => setColumn("deletedAt", e.target.value)} placeholder={language === "en" ? "Date/text" : "Dátum/szöveg"} /></th>
+        <th><input aria-label="archive-user-filter" style={controlStyle} value={columnFilters.deletedBy} onChange={e => setColumn("deletedBy", e.target.value)} /></th>
+        <th><input aria-label="archive-reason-filter" style={controlStyle} value={columnFilters.reason} onChange={e => setColumn("reason", e.target.value)} /></th><th />
+      </tr>
+    </thead><tbody>{filteredRows.length ? filteredRows.map(row => <tr key={`${row.entity}-${row.id}`}><td>{row.entity_label}</td><td><b>{row.name}</b><small style={{ display: "block" }}>{row.location_id || ""}</small></td><td>{row.deleted_at ? new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeStyle: "short" }).format(new Date(row.deleted_at)) : "—"}</td><td>{row.deleted_by || "—"}</td><td>{row.delete_reason || "—"}</td><td><ArchiveRestoreButton entity={row.entity} recordId={row.id} onRestored={restored} /></td></tr>) : <tr><td colSpan={6}>{loading ? t("common.loading") : t("recycle.empty")}</td></tr>}</tbody></table></section>
+  </main>;
+}
