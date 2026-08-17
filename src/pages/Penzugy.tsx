@@ -65,7 +65,7 @@ function FitnessNav({ active }: { active: "fitness" | "lockers" }) {
         Áttekintés és bérletek
       </button>
       <button type="button" onClick={() => go("/finance/fitness/lockers")} style={active === "lockers" ? activeButton : baseButton}>
-        🔐 20 rekeszes szekrények
+        🔐 Öltözőszekrények – 20 rekesz
       </button>
       <button type="button" onClick={() => go("/finance/fitness/lockers/kiosk")} style={{ ...baseButton, marginLeft: "auto" }}>
         🖥️ Vendég RFID kijelző megnyitása
