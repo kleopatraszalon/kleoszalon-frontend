@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import { LanguageProvider } from "./i18n/LanguageProvider";
+import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 
 // Globális stílusok visszakötése
 import "./styles/kleo-theme.css";
@@ -17,6 +18,7 @@ const root = createRoot(container);
 root.render(
   <React.StrictMode>
     <LanguageProvider>
+      <VirCustomizationRuntime/>
       <App />
     </LanguageProvider>
   </React.StrictMode>
