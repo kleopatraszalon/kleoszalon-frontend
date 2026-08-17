@@ -3,6 +3,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
+import GlobalTableColumnFilters from"./components/GlobalTableColumnFilters";
+import UiAuditTelemetry from"./components/UiAuditTelemetry";
 
 // Globális stílusok visszakötése
 import "./styles/kleo-theme.css";
@@ -19,6 +21,8 @@ root.render(
   <React.StrictMode>
     <LanguageProvider>
       <VirCustomizationRuntime/>
+      <GlobalTableColumnFilters/>
+      <UiAuditTelemetry/>
       <App />
     </LanguageProvider>
   </React.StrictMode>
