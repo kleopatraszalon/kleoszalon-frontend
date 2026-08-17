@@ -10,7 +10,7 @@ export type VirCustomization={
  login?:{headline?:string;subheadline?:string};
 };
 
-export const VIR_CUSTOMIZATION_KEY="kleo.vir.customization.v1";
+export const VIR_CUSTOMIZATION_KEY="kleo.vir.customization";
 export const VIR_CUSTOMIZATION_EVENT="kleo:vir-customization";
 
 export function readStoredVirCustomization():VirCustomization|null{
@@ -52,6 +52,7 @@ export function applyVirCustomization(config:VirCustomization|null|undefined,{br
   root.style.setProperty("--color-bg","#f5f5f5");root.style.setProperty("--color-surface","#ffffff");root.style.setProperty("--color-text","#120c08");root.style.setProperty("--color-muted","#5d5a55");root.style.setProperty("--color-border-subtle","#e2e2e2");
  }
  root.dataset.virSidebar=config.appearance?.sidebar||"expanded";
+ if(config.brand?.name)document.title=String(config.brand.name);
  if(broadcast&&typeof window!=="undefined")window.dispatchEvent(new CustomEvent(VIR_CUSTOMIZATION_EVENT,{detail:config}));
 }
 
