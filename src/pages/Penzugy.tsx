@@ -27,7 +27,8 @@ export default function Penzugy() {
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname === "/finance/fitness/lockers/kiosk") return <FitnessLockerKiosk />;
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
-  if(pathname === "/finance/fitness" || pathname.startsWith("/finance/fitness/")) return <FitnessPage />;
+  if(pathname === "/finance/fitness") return <><FitnessPage/><button type="button" onClick={()=>window.location.assign('/finance/fitness/lockers')} style={{position:'fixed',right:24,bottom:24,zIndex:50,border:0,borderRadius:14,padding:'13px 17px',background:'#8d2359',color:'#fff',fontWeight:900,boxShadow:'0 12px 35px rgba(80,30,55,.25)',cursor:'pointer'}}>🔐 Öltözőszekrények</button></>;
+  if(pathname.startsWith("/finance/fitness/")) return <FitnessPage />;
   const legacyFlow =
     pathname === "/finance/cashier" ||
     pathname.startsWith("/finance/cashier/") ||
