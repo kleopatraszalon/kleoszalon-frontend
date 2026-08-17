@@ -2,6 +2,7 @@ import React,{useEffect,useMemo,useState}from"react";
 import{CalendarDays,ClipboardPlus,ShoppingBag,Users,WalletCards,MessageCircle,CheckSquare,Package,FileBarChart}from"lucide-react";
 import{useNavigate}from"react-router-dom";
 import DashboardChecklistCard from"../components/DashboardChecklistCard";
+import ReceptionDeviceControlPanel from"../components/ReceptionDeviceControlPanel";
 import AppointmentsCalendarCore from"./AppointmentsCalendarCore";
 import withBase from"../utils/apiBase";
 
@@ -26,6 +27,7 @@ export default function ReceptionDashboardPage(){
    <button type="button" onClick={()=>navigate('/workorders/new')} style={{...quickButtonStyle,borderColor:'#e9b6ce',color:'#9c2d65'}}><ClipboardPlus size={17}/> Walk-in munkalap</button>
   </section>
   <section style={{margin:'0 24px 14px',display:'flex',gap:8,flexWrap:'wrap'}}>{visible.map(x=>{const Icon=icons[x.key]||CheckSquare;return <button key={x.key} type="button" onClick={()=>navigate(x.route)} style={{...quickButtonStyle,...(x.key==='product_sale'?productButtonStyle:{})}}><Icon size={17}/>{x.name}</button>})}</section>
+  <ReceptionDeviceControlPanel/>
   {showChecklist&&<DashboardChecklistCard/>}
   {showCalendar&&<AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}/>} 
  </main>
