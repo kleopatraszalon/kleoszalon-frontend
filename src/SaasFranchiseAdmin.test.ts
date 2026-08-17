@@ -14,11 +14,14 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(app).toContain('R(ADMIN, <SaasFranchiseAdminPage />)');
   });
 
-  test('admin sidebar exposes the SaaS franchise center but manager extras do not', () => {
+  test('admin sidebar exposes SaaS while manager extras remain SaaS-free', () => {
     expect(sidebar).toContain("name:'SaaS / Franchise központ'");
     expect(sidebar).toContain("route:'/admin/saas'");
-    expect(sidebar).toContain('extras=[WALLBOARD,SPEC_PARITY,SAAS_ADMIN]');
-    expect(sidebar).toContain('if(isManager){const extras=[WALLBOARD,SPEC_PARITY]');
+    expect(sidebar).toContain('const VIR_ADMIN');
+    expect(sidebar).toContain('extras=[WALLBOARD,SPEC_PARITY,SAAS_ADMIN,VIR_ADMIN]');
+    expect(sidebar).toContain('else if(isManager){const extras=[WALLBOARD,SPEC_PARITY,VIR_ADMIN]');
+    const managerPart=sidebar.split('else if(isManager)')[1]?.split('return configuredMenu')[0]||'';
+    expect(managerPart).not.toContain('SAAS_ADMIN');
   });
 
   test('page composes stable core configuration with settlement finance panel', () => {
