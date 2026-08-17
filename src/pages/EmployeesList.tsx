@@ -17,7 +17,9 @@ import {
 import { useLocation } from "react-router-dom";
 import { useLanguage } from "../i18n/LanguageProvider";
 import withBase from "../utils/apiBase";
+import { applyColumnFilters } from "../utils/tableFilters";
 import "./EmployeesList.css";
+import "./EmployeesColumnFilters.css";
 
 type Employee = {
   id: string;
@@ -53,6 +55,25 @@ type Position = {
 type LocationItem = { id: string; name: string };
 type EmploymentType = { id: string; code: string; name: string; is_active: boolean };
 type WageBand = "" | "none" | "lt300" | "300-500" | "500-700" | "gte700";
+type EmployeeColumnFilterState = {
+  name: string;
+  location: string;
+  employment: string;
+  monthlyMin: string;
+  hourlyMin: string;
+  commissionMin: string;
+  status: string;
+};
+
+const emptyColumnFilters: EmployeeColumnFilterState = {
+  name: "",
+  location: "",
+  employment: "",
+  monthlyMin: "",
+  hourlyMin: "",
+  commissionMin: "",
+  status: "",
+};
 
 const emptyEmployee = {
   full_name: "",
@@ -164,6 +185,7 @@ export default function EmployeesList() {
   const [locationFilter, setLocationFilter] = useState("");
   const [employmentFilter, setEmploymentFilter] = useState("");
   const [wageBand, setWageBand] = useState<WageBand>("");
+  const [columnFilters, setColumnFilters] = useState<EmployeeColumnFilterState>(emptyColumnFilters);
   const [includeInactive, setIncludeInactive] = useState(false);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -236,23 +258,35 @@ export default function EmployeesList() {
     return employmentTypes.find(item => item.code === employee.employment_type)?.name || employee.employment_type || t("common.none");
   }, [employmentTypes, t]);
 
-  const filtered = useMemo(() => employees.filter(employee => {
-    const needle = search.trim().toLocaleLowerCase(locale);
-    const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLocaleLowerCase(locale);
-    const wage = Number(employee.monthly_wage || 0);
-    const wageOk = !wageBand
-      || (wageBand === "none" && wage <= 0)
-      || (wageBand === "lt300" && wage > 0 && wage < 300000)
-      || (wageBand === "300-500" && wage >= 300000 && wage < 500000)
-      || (wageBand === "500-700" && wage >= 500000 && wage < 700000)
-      || (wageBand === "gte700" && wage >= 700000);
+  const filtered = useMemo(() => {
+    const baseRows = employees.filter(employee => {
+      const needle = search.trim().toLocaleLowerCase(locale);
+      const haystack = `${employee.full_name} ${employee.email || ""} ${employee.phone || ""} ${roleLabel(employee)} ${employee.location_name || ""} ${employmentName(employee)}`.toLocaleLowerCase(locale);
+      const wage = Number(employee.monthly_wage || 0);
+      const wageOk = !wageBand
+        || (wageBand === "none" && wage <= 0)
+        || (wageBand === "lt300" && wage > 0 && wage < 300000)
+        || (wageBand === "300-500" && wage >= 300000 && wage < 500000)
+        || (wageBand === "500-700" && wage >= 500000 && wage < 700000)
+        || (wageBand === "gte700" && wage >= 700000);
 
-    return (!needle || haystack.includes(needle))
-      && (!positionFilter || String(employee.position_id || "") === positionFilter)
-      && (!locationFilter || String(employee.location_id || "") === locationFilter)
-      && (!employmentFilter || employee.employment_type === employmentFilter)
-      && wageOk;
-  }), [employees, search, positionFilter, locationFilter, employmentFilter, wageBand, employmentName, locale]);
+      return (!needle || haystack.includes(needle))
+        && (!positionFilter || String(employee.position_id || "") === positionFilter)
+        && (!locationFilter || String(employee.location_id || "") === locationFilter)
+        && (!employmentFilter || employee.employment_type === employmentFilter)
+        && wageOk;
+    });
+
+    return applyColumnFilters(baseRows, [
+      { id: "name", kind: "text", value: columnFilters.name, getValue: employee => employee.full_name },
+      { id: "location", kind: "select", value: columnFilters.location, getValue: employee => String(employee.location_id || "") },
+      { id: "employment", kind: "select", value: columnFilters.employment, getValue: employee => employee.employment_type || "" },
+      { id: "monthly", kind: "number-min", value: columnFilters.monthlyMin, getValue: employee => employee.monthly_wage || 0 },
+      { id: "hourly", kind: "number-min", value: columnFilters.hourlyMin, getValue: employee => employee.hourly_wage || 0 },
+      { id: "commission", kind: "number-min", value: columnFilters.commissionMin, getValue: employee => employee.commission_percent || 0 },
+      { id: "status", kind: "boolean", value: columnFilters.status, getValue: employee => employee.active !== false },
+    ], locale);
+  }, [employees, search, positionFilter, locationFilter, employmentFilter, wageBand, columnFilters, employmentName, locale]);
 
   const groups = useMemo(() => {
     const map = new Map<string, Employee[]>();
@@ -285,7 +319,11 @@ export default function EmployeesList() {
     setLocationFilter("");
     setEmploymentFilter("");
     setWageBand("");
+    setColumnFilters(emptyColumnFilters);
   };
+
+  const setColumnFilter = (key: keyof EmployeeColumnFilterState, value: string) =>
+    setColumnFilters(current => ({ ...current, [key]: value }));
 
   const openEmployee = (employee?: Employee) => {
     setEmployeeForm(employee ? {
@@ -399,7 +437,19 @@ export default function EmployeesList() {
               <small>{isCollapsed ? t("staff.expand") : t("staff.collapse")}</small>
             </button>
             {!isCollapsed && <div className="staff-table-wrap"><table className="staff-table grouped-table">
-              <thead><tr><th>{t("staff.professional")}</th><th>{t("staff.location")}</th><th>{t("staff.employment_type")}</th><th>{t("staff.monthly_wage")}</th><th>{t("staff.hourly_wage")}</th><th>{t("staff.commission")}</th><th>{t("staff.status")}</th><th/></tr></thead>
+              <thead>
+                <tr><th>{t("staff.professional")}</th><th>{t("staff.location")}</th><th>{t("staff.employment_type")}</th><th>{t("staff.monthly_wage")}</th><th>{t("staff.hourly_wage")}</th><th>{t("staff.commission")}</th><th>{t("staff.status")}</th><th/></tr>
+                <tr className="staff-column-filter-row">
+                  <th><input aria-label={language === "en" ? "Filter professional" : "Szakember szűrése"} value={columnFilters.name} onChange={e => setColumnFilter("name", e.target.value)} placeholder={language === "en" ? "Name…" : "Név…"}/></th>
+                  <th><select aria-label={language === "en" ? "Filter location" : "Telephely szűrése"} value={columnFilters.location} onChange={e => setColumnFilter("location", e.target.value)}><option value="">{t("common.all")}</option>{locations.map(location => <option key={location.id} value={location.id}>{location.name}</option>)}</select></th>
+                  <th><select aria-label={language === "en" ? "Filter employment type" : "Foglalkoztatás szűrése"} value={columnFilters.employment} onChange={e => setColumnFilter("employment", e.target.value)}><option value="">{t("common.all")}</option>{employmentTypes.filter(item => item.is_active !== false).map(item => <option key={item.id} value={item.code}>{item.name}</option>)}</select></th>
+                  <th><input aria-label={language === "en" ? "Minimum monthly wage" : "Minimum havibér"} type="number" min="0" value={columnFilters.monthlyMin} onChange={e => setColumnFilter("monthlyMin", e.target.value)} placeholder="≥ Ft"/></th>
+                  <th><input aria-label={language === "en" ? "Minimum hourly wage" : "Minimum órabér"} type="number" min="0" value={columnFilters.hourlyMin} onChange={e => setColumnFilter("hourlyMin", e.target.value)} placeholder="≥ Ft"/></th>
+                  <th><input aria-label={language === "en" ? "Minimum commission" : "Minimum jutalék"} type="number" min="0" max="100" step="0.1" value={columnFilters.commissionMin} onChange={e => setColumnFilter("commissionMin", e.target.value)} placeholder="≥ %"/></th>
+                  <th><select aria-label={language === "en" ? "Filter status" : "Státusz szűrése"} value={columnFilters.status} onChange={e => setColumnFilter("status", e.target.value)}><option value="">{t("common.all")}</option><option value="true">{t("common.active")}</option><option value="false">{t("common.inactive")}</option></select></th>
+                  <th><button type="button" className="column-filter-reset" onClick={() => setColumnFilters(emptyColumnFilters)} title={t("common.reset")}><X size={14}/></button></th>
+                </tr>
+              </thead>
               <tbody>{group.people.map(employee => <tr key={employee.id}>
                 <td><div className="staff-person">{employee.photo_url ? <img src={employee.photo_url} alt=""/> : <span>{initials(employee.full_name)}</span>}<div><strong>{employee.full_name}</strong><small>{employee.qualification || employee.email || t("staff.no_qualification")}</small>{employee.phone && <small>{employee.phone}</small>}</div></div></td>
                 <td><span className="staff-muted"><MapPin size={15}/>{employee.location_name || t("staff.no_location")}</span></td>
