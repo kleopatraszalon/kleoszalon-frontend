@@ -1,6 +1,5 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import {describe,it,expect} from 'vitest';
 
 const source=fs.readFileSync(path.resolve(__dirname,'../PlatformTenantPanel.tsx'),'utf8');
 
