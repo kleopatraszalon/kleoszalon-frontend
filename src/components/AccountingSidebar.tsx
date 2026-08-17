@@ -11,6 +11,7 @@ const groups:Group[]=[
  {label:"Pénzügyek",icon:<WalletCards size={18}/>,items:[
   {label:"Pénzügyi áttekintés",to:"/finance"},
   {label:"NAV Online Számla",to:"/finance/nav-online-invoice"},
+  {label:"Nyugta / NAV adatszolgáltatás",to:"/finance/receipt-compliance"},
   {label:"Számlák és bizonylatok",to:"/finance?section=invoices"},
   {label:"Pénzügyi ellenőrzés",to:"/finance?section=control"},
   {label:"Bér és járulék",to:"/modules/team/payroll"},
