@@ -1,0 +1,6 @@
+.kleo-global-column-filter-row th{padding:.35rem .45rem!important;background:var(--color-surface,#fff)!important;border-top:1px solid var(--color-border-subtle,#e2e2e2)}
+.kleo-global-column-filter-cell input{display:block;width:100%;min-width:72px;max-width:240px;border:1px solid var(--color-border-subtle,#d8d8d8);border-radius:8px;background:var(--color-surface,#fff);color:var(--color-text,#120c08);font:inherit;font-size:.76rem;line-height:1.2;padding:.38rem .48rem;outline:none}
+.kleo-global-column-filter-cell input:focus{border-color:var(--color-gold,#b69861);box-shadow:0 0 0 2px rgba(182,152,97,.16)}
+.kleo-global-column-filter-cell input::placeholder{color:var(--color-muted,#5d5a55);opacity:.72}
+tr[data-kleo-filtered-out]{display:none!important}
+@media(max-width:700px){.kleo-global-column-filter-cell input{min-width:62px;font-size:.72rem;padding:.32rem .4rem}}
