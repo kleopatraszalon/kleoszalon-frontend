@@ -4,6 +4,7 @@ import FinanceWorkspacePage from "./finance/FinanceWorkspacePage";
 import PenzugyLegacy from "./PenzugyLegacy";
 import ProductSalePage from "./ProductSalePage";
 import ReceiptCompliancePage from "./ReceiptCompliancePage";
+import FitnessPage from "./FitnessPage";
 
 /**
  * Finance v5 route adapter.
@@ -13,11 +14,14 @@ import ReceiptCompliancePage from "./ReceiptCompliancePage";
  * legacy screen. Direct retail product sales have their own work-order-free
  * screen under /finance/product-sale. Receipt/NAV compliance is isolated under
  * /finance/receipt-compliance and aggregates both work orders and retail sales.
+ * Gyöngyös Fitness uses /finance/fitness so it can be shipped without opening
+ * a generic route to other salons; its backend enforces the location scope.
  */
 export default function Penzugy() {
   const { pathname } = useLocation();
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
+  if(pathname === "/finance/fitness" || pathname.startsWith("/finance/fitness/")) return <FitnessPage />;
   const legacyFlow =
     pathname === "/finance/cashier" ||
     pathname.startsWith("/finance/cashier/") ||
