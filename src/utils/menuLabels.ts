@@ -97,6 +97,9 @@ const EN: Record<string, string> = {
   'Raktárak': 'Warehouses',
   'Statisztika és VIR': 'Statistics & VIR',
   'AI vezetői asszisztens': 'AI executive assistant',
+  'Exception Command Center': 'Exception Command Center',
+  'Exception Intelligence': 'Exception Intelligence',
+  'CAPA központ': 'CAPA center',
   'Telephelyek': 'Locations',
   'Marketing': 'Marketing',
   'Online foglalás és alkalmazás': 'Online booking & app',
@@ -127,8 +130,6 @@ export function canonicalMenuLabel(label: string): string {
   const clean = String(label || '').trim();
   const alias = HU_ALIASES[clean];
   if (alias) return alias;
-  // Régi adatbázisokban ez a főmenü több, kissé eltérő felirattal is előfordult.
-  // Nem hagyjuk a hosszú/hibás variánsokat visszakerülni a bal oldali menübe.
   if (/^program\s+és\s+szolgáltatás/i.test(clean)) return 'Időpontok és beosztás';
   return clean;
 }
