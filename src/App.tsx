@@ -18,6 +18,7 @@ const HrDevelopmentPage = lazy(() => import("./pages/HrDevelopmentPage"));
 const OperationsQualityPage = lazy(
   () => import("./pages/OperationsQualityPage"),
 );
+const ManagementImprovementPage = lazy(() => import("./pages/ManagementImprovementPage"));
 const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
 const DailyActionsPage = lazy(() => import("./pages/DailyActionsPage"));
 const WallBoardDailyActionPage = lazy(() => import("./pages/WallBoardDailyActionPage"));
@@ -225,6 +226,10 @@ const router = createBrowserRouter([
   {
     path: "/marketing/complaints",
     element: R(MANAGEMENT, <OperationsQualityPage />),
+  },
+  {
+    path: "/operations/improvement",
+    element: R(MANAGEMENT, <ManagementImprovementPage />),
   },
   {
     path: "/operations/audits",
