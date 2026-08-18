@@ -1,5 +1,6 @@
 import axios from "axios";
 import { idempotencyKeyFor } from "../utils/financialIdempotency";
+import { clearAuthenticatedSession, hasStoredAuthToken } from "../utils/authSession";
 
 function norm(v?: string) {
   return (v ?? "")
@@ -79,7 +80,10 @@ function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 const api = axios.create({
   baseURL,
   withCredentials: true,
-  headers: { "Content-Type": "application/json" },
+  headers: {
+    "Content-Type": "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  },
 });
 
 api.interceptors.request.use((config) => {
@@ -92,11 +96,14 @@ api.interceptors.request.use((config) => {
     config.url=requestUrl.replace(/^\/api(?=\/|$)/i,"")||"/";
   }
 
-  const token = localStorage.getItem("kleo_token") || localStorage.getItem("token");
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
+  // Browser authentication is cookie-only. Calling this helper also replaces
+  // any legacy readable JWT with the non-secret compatibility marker.
+  hasStoredAuthToken();
+  if (config.headers && "Authorization" in config.headers) {
+    delete (config.headers as any).Authorization;
   }
+  config.headers=config.headers||{};
+  config.headers["X-Requested-With"]="XMLHttpRequest";
 
   const idempotencyKey=idempotencyKeyFor(`${String(config.baseURL||"")}${String(config.url||"")}`,config.method);
   if(idempotencyKey&&!config.headers?.["Idempotency-Key"]){
@@ -130,7 +137,13 @@ api.interceptors.response.use(
   },
   async (error) => {
     if (error?.response?.status === 401) {
-      console.warn("API 401: a munkamenet lejárt vagy a token hiányzik.");
+      console.warn("API 401: a HttpOnly munkamenet lejárt vagy hiányzik.");
+      if(hasStoredAuthToken()){
+        clearAuthenticatedSession();
+        if(typeof window!=="undefined"&&!window.location.pathname.startsWith("/login")){
+          window.location.assign("/login?reason=session");
+        }
+      }
     }
 
     // Olvasási kérésnél átmeneti hálózati/edge hiba után kontrolláltan újrapróbálunk.
