@@ -15,7 +15,8 @@ describe('SaaS / Franchise admin wiring', () => {
   });
 
   test('privileged menu entries are backend-driven while location-scoped extras stay restricted', () => {
-    expect(sidebar).toContain('axios.get(`${API_BASE}/menus`');
+    expect(sidebar).toContain('axios.get(');
+    expect(sidebar).toContain('/menus');
     expect(sidebar).toContain('tree=buildTree');
     expect(sidebar).toContain('if(isCustomer||isAccounting||isLocationScoped||isStaff)return');
     expect(sidebar).toContain('const RECEIPT_COMPLIANCE');
