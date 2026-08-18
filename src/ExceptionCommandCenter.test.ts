@@ -5,4 +5,4 @@ test('Exception Command Center exposes executive radar and triage tools',()=>{co
 
 test('Exception Command Center supports ownership workflow audit and export',()=>{const p=read('src/pages/ExceptionCommandCenterPage.tsx');for(const marker of ['/summary','/cases','/routing-rules','/export.csv','/cases/bulk','/comment','owner_name','resolution_evidence'])expect(p).toContain(marker)});
 
-test('finance route adapter exposes Exception Command Center',()=>{const p=read('src/pages/Penzugy.tsx');expect(p).toContain('ExceptionCommandCenterPage');expect(p).toContain('/finance/exception-command-center')});
+test('finance route adapter exposes management-only Exception Command Center',()=>{const p=read('src/pages/Penzugy.tsx');expect(p).toContain('ExceptionCommandCenterPage');expect(p).toContain('/finance/exception-command-center');expect(p).toContain('hasStoredRole(["admin", "manager"])');expect(p).toContain('<Navigate to="/finance" replace />')});
