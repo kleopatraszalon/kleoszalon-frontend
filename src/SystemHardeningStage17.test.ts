@@ -16,7 +16,9 @@ test("Stage17 uses shared language, audit, recycle-bin and filter infrastructure
   const audit=read("src/pages/AuditLogPage.tsx");
   const master=read("src/pages/CentralMasterDataPage.tsx");
   expect(index).toMatch(/LanguageProvider/);
-  expect(sidebar).toMatch(/translateMenuLabel/);
+  expect(sidebar).toMatch(/canonicalMenuLabel/);
+  expect(sidebar).toMatch(/menuLabel/);
+  expect(sidebar).toMatch(/useLanguage/);
   expect(audit).toMatch(/UnifiedFilterToolbar/);
   expect(master).toMatch(/system-hardening/);
   expect(master).toMatch(/\/archive/);
