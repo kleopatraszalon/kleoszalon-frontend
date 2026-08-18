@@ -1,0 +1,54 @@
+name: Frontend PR quality
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-pr-quality-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Frontend strict quality / build
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify clean lockfile install
+        run: git diff --exit-code -- package-lock.json package.json
+
+      - name: Menu route audit
+        run: node scripts/check-menu-routes.js
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: ESLint zero-error / warning-regression gate
+        run: npm run lint:strict
+
+      - name: Frontend tests
+        env:
+          CI: true
+        run: npm test -- --watchAll=false
+
+      - name: Strict production build
+        env:
+          CI: true
+          DISABLE_ESLINT_PLUGIN: 'true'
+        run: npm run build
