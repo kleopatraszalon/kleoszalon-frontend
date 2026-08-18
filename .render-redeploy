@@ -1,4 +1,4 @@
 Render redeploy trigger
-2026-08-18T13:15:00+02:00
-Deploy latest main including canonical labels for Statisztika és VIR, Pénzügy és pénztár, Rendszerállapot and the management-control routes.
-Reason: newly added management menu entries and names were not visible correctly in production.
+2026-08-18T14:11:00+02:00
+Deploy latest main including Transaction Lifecycle & Traceability forensic UI, Trace Health scorecards, HMAC/SLA status, anomaly cards, dependency graph, proof package export and System Status trace health panel.
+Reason: production redeploy after the transaction forensic control center and system-health integration were completed.
