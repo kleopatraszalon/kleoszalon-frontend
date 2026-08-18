@@ -28,6 +28,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "node scripts/write-release-meta.js",
     "build": "react-scripts build",
     "typecheck": "tsc --noEmit --pretty false",
     "lint:strict": "node scripts/run-release-lint.js",
