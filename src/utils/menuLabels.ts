@@ -71,6 +71,7 @@ const EN: Record<string, string> = {
   'Beszerzés': 'Procurement',
   'Pénzügy és pénztár': 'Finance & cashier',
   'Pénzügyi áttekintés': 'Finance overview',
+  'Tárgyi eszközök és amortizáció': 'Fixed assets & depreciation',
   'Pénzügyi egyeztető központ': 'Financial reconciliation center',
   'NAV Online Számla': 'NAV Online Invoice',
   'Nyugta és NAV-adatszolgáltatás': 'Receipts & NAV reporting',
