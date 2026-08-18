@@ -1,4 +1,4 @@
 Render redeploy trigger
-2026-08-18T20:34:00+02:00
-Deploy latest main including the Major Incident / War Room executive workspace, SEV1/SEV2 radar, impact score, command team, lifecycle controls, linked Exception cases, CAPA link, action board, evidence-based completion, War Room updates, append-only timeline, post-mortem workflow, System Health Major Incident panel, management-only routing and navigation.
-Reason: production redeploy after Major Incident / War Room UI and governance controls were completed.
+2026-08-18T21:18:00+02:00
+Deploy latest main including the Resilience & Recovery executive workspace, RTO/RPO radar, service recovery matrix, evidence-based runbook checklist, active change-freeze visibility, two-person emergency override workflow, ALL CLEAR controls, editable service objectives, management-only route/menu and System Health resilience readiness panel.
+Reason: production redeploy after business-continuity and recovery governance UI was completed.
