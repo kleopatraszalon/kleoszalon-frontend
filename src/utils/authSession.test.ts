@@ -1,7 +1,10 @@
 import {
   clearAuthenticatedSession,
+  COOKIE_SESSION_MARKER,
   getLastActivityAt,
+  hasStoredAuthToken,
   IDLE_TIMEOUT_MS,
+  markAuthenticatedSession,
   markSessionActivity,
 } from './authSession';
 
@@ -19,8 +22,22 @@ test('session activity is stored as a shared browser timestamp', () => {
   expect(getLastActivityAt()).toBe(123456789);
 });
 
+test('browser session stores only a non-secret compatibility marker', () => {
+  markAuthenticatedSession();
+  expect(localStorage.getItem('kleo_token')).toBe(COOKIE_SESSION_MARKER);
+  expect(localStorage.getItem('token')).toBe(COOKIE_SESSION_MARKER);
+  expect(hasStoredAuthToken()).toBe(true);
+});
+
+test('legacy readable JWT is replaced immediately by the cookie-session marker', () => {
+  localStorage.setItem('kleo_token', 'eyJhbGciOiJIUzI1NiJ9.legacy.signature');
+  expect(hasStoredAuthToken()).toBe(true);
+  expect(localStorage.getItem('kleo_token')).toBe(COOKIE_SESSION_MARKER);
+  expect(localStorage.getItem('token')).toBe(COOKIE_SESSION_MARKER);
+});
+
 test('logout clears authentication state without deleting unrelated UI preferences', () => {
-  localStorage.setItem('kleo_token', 'secret-token');
+  markAuthenticatedSession();
   localStorage.setItem('kleo_account_type', 'admin');
   localStorage.setItem('kleo.sidebar.collapsed', 'true');
   sessionStorage.setItem('kleo_token', 'session-token');
@@ -29,6 +46,7 @@ test('logout clears authentication state without deleting unrelated UI preferenc
   clearAuthenticatedSession();
 
   expect(localStorage.getItem('kleo_token')).toBeNull();
+  expect(localStorage.getItem('token')).toBeNull();
   expect(localStorage.getItem('kleo_account_type')).toBeNull();
   expect(sessionStorage.getItem('kleo_token')).toBeNull();
   expect(localStorage.getItem('kleo.sidebar.collapsed')).toBe('true');
