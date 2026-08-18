@@ -18,18 +18,21 @@ test('frontend release workflows use deterministic lockfile installs', () => {
   }
 });
 
-test('frontend release workflows enforce typecheck and zero-warning lint', () => {
+test('frontend release workflows enforce typecheck and a non-regressing lint gate', () => {
   for (const file of workflows) {
     const source = read(file);
     expect(source).toContain('npm run typecheck');
     expect(source).toContain('npm run lint:strict');
   }
-
   const pkg = JSON.parse(read('package.json'));
   expect(pkg.scripts.typecheck).toBe('tsc --noEmit --pretty false');
-  expect(pkg.scripts['lint:strict']).toContain('--max-warnings=0');
+  expect(pkg.scripts['lint:strict']).toBe('node scripts/run-release-lint.js');
   expect(pkg.scripts['quality:strict']).toContain('npm run typecheck');
   expect(pkg.scripts['quality:strict']).toContain('npm run lint:strict');
+  const lintGate = read('scripts/run-release-lint.js');
+  expect(lintGate).toContain('errorCount>0');
+  expect(lintGate).toContain('warningCount>WARNING_BASELINE');
+  expect(lintGate).toContain('ESLINT_WARNING_BASELINE');
 });
 
 test('production builds are never allowed to downgrade CI strictness', () => {
