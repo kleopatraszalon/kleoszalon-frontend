@@ -7,11 +7,11 @@ describe('Gyöngyös Fitness wiring',()=>{
   const finance=fs.readFileSync(path.join(__dirname,'pages/Penzugy.tsx'),'utf8');
   const page=fs.readFileSync(path.join(__dirname,'pages/FitnessPage.tsx'),'utf8');
 
-  test('admin sees Fitness while location users require backend access decision',()=>{
+  test('location users see Fitness only after backend access decision',()=>{
     expect(sidebar).toContain("const FITNESS_GYONGYOS");
     expect(sidebar).toContain("route:'/finance/fitness'");
-    expect(sidebar).toContain('extras=[FITNESS_GYONGYOS,RECEIPT_COMPLIANCE');
-    expect(sidebar).toContain('fitnessAllowed?[FITNESS_GYONGYOS]');
+    expect(sidebar).toContain('...(fitnessAllowed?[FITNESS_GYONGYOS]:[])');
+    expect(sidebar).toContain('RECEIPT_COMPLIANCE');
     expect(sidebar).toContain('/vir/fitness/access');
   });
 
