@@ -74,7 +74,7 @@ describe('SaaS / Franchise admin wiring', () => {
   });
 
   test('partner billing and VAT can be edited before invoice draft creation', () => {
-    expect(settlements).toContain('/members/${billingReceivable.franchise_member_id}/billing');
+    expect(settlements).toContain(['/members/','$','{billingReceivable.franchise_member_id}/billing'].join(''));
     expect(settlements).toContain('Partneradatok / ÁFA');
     expect(settlements).toContain('Franchise partner számlázási adatai');
     expect(settlements).toContain('billing_vat_rate:vat');
