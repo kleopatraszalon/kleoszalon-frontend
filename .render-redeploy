@@ -1,4 +1,4 @@
 Render redeploy trigger
-2026-08-18T13:02:00+02:00
-Deploy latest main including the AI Executive Assistant route, Financial Reconciliation Center UI, Observability/APM and current backend-driven menu bundle.
-Reason: user-requested production redeploy because newly added menu entries were not visible.
+2026-08-18T13:15:00+02:00
+Deploy latest main including canonical labels for Statisztika és VIR, Pénzügy és pénztár, Rendszerállapot and the management-control routes.
+Reason: newly added management menu entries and names were not visible correctly in production.
