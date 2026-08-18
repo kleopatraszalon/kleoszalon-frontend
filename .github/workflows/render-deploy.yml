@@ -10,6 +10,10 @@ permissions:
   id-token: write
   statuses: write
 
+concurrency:
+  group: render-production-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   automated-quality-gate:
     name: Frontend strict quality / build
