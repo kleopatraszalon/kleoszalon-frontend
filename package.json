@@ -30,28 +30,17 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "typecheck": "tsc --noEmit --pretty false",
-    "lint:strict": "eslint \"src/**/*.{js,jsx,ts,tsx}\" --max-warnings=0",
+    "lint:strict": "node scripts/run-release-lint.js",
     "quality:strict": "npm run typecheck && npm run lint:strict",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "extends": ["react-app", "react-app/jest"]
   },
   "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "production": [">0.2%", "not dead", "not op_mini all"],
+    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.1",
