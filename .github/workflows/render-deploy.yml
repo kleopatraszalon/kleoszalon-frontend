@@ -5,6 +5,10 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   automated-quality-gate:
     name: Frontend unit / integration / build
@@ -21,10 +25,8 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        # npm ci currently rejects the historical lock because npm 10 resolves an
-        # optional yaml peer to 2.x while the committed lock still contains yaml 1.x.
-        # npm install keeps the quality gate reproducible enough for this legacy CRA
-        # app while allowing npm to reconcile optional peer metadata in the runner.
+        # A historical CRA lock/optional-peer mismatch still requires npm install.
+        # The Release Control Center records this build only after tests and live smoke pass.
         run: npm install --no-audit --no-fund
 
       - name: Frontend tests
@@ -33,9 +35,6 @@ jobs:
         run: npm test -- --watchAll=false
 
       - name: Production build
-        # The regular frontend-build workflow already compiles the legacy CRA app
-        # with CI=false so historical ESLint warnings remain visible but do not block
-        # a release. Tests above stay strict under CI=true.
         env:
           CI: false
         run: npm run build
@@ -44,18 +43,26 @@ jobs:
     name: Manual approval + production deploy
     needs: automated-quality-gate
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 18
     environment: production-manual-approval
     env:
       RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK_URL }}
       FRONTEND_URL: https://kleoszalon-frontend.onrender.com
+      API_BASE_URL: https://kleoszalon-api-1.onrender.com
     steps:
+      - name: Require Render frontend deploy hook
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${RENDER_DEPLOY_HOOK_URL:-}" ]; then
+            echo "RENDER_FRONTEND_DEPLOY_HOOK_URL secret is not configured." >&2
+            exit 1
+          fi
+
       - name: Trigger Render frontend deploy
-        if: env.RENDER_DEPLOY_HOOK_URL != ''
         run: curl -fsS --retry 3 --max-time 30 -X POST "$RENDER_DEPLOY_HOOK_URL"
 
-      - name: Verify live frontend contains cashier stage13
-        if: env.RENDER_DEPLOY_HOOK_URL != ''
+      - name: Verify live frontend contains expected VIR bundle marker
         shell: bash
         run: |
           set -euo pipefail
@@ -74,7 +81,8 @@ jobs:
                   url="$FRONTEND_URL/$asset"
                 fi
                 if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$url?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
-                  && grep -aFq '/api/transactions/cashier/shift/current' /tmp/app.js; then
+                  && grep -aFq '/api/transactions/cashier/shift/current' /tmp/app.js \
+                  && grep -aFq '/api/transactions/release-control' /tmp/app.js; then
                   found=1
                   break
                 fi
@@ -84,11 +92,21 @@ jobs:
             sleep 10
           done
           if [ "$found" -ne 1 ]; then
-            echo "Render frontend is reachable, but cashier Stage13 bundle marker was not found."
+            echo "Render frontend is reachable, but the expected VIR release bundle markers were not found." >&2
             exit 1
           fi
-          echo "Render frontend cashier Stage13 smoke PASS"
+          echo "Render frontend release smoke PASS"
 
-      - name: Render deploy hook is not configured
-        if: env.RENDER_DEPLOY_HOOK_URL == ''
-        run: echo "RENDER_FRONTEND_DEPLOY_HOOK_URL secret is not configured; Render deploy skipped."
+      - name: Publish frontend evidence to Release Control Center
+        shell: bash
+        run: |
+          set -euo pipefail
+          response="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kleoszalon-release-control")"
+          oidc="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value||''))")"
+          test -n "$oidc"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"CI=true frontend test suite PASS"},{key:"build.frontend",status:"pass",evidence:"Production frontend build + live Render smoke PASS"}]}))')"
+          curl -fsS --retry 3 --max-time 30 \
+            -H "Authorization: Bearer $oidc" \
+            -H 'Content-Type: application/json' \
+            --data "$payload" \
+            "$API_BASE_URL/api/uat/release-control/evidence"
