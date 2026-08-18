@@ -7,14 +7,16 @@ import logo from "../assets/kleo_logo.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
+import { markAuthenticatedSession } from "../utils/authSession";
 
 type LoginResponse = {
   success?: boolean;
-  token?: string;
+  auth_transport?: string;
   role?: any;
   account_type?: "customer" | "staff" | "admin" | string;
   location_id?: string | number | null;
   location_name?: string | null;
+  tenant_id?: string | number | null;
   full_name?: string | null;
   email?: string | null;
   login_name?: string | null;
@@ -87,10 +89,10 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
-      if (body.token) {
-        localStorage.setItem("kleo_token", body.token);
-        localStorage.setItem("token", body.token);
-      }
+      // The JWT is owned exclusively by the backend HttpOnly cookie. Keep only
+      // a non-secret compatibility marker for legacy route guards.
+      markAuthenticatedSession();
+
       if (body.role != null) localStorage.setItem("kleo_role", String(body.role));
       if (body.full_name) localStorage.setItem("kleo_full_name", String(body.full_name));
       else localStorage.removeItem("kleo_full_name");
