@@ -10,6 +10,7 @@ import FitnessLockerKiosk from "./FitnessLockerKiosk";
 import ReconciliationCenterPage from "./ReconciliationCenterPage";
 import ExecutiveAiAssistantPage from "./ExecutiveAiAssistantPage";
 import TransactionTracePage from "./TransactionTracePage";
+import "./TransactionTraceForensics.css";
 
 /**
  * Finance v5 route adapter.
