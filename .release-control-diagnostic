@@ -1,0 +1,3 @@
+Release Control frontend diagnostic
+2026-08-18
+Purpose: run the main frontend quality gates in a PR context without deploying production.
