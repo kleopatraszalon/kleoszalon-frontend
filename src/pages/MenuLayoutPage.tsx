@@ -7,6 +7,7 @@ import"./MenuLayoutPage.css";
 type MenuNode={id:number;code?:string|null;name:string;route?:string|null;order_index?:number|null;parent_id?:number|null;submenus?:MenuNode[]};
 type DragInfo={id:number;parentId:number|null};
 
+const MENU_CACHE_KEYS=["kleo.menu.cache.v16","kleo.menu.cache.v17"];
 const ROOT_LABELS:Record<string,string>={
  dashboard:"Irányítópult",
  appointments:"Időpontok és beosztás",
@@ -25,6 +26,7 @@ const ROOT_LABELS:Record<string,string>={
 };
 const displayName=(item:MenuNode)=>item.code&&ROOT_LABELS[item.code]?ROOT_LABELS[item.code]:canonicalMenuLabel(item.name);
 const copyTree=(roots:MenuNode[])=>roots.map(r=>({...r,submenus:(r.submenus||[]).map(c=>({...c,submenus:[]}))}));
+const clearMenuCache=()=>{try{MENU_CACHE_KEYS.forEach(key=>localStorage.removeItem(key))}catch{}};
 
 function removeItem(roots:MenuNode[],info:DragInfo):{roots:MenuNode[];item:MenuNode|null}{
  const next=copyTree(roots);
@@ -67,13 +69,13 @@ export default function MenuLayoutPage(){
    ]);
    await api.put("/menus/layout",{items});
    setOriginal(copyTree(roots));setDirty(false);setNotice("A menü sorrendje és az áthelyezések elmentve. Az oldalsáv frissül.");
-   try{localStorage.removeItem("kleo.menu.cache.v16")}catch{}
+   clearMenuCache();
    window.setTimeout(()=>window.location.reload(),350);
   }catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||"A menürendezést nem sikerült menteni.")}finally{setSaving(false)}
  }
  async function resetDefault(){
   if(!window.confirm("Visszaállítsuk a rendszer alapértelmezett menüelrendezését?"))return;
-  setSaving(true);setError("");try{await api.delete("/menus/layout");await load();setNotice("Az alapértelmezett menüelrendezés visszaállítva.");try{localStorage.removeItem("kleo.menu.cache.v16")}catch{}}catch(e:any){setError(e?.response?.data?.message||e?.message||"A visszaállítás nem sikerült.")}finally{setSaving(false)}
+  setSaving(true);setError("");try{await api.delete("/menus/layout");clearMenuCache();await load();setNotice("Az alapértelmezett menüelrendezés visszaállítva.")}catch(e:any){setError(e?.response?.data?.message||e?.message||"A visszaállítás nem sikerült.")}finally{setSaving(false)}
  }
 
  return <main className="menu-layout-page">
