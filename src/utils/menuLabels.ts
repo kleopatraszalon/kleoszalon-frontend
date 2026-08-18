@@ -100,6 +100,8 @@ const EN: Record<string, string> = {
   'Exception Command Center': 'Exception Command Center',
   'Exception Intelligence': 'Exception Intelligence',
   'CAPA központ': 'CAPA center',
+  'Major Incident / War Room': 'Major Incident / War Room',
+  'Resilience & Recovery': 'Resilience & Recovery',
   'Telephelyek': 'Locations',
   'Marketing': 'Marketing',
   'Online foglalás és alkalmazás': 'Online booking & app',
