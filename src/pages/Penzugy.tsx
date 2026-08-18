@@ -1,5 +1,6 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
+import { hasStoredRole } from "../utils/roles";
 import FinanceWorkspacePage from "./finance/FinanceWorkspacePage";
 import PenzugyLegacy from "./PenzugyLegacy";
 import ProductSalePage from "./ProductSalePage";
@@ -32,12 +33,13 @@ import "./TransactionTraceForensics.css";
 
 export default function Penzugy() {
   const { pathname } = useLocation();
+  const management = hasStoredRole(["admin", "manager"]);
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname.startsWith("/finance/fixed-assets")) return <FixedAssetsPage />;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
-  if(pathname.startsWith("/finance/exception-command-center")) return <ExceptionCommandCenterPage />;
+  if(pathname.startsWith("/finance/exception-command-center")) return management ? <ExceptionCommandCenterPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/executive-ai")) return <ExecutiveAiAssistantPage />;
   if(pathname === "/finance/fitness/lockers/kiosk") return <FitnessLockerKiosk />;
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
@@ -54,7 +56,7 @@ export default function Penzugy() {
   return <>
     <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
       <Link to="/finance/fixed-assets" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#6e56a3",color:"white"}}>Tárgyi eszközök</Link>
-      <Link to="/finance/exception-command-center" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#991b1b",color:"white"}}>Exception Command Center</Link>
+      {management&&<Link to="/finance/exception-command-center" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#991b1b",color:"white"}}>Exception Command Center</Link>}
       <Link to="/finance/executive-ai" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4c3b91",color:"white"}}>AI vezetői asszisztens</Link>
       <Link to="/finance/reconciliation" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#172554",color:"white"}}>Pénzügyi egyeztető központ</Link>
       <Link to="/finance/transaction-trace" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Tranzakció-életút</Link>
