@@ -5,6 +5,7 @@ import api from"../api/api";
 import{getVirDashboard,getVirRevenueSeries,type VirDashboardSummary,type VirRevenueRow}from"../api/vir";
 import{useCapabilities}from"../hooks/useCapabilities";
 import VirTopMetricsPage from"./VirTopMetricsPage";
+import VirDecisionSupportPanel from"./VirDecisionSupportPanel";
 import"./VirReportExtras.css";
 
 type StaffMetric={employee_id:string|null;employee_name:string;workorder_count:number;revenue:number;avg_ticket:number};
@@ -70,6 +71,7 @@ export default function VirTopMetricsExtendedPage(){
    <section className="vir-command-card vir-command-staff"><div className="vir-command-card-head"><div><span>CSAPAT</span><h2>Top munkatársi teljesítmény</h2><p>A kiválasztott havi időszak lezárt munkalapjai alapján.</p></div></div><div className="vir-command-staff-grid">{staff.map((s,i)=><article key={`${s.employee_id||"staff"}-${i}`}><span className="rank">{i+1}</span><div><b>{s.employee_name}</b><small>{num(s.workorder_count)} lezárt munkalap</small></div>{canFinancial&&<strong>{huf(s.revenue)}</strong>}</article>)}{!staff.length&&<div className="vir-command-empty">Nincs munkatársi teljesítményadat ebben az időszakban.</div>}</div></section>
   </section>
 
+  <VirDecisionSupportPanel/>
   <div className="vir-detail-divider"><span>RÉSZLETES ELEMZÉS</span><h2>Teljes VIR kimutatás</h2><p>Időszak- és szalonszűréssel, részletes pénzügyi, vendég-, készlet- és munkatársi blokkokkal.</p></div>
   <VirTopMetricsPage/>
  </>;
