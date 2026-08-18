@@ -105,8 +105,23 @@ jobs:
           oidc="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value||''))")"
           test -n "$oidc"
           payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"CI=true frontend test suite PASS"},{key:"build.frontend",status:"pass",evidence:"Production frontend build + live Render smoke PASS"}]}))')"
-          curl -fsS --retry 3 --max-time 30 \
-            -H "Authorization: Bearer $oidc" \
-            -H 'Content-Type: application/json' \
-            --data "$payload" \
-            "$API_BASE_URL/api/uat/release-control/evidence"
+          published=0
+          for attempt in $(seq 1 30); do
+            code="$(curl -sS --max-time 30 -o /tmp/release-evidence-response.json -w '%{http_code}' \
+              -H "Authorization: Bearer $oidc" \
+              -H 'Content-Type: application/json' \
+              --data "$payload" \
+              "$API_BASE_URL/api/uat/release-control/evidence" || true)"
+            if [ "$code" -ge 200 ] 2>/dev/null && [ "$code" -lt 300 ] 2>/dev/null; then
+              cat /tmp/release-evidence-response.json
+              published=1
+              break
+            fi
+            echo "Release Control endpoint not ready yet ($attempt/30, HTTP ${code:-network-error})."
+            cat /tmp/release-evidence-response.json 2>/dev/null || true
+            sleep 10
+          done
+          if [ "$published" -ne 1 ]; then
+            echo "Frontend evidence could not be published to the Release Control Center." >&2
+            exit 1
+          fi
