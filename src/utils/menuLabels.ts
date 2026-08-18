@@ -103,6 +103,7 @@ const EN: Record<string, string> = {
   'Major Incident / War Room': 'Major Incident / War Room',
   'Resilience & Recovery': 'Resilience & Recovery',
   'Üzletmenet-folytonossági GameDay': 'Business Continuity GameDay',
+  'Operational Risk & Control Register': 'Operational Risk & Control Register',
   'Telephelyek': 'Locations',
   'Marketing': 'Marketing',
   'Online foglalás és alkalmazás': 'Online booking & app',
