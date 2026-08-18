@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{AlertTriangle,CheckCircle2,RefreshCw,ShieldCheck}from"lucide-react";
 import api from"../api";
 import{hasStoredRole}from"../utils/roles";
@@ -11,8 +11,8 @@ export default function FixedAssetGovernancePanel(){
  const locationId=localStorage.getItem("kleo_location_id")||"";
  const approver=hasStoredRole(["accounting","bookkeeper","konyveles","könyvelés","admin","administrator","rendszergazda","superadmin","super_admin"]);
  const url=`/fixed-assets/governance/readiness${locationId?`?location_id=${encodeURIComponent(locationId)}`:""}`;
- const load=async()=>{setLoading(true);setError("");try{setData((await api.get(url)).data)}catch(e:any){setError(e?.response?.data?.message||"A tárgyi eszköz könyvelési készültsége nem tölthető be.")}finally{setLoading(false)}};
- useEffect(()=>{void load()},[locationId]);
+ const load=useCallback(async()=>{setLoading(true);setError("");try{setData((await api.get(url)).data)}catch(e:any){setError(e?.response?.data?.message||"A tárgyi eszköz könyvelési készültsége nem tölthető be.")}finally{setLoading(false)}},[url]);
+ useEffect(()=>{void load()},[load]);
  const unmapped=useMemo(()=>data?.chart_of_accounts?.rows?.filter((r:Row)=>r.mapping_status!=="approved"||!String(r.external_account_code||"").trim())||[],[data]);
  const review=useMemo(()=>data?.assets?.rows?.filter((r:Row)=>r.depreciation_policy_status!=="approved")||[],[data]);
 
