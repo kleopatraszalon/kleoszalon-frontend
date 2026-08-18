@@ -41,6 +41,7 @@ const Logisztika = lazy(() => import("./pages/Logisztika"));
 const CentralSupplyPage = lazy(() => import("./pages/CentralSupplyPage"));
 const CentralMasterDataPage = lazy(() => import("./pages/CentralMasterDataPage"));
 const SystemSettingsPage = lazy(() => import("./pages/SystemSettingsPage"));
+const MenuLayoutPage = lazy(() => import("./pages/MenuLayoutPage"));
 const GdprCenterPage = lazy(() => import("./pages/GdprCenterPage"));
 const Register = lazy(() => import("./pages/Register"));
 const WorkOrdersList = lazy(() => import("./pages/WorkOrdersList"));
@@ -181,6 +182,7 @@ const router = createBrowserRouter([
   },
   { path: "/admin/uat", element: R(MANAGEMENT, <UatTestCenterPage />) },
   { path: "/admin/saas", element: R(ADMIN, <SaasFranchiseAdminPage />) },
+  { path: "/admin/menu-layout", element: R(ADMIN, <MenuLayoutPage />) },
   { path: "/admin/website", element: R(MANAGEMENT, <WebsiteAdminPage />) },
   {
     path: "/admin/website/pages",
