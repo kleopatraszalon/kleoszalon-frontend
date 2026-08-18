@@ -1,0 +1,28 @@
+const { ESLint } = require('eslint');
+
+const WARNING_BASELINE = Number(process.env.ESLINT_WARNING_BASELINE || 108);
+
+(async () => {
+  const eslint = new ESLint();
+  const results = await eslint.lintFiles(['src/**/*.{js,jsx,ts,tsx}']);
+  const formatter = await eslint.loadFormatter('stylish');
+  const output = formatter.format(results);
+  if (output) process.stdout.write(`${output}\n`);
+
+  const errorCount = results.reduce((sum, result) => sum + result.errorCount + result.fatalErrorCount, 0);
+  const warningCount = results.reduce((sum, result) => sum + result.warningCount, 0);
+
+  if (errorCount > 0) {
+    console.error(`ESLint release gate: ${errorCount} error(s), ${warningCount} warning(s).`);
+    process.exit(1);
+  }
+  if (warningCount > WARNING_BASELINE) {
+    console.error(`ESLint release gate: warning regression (${warningCount} > ${WARNING_BASELINE}).`);
+    process.exit(1);
+  }
+
+  console.log(`ESLint release gate OK: 0 errors; ${warningCount}/${WARNING_BASELINE} legacy-warning budget used.`);
+})().catch((error) => {
+  console.error('ESLint release gate failed to execute.', error);
+  process.exit(1);
+});
