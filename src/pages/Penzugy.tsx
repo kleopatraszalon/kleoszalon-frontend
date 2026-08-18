@@ -8,6 +8,7 @@ import FitnessPage from "./FitnessPage";
 import FitnessLockerPanel from "./FitnessLockerPanel";
 import FitnessLockerKiosk from "./FitnessLockerKiosk";
 import ReconciliationCenterPage from "./ReconciliationCenterPage";
+import ExecutiveAiAssistantPage from "./ExecutiveAiAssistantPage";
 
 /**
  * Finance v5 route adapter.
@@ -18,6 +19,8 @@ import ReconciliationCenterPage from "./ReconciliationCenterPage";
  * screen under /finance/product-sale. Receipt/NAV compliance is isolated under
  * /finance/receipt-compliance and aggregates both work orders and retail sales.
  * The reconciliation center owns daily end-to-end financial and stock integrity.
+ * The executive AI route is hosted here only as a route adapter; its menu lives
+ * under Analytics / VIR and the page is a management-only analytical surface.
  */
 
 export default function Penzugy() {
@@ -25,6 +28,7 @@ export default function Penzugy() {
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
+  if(pathname.startsWith("/finance/executive-ai")) return <ExecutiveAiAssistantPage />;
   if(pathname === "/finance/fitness/lockers/kiosk") return <FitnessLockerKiosk />;
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
   if(pathname === "/finance/fitness") return <FitnessPage />;
@@ -38,7 +42,8 @@ export default function Penzugy() {
 
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
-    <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end"}}>
+    <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8}}>
+      <Link to="/finance/executive-ai" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4c3b91",color:"white"}}>AI vezetői asszisztens</Link>
       <Link to="/finance/reconciliation" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#172554",color:"white"}}>Pénzügyi egyeztető központ</Link>
     </div>
     <FinanceWorkspacePage />
