@@ -9,6 +9,7 @@ import FitnessLockerPanel from "./FitnessLockerPanel";
 import FitnessLockerKiosk from "./FitnessLockerKiosk";
 import ReconciliationCenterPage from "./ReconciliationCenterPage";
 import ExecutiveAiAssistantPage from "./ExecutiveAiAssistantPage";
+import TransactionTracePage from "./TransactionTracePage";
 
 /**
  * Finance v5 route adapter.
@@ -19,8 +20,9 @@ import ExecutiveAiAssistantPage from "./ExecutiveAiAssistantPage";
  * screen under /finance/product-sale. Receipt/NAV compliance is isolated under
  * /finance/receipt-compliance and aggregates both work orders and retail sales.
  * The reconciliation center owns daily end-to-end financial and stock integrity.
- * The executive AI route is hosted here only as a route adapter; its menu lives
- * under Analytics / VIR and the page is a management-only analytical surface.
+ * Transaction Trace provides tamper-evident lifecycle proof for individual
+ * business transactions. The executive AI route is hosted here only as a route
+ * adapter; its menu lives under Analytics / VIR.
  */
 
 export default function Penzugy() {
@@ -28,6 +30,7 @@ export default function Penzugy() {
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
+  if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
   if(pathname.startsWith("/finance/executive-ai")) return <ExecutiveAiAssistantPage />;
   if(pathname === "/finance/fitness/lockers/kiosk") return <FitnessLockerKiosk />;
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
@@ -42,9 +45,10 @@ export default function Penzugy() {
 
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
-    <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8}}>
+    <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
       <Link to="/finance/executive-ai" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4c3b91",color:"white"}}>AI vezetői asszisztens</Link>
       <Link to="/finance/reconciliation" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#172554",color:"white"}}>Pénzügyi egyeztető központ</Link>
+      <Link to="/finance/transaction-trace" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Tranzakció-életút</Link>
     </div>
     <FinanceWorkspacePage />
   </>;
