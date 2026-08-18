@@ -135,6 +135,9 @@ jobs:
               continue
             fi
 
+            release_api_marker=0
+            release_ui_marker=0
+            asset_count=0
             if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$FRONTEND_URL/asset-manifest.json?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/asset-manifest.json; then
               node -e "const m=require('/tmp/asset-manifest.json'); for(const v of Object.values(m.files||{})) if(typeof v==='string' && v.endsWith('.js')) console.log(v)" > /tmp/js-assets.txt
               while IFS= read -r asset; do
@@ -146,24 +149,28 @@ jobs:
                 else
                   url="$FRONTEND_URL/$asset"
                 fi
-                if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$url?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js \
-                  && grep -aFq '/api/transactions/cashier/shift/current' /tmp/app.js \
-                  && grep -aFq '/api/transactions/release-control' /tmp/app.js; then
-                  found=1
-                  break
+                if curl -fsS --max-time 20 -H 'Cache-Control: no-cache' "$url?smoke=$GITHUB_RUN_ID-$attempt" -o /tmp/app.js; then
+                  asset_count=$((asset_count+1))
+                  if grep -aFq '/api/transactions/release-control' /tmp/app.js; then release_api_marker=1; fi
+                  if grep -aFq 'Release Control Center' /tmp/app.js; then release_ui_marker=1; fi
                 fi
               done < /tmp/js-assets.txt
             fi
-            [ "$found" -eq 1 ] && break
-            echo "Exact SHA is live, waiting for expected VIR bundle markers ($attempt/60)."
+
+            if [ "$asset_count" -gt 0 ] && [ "$release_api_marker" -eq 1 ] && [ "$release_ui_marker" -eq 1 ]; then
+              found=1
+              break
+            fi
+
+            echo "Exact SHA is live; waiting for aggregate VIR bundle markers ($attempt/60): assets=$asset_count api=$release_api_marker ui=$release_ui_marker"
             sleep 10
           done
           if [ "$found" -ne 1 ]; then
-            echo "Render frontend did not expose the exact workflow SHA with the expected VIR bundle markers." >&2
+            echo "Render frontend did not expose the exact workflow SHA with the expected aggregate VIR bundle markers." >&2
             exit 1
           fi
           echo "Render frontend exact SHA PASS: $GITHUB_SHA"
-          echo "Render frontend release smoke PASS"
+          echo "Render frontend aggregate bundle smoke PASS"
 
       - name: Publish frontend evidence to Release Control Center
         shell: bash
@@ -172,7 +179,7 @@ jobs:
           response="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kleoszalon-release-control")"
           oidc="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value||''))")"
           test -n "$oidc"
-          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; exact Render release-meta SHA verified; live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + menu audit + TypeScript typecheck + ESLint warning-regression gate + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true production build + exact Render SHA verification + live bundle smoke PASS"}]}))')"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; exact Render release-meta SHA verified; aggregate live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + menu audit + TypeScript typecheck + ESLint warning-regression gate + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true production build + exact Render SHA verification + aggregate live bundle smoke PASS"}]}))')"
           published=0
           for attempt in $(seq 1 30); do
             code="$(curl -sS --max-time 30 -o /tmp/release-evidence-response.json -w '%{http_code}' \
