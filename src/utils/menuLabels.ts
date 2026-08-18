@@ -102,6 +102,7 @@ const EN: Record<string, string> = {
   'CAPA központ': 'CAPA center',
   'Major Incident / War Room': 'Major Incident / War Room',
   'Resilience & Recovery': 'Resilience & Recovery',
+  'Üzletmenet-folytonossági GameDay': 'Business Continuity GameDay',
   'Telephelyek': 'Locations',
   'Marketing': 'Marketing',
   'Online foglalás és alkalmazás': 'Online booking & app',
