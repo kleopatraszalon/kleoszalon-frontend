@@ -1,5 +1,6 @@
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
+export const COOKIE_SESSION_MARKER = "cookie-session-v1";
 
 const LOCAL_AUTH_KEYS = [
   "token",
@@ -35,14 +36,32 @@ function logoutEndpoint(): string {
   return `${window.location.origin.replace(/\/$/, "")}/api/logout`;
 }
 
+/**
+ * Keep the historic token keys as non-secret compatibility flags because older
+ * route guards only test whether they are present. The value is never a JWT and
+ * must never be sent as an Authorization credential.
+ */
+export function markAuthenticatedSession(): void {
+  try {
+    localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER);
+    localStorage.setItem("token", COOKIE_SESSION_MARKER);
+  } catch {
+    // Restricted storage contexts can still rely on the HttpOnly cookie until
+    // navigation; the API remains the authority for authentication.
+  }
+}
+
 export function hasStoredAuthToken(): boolean {
   try {
-    return Boolean(
-      localStorage.getItem("kleo_token") ||
-      localStorage.getItem("token") ||
-      sessionStorage.getItem("kleo_token") ||
-      sessionStorage.getItem("token")
-    );
+    const current = localStorage.getItem("kleo_token") || localStorage.getItem("token");
+    if (!current) return false;
+    if (current !== COOKIE_SESSION_MARKER) {
+      // One-time migration of a legacy browser JWT. Previous login versions set
+      // the HttpOnly cookie as well, so replace the readable bearer value with a
+      // harmless marker immediately.
+      markAuthenticatedSession();
+    }
+    return true;
   } catch {
     return false;
   }
@@ -70,16 +89,18 @@ export function getLastActivityAt(): number | null {
 }
 
 export function clearAuthenticatedSession(): void {
-  // The backend owns an HttpOnly auth cookie as well as the browser-held bearer
-  // token. Keepalive makes the cookie invalidation survive an immediate redirect
-  // to /login after an idle timeout or explicit logout.
+  // The backend owns the credential in an HttpOnly cookie. Keepalive makes the
+  // cookie invalidation survive an immediate redirect to /login.
   if (typeof fetch === "function") {
     void fetch(logoutEndpoint(), {
       method: "POST",
       credentials: "include",
       cache: "no-store",
       keepalive: true,
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      },
     }).catch(() => undefined);
   }
 
