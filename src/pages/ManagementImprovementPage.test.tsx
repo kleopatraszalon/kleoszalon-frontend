@@ -35,4 +35,25 @@ describe("Management improvement project workspace", () => {
     expect(page).toContain("Bizonyíték zárolva");
     expect(page).toContain("disabled={evidenceLocked}");
   });
+
+  test("maintains a structured and audit-backed evidence register inside immutable analysis data", () => {
+    for (const marker of [
+      "type EvidenceItem",
+      "projectEvidence",
+      "safeEvidenceUrl",
+      "analysis_data: { ...(detail.project.analysis_data || {}), evidence: next }",
+      "Evidencia / bizonyítékok",
+      "Dokumentumazonosító / hivatkozási szám",
+      'rel="noreferrer noopener"',
+      "Bizonyíték hozzáadva és auditálva.",
+    ]) expect(page).toContain(marker);
+    expect(page).toContain('raw.startsWith("/uploads/")');
+    expect(page).toContain('["http:", "https:"]');
+  });
+
+  test("captures lessons learned and standardization in the locked project evidence payload", () => {
+    expect(page).toContain("lessons_learned");
+    expect(page).toContain("Tanulságok / standardizálás");
+    expect(page).toContain("Mit kell szabványosítani, oktatni vagy más telephelyre kiterjeszteni?");
+  });
 });
