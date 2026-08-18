@@ -9,4 +9,4 @@ test('CAPA UI uses governed summary list sync detail and update API',()=>{const 
 
 test('finance adapter routes CAPA before generic exception route and restricts management',()=>{const p=read('src/pages/Penzugy.tsx');const capa=p.indexOf('/finance/exception-command-center/capa');const generic=p.indexOf('if(pathname.startsWith("/finance/exception-command-center"))');expect(capa).toBeGreaterThan(-1);expect(generic).toBeGreaterThan(-1);expect(capa).toBeLessThan(generic);expect(p).toContain('ExceptionCapaPage');expect(p).toContain('management ? <ExceptionCapaPage')});
 
-test('system health surfaces Exception Intelligence health panel',()=>{const p=read('src/pages/SystemHealthPage.tsx');expect(p).toContain('ExceptionIntelligenceHealthPanel')});
+test('system health surfaces Intelligence and CAPA governance panels',()=>{const p=read('src/pages/SystemHealthPage.tsx');expect(p).toContain('ExceptionIntelligenceHealthPanel');expect(p).toContain('ExceptionCapaHealthPanel');const c=read('src/pages/ExceptionCapaHealthPanel.tsx');for(const marker of ['Kritikus nyitott','Lejárt CAPA','Verifikációra vár','Igazolt 30 nap'])expect(c).toContain(marker)});
