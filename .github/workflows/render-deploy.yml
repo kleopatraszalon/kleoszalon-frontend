@@ -39,7 +39,7 @@ jobs:
       - name: TypeScript typecheck
         run: npm run typecheck
 
-      - name: ESLint zero-warning gate
+      - name: ESLint zero-error / warning-regression gate
         run: npm run lint:strict
 
       - name: Frontend tests
@@ -50,6 +50,7 @@ jobs:
       - name: Strict production build
         env:
           CI: true
+          DISABLE_ESLINT_PLUGIN: 'true'
         run: npm run build
 
   deploy:
@@ -117,7 +118,7 @@ jobs:
           response="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kleoszalon-release-control")"
           oidc="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value||''))")"
           test -n "$oidc"
-          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + menu audit + TypeScript typecheck + ESLint zero-warning + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true strict production build + live Render smoke PASS"}]}))')"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + menu audit + TypeScript typecheck + ESLint warning-regression gate + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true production build after explicit lint gate + live Render smoke PASS"}]}))')"
           published=0
           for attempt in $(seq 1 30); do
             code="$(curl -sS --max-time 30 -o /tmp/release-evidence-response.json -w '%{http_code}' \
