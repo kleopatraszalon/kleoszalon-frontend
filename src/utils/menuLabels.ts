@@ -1,9 +1,26 @@
 import type { Language } from '../i18n/LanguageProvider';
 
 const HU_ALIASES: Record<string, string> = {
+  'Vezérlőpult': 'Irányítópult',
+  'Dashboard': 'Irányítópult',
   'Check listák': 'Ellenőrzőlisták',
   'Tudástár': 'Tudásbázis',
   'Időpontok és jelenlét': 'Időpontok és beosztás',
+  'Program és Szolgáltatások': 'Időpontok és beosztás',
+  'Program és szolgáltatások': 'Időpontok és beosztás',
+  'Program és Szolgáltatás': 'Időpontok és beosztás',
+  'Program és szolgáltatás': 'Időpontok és beosztás',
+  'Hűség, bérletek és ajándékkártyák': 'Törzsvásárlói program',
+  'Hűségprogram': 'Törzsvásárlói program',
+  'Csapat és HR': 'Munkatársak és HR',
+  'Pénzügy és pénztár': 'Pénzügyek',
+  'Statisztika és VIR': 'Vezetői riportok',
+  'Riportok és kimutatások': 'Vezetői riportok',
+  'Szalonhálózat': 'Telephelyek',
+  'Szalonok és telephelyek': 'Telephelyek',
+  'Kommunikáció és marketing': 'Marketing',
+  'Online foglalás és ügyfélalkalmazás': 'Online foglalás és alkalmazás',
+  'Webshop és értékesítés': 'Értékesítés és webshop',
   'Beszerzési dashboard': 'Beszerzési áttekintés',
   'Jóváhagyásra vár': 'Jóváhagyásra váró tételek',
   'Készlet áttekintés': 'Készletáttekintés',
@@ -16,7 +33,8 @@ const HU_ALIASES: Record<string, string> = {
   'Könyvelési tudástár': 'Könyvelési tudásbázis',
   'VIR Admin': 'VIR adminisztráció',
   'VIR specifikáció': 'VIR megfelelőségi ellenőrzés',
-  'WallBoard / TV napi akció': 'TV napi akciók (WallBoard)',
+  'WallBoard / TV napi akció': 'TV napi akciók',
+  'TV napi akciók (WallBoard)': 'TV napi akciók',
   'SaaS / Franchise központ': 'SaaS és franchise központ',
   'Öltözőszekrények – 20 rekesz': 'Öltözőszekrények',
   'Importálás és duplikációkezelés': 'Munkatárs-import és duplikációkezelés',
@@ -43,6 +61,9 @@ const EN: Record<string, string> = {
   'Időpontok és beosztás': 'Appointments & schedule',
   'Időpontnaptár': 'Appointment calendar',
   'Munkalapok': 'Work orders',
+  'Ügyfelek és CRM': 'Customers & CRM',
+  'Törzsvásárlói program': 'Loyalty program',
+  'Munkatársak és HR': 'Staff & HR',
   'Raktár és készlet': 'Inventory',
   'Készlet': 'Stock',
   'Termékek': 'Products',
@@ -72,10 +93,14 @@ const EN: Record<string, string> = {
   'Fizetési módok': 'Payment methods',
   'Pénzügyi tranzakciótípusok': 'Financial transaction types',
   'Raktárak': 'Warehouses',
-  'Riportok és kimutatások': 'Reports & statements',
+  'Vezetői riportok': 'Management reports',
+  'Telephelyek': 'Locations',
+  'Marketing': 'Marketing',
+  'Online foglalás és alkalmazás': 'Online booking & app',
+  'Értékesítés és webshop': 'Sales & webshop',
   'Könyvelési tudásbázis': 'Accounting knowledge base',
   'VIR megfelelőségi ellenőrzés': 'ERP specification compliance',
-  'TV napi akciók (WallBoard)': 'TV daily deals (WallBoard)',
+  'TV napi akciók': 'TV daily deals',
   'SaaS és franchise központ': 'SaaS & franchise center',
   'VIR adminisztráció': 'ERP administration',
   'Fitnesz – Gyöngyös': 'Fitness – Gyöngyös',
@@ -97,7 +122,12 @@ const EN: Record<string, string> = {
 
 export function canonicalMenuLabel(label: string): string {
   const clean = String(label || '').trim();
-  return HU_ALIASES[clean] || clean;
+  const alias = HU_ALIASES[clean];
+  if (alias) return alias;
+  // Régi adatbázisokban ez a főmenü több, kissé eltérő felirattal is előfordult.
+  // Nem hagyjuk a hosszú/hibás variánsokat visszakerülni a bal oldali menübe.
+  if (/^program\s+és\s+szolgáltatás/i.test(clean)) return 'Időpontok és beosztás';
+  return clean;
 }
 
 export function menuLabel(label: string, language: Language): string {
