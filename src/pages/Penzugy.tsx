@@ -1,6 +1,7 @@
 import React from "react";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { hasStoredRole } from "../utils/roles";
+import FixedAssetGovernancePanel from "../components/FixedAssetGovernancePanel";
 import FinanceWorkspacePage from "./finance/FinanceWorkspacePage";
 import PenzugyLegacy from "./PenzugyLegacy";
 import ProductSalePage from "./ProductSalePage";
@@ -28,7 +29,8 @@ import "./TransactionTraceForensics.css";
  * business transactions. Exception Command Center is the cross-functional
  * management work queue for automatically detected business exceptions.
  * The fixed-asset workspace owns asset lifecycle, maintenance, spare-parts,
- * depreciation and general-ledger integration.
+ * depreciation and general-ledger integration. Its accounting governance panel
+ * makes chart mapping and policy approval readiness explicit before posting.
  */
 
 export default function Penzugy() {
@@ -36,7 +38,7 @@ export default function Penzugy() {
   const management = hasStoredRole(["admin", "manager"]);
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
-  if(pathname.startsWith("/finance/fixed-assets")) return <FixedAssetsPage />;
+  if(pathname.startsWith("/finance/fixed-assets")) return <><FixedAssetGovernancePanel/><FixedAssetsPage /></>;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
   if(pathname.startsWith("/finance/exception-command-center")) return management ? <ExceptionCommandCenterPage /> : <Navigate to="/finance" replace />;
