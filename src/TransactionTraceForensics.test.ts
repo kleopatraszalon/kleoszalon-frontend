@@ -7,4 +7,4 @@ test('transaction trace UI calls forensic backend tools',()=>{const p=read('src/
 
 test('forensic styles are loaded by finance route adapter',()=>{const p=read('src/pages/Penzugy.tsx');expect(p).toContain('TransactionTraceForensics.css');expect(p).toContain('/finance/transaction-trace')});
 
-test('system status includes transaction trace health panel',()=>{const panel=read('src/pages/TransactionTraceHealthPanel.tsx');const page=read('src/pages/SystemHealthPage.tsx');for(const marker of ['Transaction Trace Health','HMAC CHECKPOINT','WATCHDOG','/trace/health'])expect(panel).toContain(marker);expect(page).toContain('TransactionTraceHealthPanel')});
+test('system status includes transaction trace health panel',()=>{const panel=read('src/pages/TransactionTraceHealthPanel.tsx');const page=read('src/pages/SystemHealthPage.tsx');for(const marker of ['Transaction Trace Health','HMAC CHECKPOINT','WATCHDOG',"/api/transactions/notifications/reconciliation/trace",'/health?'])expect(panel).toContain(marker);expect(page).toContain('TransactionTraceHealthPanel')});
