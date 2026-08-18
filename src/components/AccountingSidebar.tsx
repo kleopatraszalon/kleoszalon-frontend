@@ -12,6 +12,7 @@ type Group={label:string;icon:React.ReactNode;items:LinkItem[]};
 const groups:Group[]=[
  {label:"Pénzügyek",icon:<WalletCards size={18}/>,items:[
   {label:"Pénzügyi áttekintés",to:"/finance"},
+  {label:"Tárgyi eszközök és amortizáció",to:"/finance/fixed-assets"},
   {label:"NAV Online Számla",to:"/finance/nav-online-invoice"},
   {label:"Nyugta és NAV-adatszolgáltatás",to:"/finance/receipt-compliance"},
   {label:"Számlák és bizonylatok",to:"/finance?section=invoices"},
