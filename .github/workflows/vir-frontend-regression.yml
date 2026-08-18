@@ -27,7 +27,7 @@ permissions:
 jobs:
   test-build-security:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     env:
       CI: 'true'
       REACT_APP_API_ORIGIN: https://kleoszalon-api-1.onrender.com
@@ -44,16 +44,23 @@ jobs:
       - name: Deterministic clean install
         run: npm ci --no-audit --no-fund
 
+      - name: Verify clean lockfile install
+        run: git diff --exit-code -- package-lock.json package.json
+
       - name: Production dependency security gate
         run: npm audit --omit=dev --audit-level=high
 
       - name: Menu route audit
         run: node scripts/check-menu-routes.js
 
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: ESLint zero-warning gate
+        run: npm run lint:strict
+
       - name: Run complete frontend regression suite
         run: npm test -- --watchAll=false --runInBand
 
-      - name: Production build
-        env:
-          CI: 'false'
+      - name: Strict production build
         run: npm run build
