@@ -31,3 +31,25 @@ test("mobile/PWA surface uses the same API client and production endpoints", () 
   expect(mobile).toMatch(/api\.post\("\/login"/);
   expect(mobile).toMatch(/\/customer-portal\/dashboard/);
 });
+
+test("management dashboard uses the canonical API client instead of a hard-coded Render origin", () => {
+  const home = read("src/pages/Home.tsx");
+  expect(home).toMatch(/api\.get<DashboardData>\("\/dashboard"/);
+  expect(home).not.toMatch(/const API_BASE=/);
+  expect(home).not.toMatch(/fetch\(`\$\{API_BASE\}\/dashboard/);
+});
+
+test("admin dashboard renders only one workorder summary surface", () => {
+  const roleDashboard = read("src/pages/RoleDashboardPage.tsx");
+  const home = read("src/pages/Home.tsx");
+  expect(home).toMatch(/<WorkOrderDashboardWidget\/>/);
+  expect(roleDashboard).not.toMatch(/<Delayed ms=\{300\}><WorkOrderDashboardPanel\/>/);
+  expect(roleDashboard).toMatch(/function WithWorkOrders/);
+});
+
+test("workorder dashboard does not classify cancellations and no-shows as completed", () => {
+  const widget = read("src/pages/dashboard/WorkOrderDashboardWidget.tsx");
+  expect(widget).toMatch(/x\?\.status==='completed'\?'completed':'cancelled'/);
+  expect(widget).toMatch(/'Folyamatban'/);
+  expect(widget).toMatch(/'Lemondott \/ no-show'/);
+});
