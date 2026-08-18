@@ -7,9 +7,13 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -20,11 +24,23 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Verify clean lockfile install
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- package-lock.json package.json
 
       - name: Menu route audit
         run: node scripts/check-menu-routes.js
+
+      - name: TypeScript typecheck
+        run: npm run typecheck
+
+      - name: ESLint zero-warning gate
+        run: npm run lint:strict
 
       - name: Frontend tests
         env:
@@ -43,9 +59,9 @@ jobs:
           fi
           exit "$code"
 
-      - name: Build frontend
+      - name: Strict production build
         env:
-          CI: false
+          CI: true
         shell: bash
         run: |
           set +e
@@ -54,6 +70,6 @@ jobs:
           printf '%s\n' "$output"
           if [ "$code" -ne 0 ]; then
             detail="$(printf '%s' "$output" | tail -c 6000 | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
-            echo "::error title=Frontend build failure::$detail"
+            echo "::error title=Frontend strict build failure::$detail"
           fi
           exit "$code"
