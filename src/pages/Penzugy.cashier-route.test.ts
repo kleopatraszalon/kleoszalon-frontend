@@ -7,7 +7,8 @@ describe("Finance v5 cashier route adapter", () => {
   test("keeps the dedicated cashier route on the operational cashier screen", () => {
     expect(source).toContain('pathname === "/finance/cashier"');
     expect(source).toContain('pathname.startsWith("/finance/cashier/")');
-    expect(source).toContain("return legacyFlow ? <PenzugyLegacy /> : <FinanceWorkspacePage />");
+    expect(source).toContain("if(legacyFlow) return <PenzugyLegacy />");
+    expect(source).toContain("<FinanceWorkspacePage />");
   });
 
   test("keeps checkout and invoice routes on the legacy operational flow", () => {
