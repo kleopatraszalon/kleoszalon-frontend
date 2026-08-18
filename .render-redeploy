@@ -1,4 +1,4 @@
 Render redeploy trigger
-2026-08-18T14:11:00+02:00
-Deploy latest main including Transaction Lifecycle & Traceability forensic UI, Trace Health scorecards, HMAC/SLA status, anomaly cards, dependency graph, proof package export and System Status trace health panel.
-Reason: production redeploy after the transaction forensic control center and system-health integration were completed.
+2026-08-18T15:26:00+02:00
+Deploy latest main including the modern Exception Command Center work queue, executive radar, SLA/routing matrix, owner workflow, bulk triage, evidence-based closure, CSV export, management-only route guard and Exception Command Center Health panel in System Status.
+Reason: production redeploy after automatic Exception Management UI and system-health integration were completed.
