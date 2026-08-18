@@ -14,20 +14,16 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(app).toContain('R(ADMIN, <SaasFranchiseAdminPage />)');
   });
 
-  test('admin sidebar exposes SaaS while manager extras remain SaaS-free', () => {
-    expect(sidebar).toContain("name:'SaaS / Franchise központ'");
-    expect(sidebar).toContain("route:'/admin/saas'");
-    expect(sidebar).toContain('const VIR_ADMIN');
+  test('privileged menu entries are backend-driven while location-scoped extras stay restricted', () => {
+    expect(sidebar).toContain('axios.get(`${API_BASE}/menus`');
+    expect(sidebar).toContain('tree=buildTree');
+    expect(sidebar).toContain('if(isCustomer||isAccounting||isLocationScoped||isStaff)return');
     expect(sidebar).toContain('const RECEIPT_COMPLIANCE');
     expect(sidebar).toContain('const FITNESS_GYONGYOS');
-    expect(sidebar).toContain('extras=[FITNESS_GYONGYOS,RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY,SAAS_ADMIN]');
-    expect(sidebar).toContain('else if(isManager){const extras=[RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY]');
-    expect(sidebar).toContain('return withVirAdminInSettings(configuredMenu(combined,vir),isAdmin||isManager)');
-    expect(sidebar).toContain("name:'Rendszerbeállítások'");
-    expect(sidebar).toContain('VIR_ADMIN]}');
-    const managerPart=sidebar.split('else if(isManager)')[1]?.split('else if(isLocationScoped')[0]||'';
-    expect(managerPart).not.toContain('SAAS_ADMIN');
-    expect(managerPart).not.toContain('FITNESS_GYONGYOS');
+    expect(sidebar).toContain('...(fitnessAllowed?[FITNESS_GYONGYOS]:[])');
+    expect(sidebar).toContain('/vir/fitness/access');
+    const locationMenu=sidebar.split('const LOCATION')[1]?.split('const ACCOUNTING')[0]||'';
+    expect(locationMenu).not.toContain('/admin/saas');
   });
 
   test('page composes stable core configuration with settlement finance panel', () => {
