@@ -1,5 +1,5 @@
 import React,{useCallback,useEffect,useMemo,useState}from'react';
-import{Activity,AlertTriangle,BellRing,CheckCircle2,ChevronRight,Clock3,Download,ExternalLink,Filter,Layers3,MessageSquare,PauseCircle,Play,RefreshCw,Route,Save,Search,Settings2,ShieldAlert,Siren,SlidersHorizontal,TimerReset,UserRoundCheck,Users,X}from'lucide-react';
+import{Activity,AlertTriangle,CheckCircle2,ChevronRight,Clock3,Download,ExternalLink,Layers3,MessageSquare,PauseCircle,Play,RefreshCw,Route,Save,Search,Settings2,ShieldAlert,Siren,TimerReset,UserRoundCheck,Users,X}from'lucide-react';
 import{useNavigate}from'react-router-dom';
 import api from'../api';
 import'./ExceptionCommandCenterPage.css';
@@ -36,7 +36,7 @@ export default function ExceptionCommandCenterPage(){
  async function patch(input:any){if(!selected)return;try{await api.patch(`${BASE}/cases/${selected.item.id}`,input);await openCase(selected.item.id);await load(true);setNotice('Az ügy frissítve.')}catch(e:any){setError(e?.response?.data?.message||'A módosítás nem menthető.')}}
  async function assign(){await patch({owner_name:ownerName,owner_key:ownerKey,team_key:teamKey})}
  async function addComment(){if(!selected||comment.trim().length<2)return;try{await api.post(`${BASE}/cases/${selected.item.id}/comment`,{message:comment.trim()});setComment('');await openCase(selected.item.id)}catch(e:any){setError(e?.response?.data?.message||'A megjegyzés nem menthető.')}}
- async function bulk(statusValue:CaseStatus){if(!selectedIds.length)return;try{await api.post(`${BASE}/cases/bulk`,{ids:selectedIds,status:statusValue,note:statusValue==='resolved'?'Csoportos vezetői lezárás.':undefined});setSelectedIds([]);await load();setNotice(`${selectedIds.length} ügy csoportos művelete lefutott.`)}catch(e:any){setError(e?.response?.data?.message||'A csoportos művelet nem sikerült.')}}
+ async function bulk(statusValue:CaseStatus){if(!selectedIds.length)return;const count=selectedIds.length;try{await api.post(`${BASE}/cases/bulk`,{ids:selectedIds,status:statusValue,note:statusValue==='resolved'?'Csoportos vezetői lezárás.':undefined});setSelectedIds([]);await load();setNotice(`${count} ügy csoportos művelete lefutott.`)}catch(e:any){setError(e?.response?.data?.message||'A csoportos művelet nem sikerült.')}}
  async function saveRule(rule:Rule){try{await api.put(`${BASE}/routing-rules/${encodeURIComponent(rule.category)}`,rule);setNotice(`${categoryHu[rule.category]||rule.category} SLA/routing szabály mentve.`);await load(true)}catch(e:any){setError(e?.response?.data?.message||'A routing szabály nem menthető.')}}
  async function exportCsv(){try{const r=await api.get(`${BASE}/export.csv?${query}`,{responseType:'blob'});const url=URL.createObjectURL(r.data);const a=document.createElement('a');a.href=url;a.download=`kleo-exception-center-${new Date().toISOString().slice(0,10)}.csv`;a.click();URL.revokeObjectURL(url)}catch(e:any){setError(e?.response?.data?.message||'Az export nem sikerült.')}}
  const allSelected=cases.length>0&&cases.every(x=>selectedIds.includes(x.id));
