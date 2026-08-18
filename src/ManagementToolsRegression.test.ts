@@ -35,4 +35,5 @@ test('continuous improvement workbench includes the requested analysis families'
   expect(page).toContain('/transactions/operations-quality/overview');
   expect(page).toContain('/employees');
   expect(page).toContain('getVirRevenueSeries');
+  expect(page).toContain('localStorage.setItem(STORE');
 });
