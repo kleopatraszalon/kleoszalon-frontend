@@ -27,7 +27,7 @@ const num=(v?:number|null)=>new Intl.NumberFormat("hu-HU").format(Number(v||0));
 const pct=(v?:number|null)=>`${Number(v||0).toFixed(1)}%`;
 const safeRatio=(a?:number|null,b?:number|null)=>Number(b||0)>0?Number(a||0)/Number(b||0)*100:0;
 const dateSpan=(from:string,to:string)=>Math.max(1,Math.round((new Date(`${to}T12:00:00`).getTime()-new Date(`${from}T12:00:00`).getTime())/86400000)+1);
-const previousPeriod=(from:string,to:string)=>{const start=new Date(`${from}T12:00:00`),end=new Date(`${to}T12:00:00`),days=dateSpan(from,to);const prevTo=new Date(start);prevTo.setDate(prevTo.getDate()-1);const prevFrom=new Date(prevTo);prevFrom.setDate(prevFrom.getDate()-days+1);return{from:iso(prevFrom),to:iso(prevTo)}};
+const previousPeriod=(from:string,to:string)=>{const start=new Date(`${from}T12:00:00`),days=dateSpan(from,to);const prevTo=new Date(start);prevTo.setDate(prevTo.getDate()-1);const prevFrom=new Date(prevTo);prevFrom.setDate(prevFrom.getDate()-days+1);return{from:iso(prevFrom),to:iso(prevTo)}};
 const change=(current?:number|null,previous?:number|null)=>{const c=Number(current||0),p=Number(previous||0);if(!Number.isFinite(c)||!Number.isFinite(p)||p===0)return null;return(c-p)/Math.abs(p)*100};
 
 function Card({title,value,sub,state,delta}:{title:string;value:string;sub:string;state?:"warning"|"critical";delta?:number|null}){return <article className={`topmetrics-card ${state||""}`}><small>{title}</small><strong>{value}</strong><em>{sub}</em>{delta!==undefined&&delta!==null&&<span className={`topmetrics-delta ${delta<0?"down":"up"}`}>{delta>=0?"+":""}{delta.toFixed(1)}% előző időszakhoz</span>}</article>}
