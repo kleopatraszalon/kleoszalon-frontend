@@ -7,6 +7,8 @@ import {
   CircleGauge,
   ClipboardCheck,
   Clock3,
+  ExternalLink,
+  FileCheck2,
   History,
   Plus,
   RefreshCw,
@@ -120,6 +122,17 @@ type AuditRow = {
   created_at: string;
 };
 
+type EvidenceKind = "document" | "photo" | "link" | "record" | "measurement" | "other";
+type EvidenceItem = {
+  id: string;
+  kind: EvidenceKind;
+  title: string;
+  reference?: string;
+  url?: string;
+  captured_at?: string;
+  notes?: string;
+};
+
 type Detail = { project: Project; actions: CapaAction[]; kpis: Kpi[]; approvals: Approval[]; audit: AuditRow[] };
 
 type ProjectDraft = {
@@ -127,6 +140,7 @@ type ProjectDraft = {
   problem_statement: string;
   objective: string;
   analysis: string;
+  lessons_learned: string;
   methodology: string;
   owner_employee_id: string;
   priority: Project["priority"];
@@ -155,11 +169,21 @@ type KpiDraft = {
   notes: string;
 };
 
+type EvidenceDraft = {
+  kind: EvidenceKind;
+  title: string;
+  reference: string;
+  url: string;
+  captured_at: string;
+  notes: string;
+};
+
 const emptyProject: ProjectDraft = {
   title: "",
   problem_statement: "",
   objective: "",
   analysis: "",
+  lessons_learned: "",
   methodology: "PDCA",
   owner_employee_id: "",
   priority: "normal",
@@ -188,6 +212,15 @@ const emptyKpi: KpiDraft = {
   notes: "",
 };
 
+const emptyEvidence: EvidenceDraft = {
+  kind: "document",
+  title: "",
+  reference: "",
+  url: "",
+  captured_at: new Date().toISOString().slice(0, 10),
+  notes: "",
+};
+
 const projectStatusLabel: Record<Project["status"], string> = {
   draft: "Tervezet",
   active: "Aktív",
@@ -200,6 +233,14 @@ const priorityLabel: Record<Project["priority"], string> = { low: "Alacsony", no
 const actionStatusLabel: Record<CapaAction["status"], string> = { open: "Nyitott", in_progress: "Folyamatban", completed: "Elvégezve", verified: "Igazolva", cancelled: "Megszakítva" };
 const actionTypeLabel: Record<CapaAction["action_type"], string> = { correction: "Korrekció", corrective: "Helyesbítő", preventive: "Megelőző", improvement: "Fejlesztés" };
 const approvalLabel: Record<Approval["decision"], string> = { pending: "Függő", approved: "Jóváhagyva", rejected: "Elutasítva", withdrawn: "Visszavonva" };
+const evidenceKindLabel: Record<EvidenceKind, string> = {
+  document: "Dokumentum",
+  photo: "Fénykép",
+  link: "Hivatkozás",
+  record: "Jegyzőkönyv / rekord",
+  measurement: "Mérési bizonyíték",
+  other: "Egyéb",
+};
 
 function dateInput(value?: string | null) { return value ? String(value).slice(0, 10) : ""; }
 function dateLabel(value?: string | null) {
@@ -214,11 +255,50 @@ function dateTimeLabel(value?: string | null) {
 }
 function messageOf(error: any) { return String(error?.response?.data?.message || error?.message || "A művelet sikertelen."); }
 function numberOrNull(value: string) { return value.trim() === "" ? null : Number(value.replace(",", ".")); }
-function analysisSummary(project?: Project | null) {
+function analysisText(project: Project | null | undefined, key: string) {
   const data = project?.analysis_data;
   if (!data || typeof data !== "object") return "";
-  const value = (data as Record<string, unknown>).summary;
+  const value = (data as Record<string, unknown>)[key];
   return typeof value === "string" ? value : "";
+}
+function projectEvidence(project?: Project | null): EvidenceItem[] {
+  const data = project?.analysis_data;
+  if (!data || typeof data !== "object") return [];
+  const raw = (data as Record<string, unknown>).evidence;
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((value) => {
+    if (!value || typeof value !== "object") return [];
+    const row = value as Record<string, unknown>;
+    const title = String(row.title || "").trim();
+    const id = String(row.id || "").trim();
+    if (!id || !title) return [];
+    const kindRaw = String(row.kind || "other") as EvidenceKind;
+    const kind: EvidenceKind = Object.prototype.hasOwnProperty.call(evidenceKindLabel, kindRaw) ? kindRaw : "other";
+    return [{
+      id,
+      kind,
+      title,
+      reference: String(row.reference || "").trim() || undefined,
+      url: String(row.url || "").trim() || undefined,
+      captured_at: String(row.captured_at || "").trim() || undefined,
+      notes: String(row.notes || "").trim() || undefined,
+    }];
+  });
+}
+function safeEvidenceUrl(value: string) {
+  const raw = value.trim();
+  if (!raw) return "";
+  if (raw.startsWith("/uploads/")) return raw;
+  try {
+    const parsed = new URL(raw);
+    return ["http:", "https:"].includes(parsed.protocol) ? raw : "";
+  } catch { return ""; }
+}
+function evidenceId() {
+  try {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID();
+  } catch { /* fallback below */ }
+  return `ev-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 export default function ManagementImprovementPage() {
@@ -231,6 +311,7 @@ export default function ManagementImprovementPage() {
   const [newProject, setNewProject] = useState<ProjectDraft>(emptyProject);
   const [actionDraft, setActionDraft] = useState<ActionDraft>(emptyAction);
   const [kpiDraft, setKpiDraft] = useState<KpiDraft>(emptyKpi);
+  const [evidenceDraft, setEvidenceDraft] = useState<EvidenceDraft>(emptyEvidence);
   const [showCreate, setShowCreate] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -265,7 +346,8 @@ export default function ManagementImprovementPage() {
       title: p.title || "",
       problem_statement: p.problem_statement || "",
       objective: p.objective || "",
-      analysis: analysisSummary(p),
+      analysis: analysisText(p, "summary"),
+      lessons_learned: analysisText(p, "lessons_learned"),
       methodology: (p.methodology || []).join(", "),
       owner_employee_id: p.owner_employee_id || "",
       priority: p.priority || "normal",
@@ -314,7 +396,7 @@ export default function ManagementImprovementPage() {
         title: newProject.title,
         problem_statement: newProject.problem_statement,
         objective: newProject.objective,
-        analysis_data: { summary: newProject.analysis },
+        analysis_data: { summary: newProject.analysis, lessons_learned: newProject.lessons_learned, evidence: [] },
         methodology: newProject.methodology.split(/[,\n]/).map((x) => x.trim()).filter(Boolean),
         owner_employee_id: newProject.owner_employee_id || null,
         priority: newProject.priority,
@@ -338,7 +420,11 @@ export default function ManagementImprovementPage() {
         title: projectDraft.title,
         problem_statement: projectDraft.problem_statement,
         objective: projectDraft.objective,
-        analysis_data: { ...(detail.project.analysis_data || {}), summary: projectDraft.analysis },
+        analysis_data: {
+          ...(detail.project.analysis_data || {}),
+          summary: projectDraft.analysis,
+          lessons_learned: projectDraft.lessons_learned,
+        },
         methodology: projectDraft.methodology.split(/[,\n]/).map((x) => x.trim()).filter(Boolean),
         owner_employee_id: projectDraft.owner_employee_id || null,
         priority: projectDraft.priority,
@@ -346,7 +432,52 @@ export default function ManagementImprovementPage() {
         due_date: projectDraft.due_date || null,
       });
       await afterMutation(detail.project.id);
-      flash("Projektadatok és elemzés mentve.");
+      flash("Projektadatok, elemzés és tanulságok mentve.");
+    } catch (e) { setError(messageOf(e)); }
+    finally { setSaving(false); }
+  };
+
+  const addEvidence = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!detail) return;
+    const title = evidenceDraft.title.trim();
+    const reference = evidenceDraft.reference.trim();
+    const rawUrl = evidenceDraft.url.trim();
+    const url = safeEvidenceUrl(rawUrl);
+    if (!title) { setError("A bizonyíték megnevezése kötelező."); return; }
+    if (rawUrl && !url) { setError("A bizonyíték URL-je csak http/https vagy belső /uploads/ hivatkozás lehet."); return; }
+    if (!reference && !url) { setError("Adj meg dokumentumazonosítót / hivatkozási számot vagy URL-t."); return; }
+    const next: EvidenceItem[] = [...projectEvidence(detail.project), {
+      id: evidenceId(),
+      kind: evidenceDraft.kind,
+      title,
+      reference: reference || undefined,
+      url: url || undefined,
+      captured_at: evidenceDraft.captured_at || new Date().toISOString().slice(0, 10),
+      notes: evidenceDraft.notes.trim() || undefined,
+    }];
+    setSaving(true); setError("");
+    try {
+      await api.patch(`${BASE}/projects/${detail.project.id}`, {
+        analysis_data: { ...(detail.project.analysis_data || {}), evidence: next },
+      });
+      setEvidenceDraft({ ...emptyEvidence, captured_at: new Date().toISOString().slice(0, 10) });
+      await afterMutation(detail.project.id);
+      flash("Bizonyíték hozzáadva és auditálva.");
+    } catch (e) { setError(messageOf(e)); }
+    finally { setSaving(false); }
+  };
+
+  const deleteEvidence = async (id: string) => {
+    if (!detail || !window.confirm("Biztosan törlöd ezt a bizonyíték-hivatkozást?")) return;
+    const next = projectEvidence(detail.project).filter((row) => row.id !== id);
+    setSaving(true); setError("");
+    try {
+      await api.patch(`${BASE}/projects/${detail.project.id}`, {
+        analysis_data: { ...(detail.project.analysis_data || {}), evidence: next },
+      });
+      await afterMutation(detail.project.id);
+      flash("Bizonyíték eltávolítva; a változás az audit trailben megmarad.");
     } catch (e) { setError(messageOf(e)); }
     finally { setSaving(false); }
   };
@@ -472,6 +603,7 @@ export default function ManagementImprovementPage() {
   };
 
   const selectedProject = detail?.project;
+  const evidenceItems = useMemo(() => projectEvidence(detail?.project), [detail]);
   const openActionCount = useMemo(() => detail?.actions.filter((x) => !["verified", "cancelled"].includes(x.status)).length || 0, [detail]);
   const completeKpiCount = useMemo(() => detail?.kpis.filter((x) => x.before_value != null && x.after_value != null).length || 0, [detail]);
 
@@ -481,7 +613,7 @@ export default function ManagementImprovementPage() {
         <div>
           <div className="mi-eyebrow"><ClipboardCheck size={16} /> Vállalatirányítási eszközök</div>
           <h1>Fejlesztési projektek és CAPA</h1>
-          <p>Elemzés, felelős, határidő, intézkedések, előtte/utána KPI, formális jóváhagyás és teljes audit trail egy helyen.</p>
+          <p>Elemzés, felelős, határidő, intézkedések, előtte/utána KPI, bizonyítékok, formális jóváhagyás és teljes audit trail egy helyen.</p>
         </div>
         <div className="mi-hero-actions">
           <button className="mi-btn mi-btn-secondary" onClick={() => void load()} disabled={loading || saving}><RefreshCw size={17} /> Frissítés</button>
@@ -517,7 +649,7 @@ export default function ManagementImprovementPage() {
         </aside>
 
         <section className="mi-detail">
-          {!selectedProject && <div className="mi-empty mi-empty-large"><CircleGauge size={38} /><h2>Válassz projektet</h2><p>A projekt részletes elemzése, CAPA, KPI és jóváhagyási nyoma itt jelenik meg.</p></div>}
+          {!selectedProject && <div className="mi-empty mi-empty-large"><CircleGauge size={38} /><h2>Válassz projektet</h2><p>A projekt részletes elemzése, CAPA, KPI, bizonyítékai és jóváhagyási nyoma itt jelenik meg.</p></div>}
           {selectedProject && detail && (
             <>
               <div className="mi-detail-head">
@@ -537,6 +669,7 @@ export default function ManagementImprovementPage() {
               <div className="mi-readiness">
                 <span className={openActionCount === 0 ? "ok" : "warn"}>{openActionCount === 0 ? <CheckCircle2 /> : <AlertTriangle />} Nyitott intézkedés: {openActionCount}</span>
                 <span className={completeKpiCount > 0 ? "ok" : "warn"}>{completeKpiCount > 0 ? <CheckCircle2 /> : <AlertTriangle />} Előtte/utána KPI: {completeKpiCount}</span>
+                <span className={evidenceItems.length > 0 ? "ok" : "warn"}>{evidenceItems.length > 0 ? <FileCheck2 /> : <AlertTriangle />} Bizonyíték: {evidenceItems.length}</span>
                 {evidenceLocked && <span className="locked"><ShieldCheck /> Bizonyíték zárolva</span>}
               </div>
 
@@ -551,6 +684,7 @@ export default function ManagementImprovementPage() {
                   <label className="mi-field mi-span-2">Probléma / fejlesztési lehetőség<textarea rows={3} value={projectDraft.problem_statement} disabled={evidenceLocked} onChange={(e) => setProjectDraft({ ...projectDraft, problem_statement: e.target.value })} /></label>
                   <label className="mi-field mi-span-2">Cél / elvárt eredmény<textarea rows={3} value={projectDraft.objective} disabled={evidenceLocked} onChange={(e) => setProjectDraft({ ...projectDraft, objective: e.target.value })} /></label>
                   <label className="mi-field mi-span-2">Elemzés<textarea rows={6} value={projectDraft.analysis} disabled={evidenceLocked} placeholder="Tények, ok-okozati elemzés, 5 Why, Ishikawa, kockázatok, megállapítások…" onChange={(e) => setProjectDraft({ ...projectDraft, analysis: e.target.value })} /></label>
+                  <label className="mi-field mi-span-2">Tanulságok / standardizálás<textarea rows={3} value={projectDraft.lessons_learned} disabled={evidenceLocked} placeholder="Mit kell szabványosítani, oktatni vagy más telephelyre kiterjeszteni?" onChange={(e) => setProjectDraft({ ...projectDraft, lessons_learned: e.target.value })} /></label>
                   <label className="mi-field mi-span-2">Módszertan<input value={projectDraft.methodology} disabled={evidenceLocked} placeholder="PDCA, 5 Why, Ishikawa" onChange={(e) => setProjectDraft({ ...projectDraft, methodology: e.target.value })} /></label>
                 </div>
               </section>
@@ -598,6 +732,40 @@ export default function ManagementImprovementPage() {
                 </form>}
               </section>
 
+              <section className="mi-panel">
+                <div className="mi-section-head"><div><h3><FileCheck2 size={18} /> Evidencia / bizonyítékok</h3><small>Dokumentum, fénykép, mérési jegyzőkönyv vagy más ellenőrizhető hivatkozás. A jóváhagyási körrel együtt zárolódik.</small></div></div>
+                <div className="mi-records">
+                  {evidenceItems.map((row) => {
+                    const href = row.url ? safeEvidenceUrl(row.url) : "";
+                    return <article className="mi-record" key={row.id}>
+                      <div className="mi-record-main">
+                        <div className="mi-record-title"><span className="mi-tag">{evidenceKindLabel[row.kind]}</span><strong>{row.title}</strong></div>
+                        <p>{row.notes || "Nincs külön megjegyzés."}</p>
+                        <div className="mi-record-meta">
+                          <span><Clock3 /> {dateLabel(row.captured_at)}</span>
+                          {row.reference && <span><FileCheck2 /> {row.reference}</span>}
+                          {href && <a className="mi-link" href={href} target="_blank" rel="noreferrer noopener"><ExternalLink size={15} /> Megnyitás</a>}
+                        </div>
+                      </div>
+                      {!evidenceLocked && <div className="mi-record-actions"><button className="mi-icon-btn" title="Bizonyíték törlése" onClick={() => void deleteEvidence(row.id)}><Trash2 size={16} /></button></div>}
+                    </article>;
+                  })}
+                  {evidenceItems.length === 0 && <div className="mi-empty">Még nincs strukturált bizonyíték-hivatkozás rögzítve.</div>}
+                </div>
+                {!evidenceLocked && selectedProject.status !== "closed" && <form className="mi-inline-form" onSubmit={addEvidence}>
+                  <h4>Új bizonyíték-hivatkozás</h4>
+                  <div className="mi-form-grid">
+                    <label className="mi-field">Típus<select value={evidenceDraft.kind} onChange={(e) => setEvidenceDraft({ ...evidenceDraft, kind: e.target.value as EvidenceKind })}>{Object.entries(evidenceKindLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+                    <label className="mi-field">Dátum<input type="date" value={evidenceDraft.captured_at} onChange={(e) => setEvidenceDraft({ ...evidenceDraft, captured_at: e.target.value })} /></label>
+                    <label className="mi-field mi-span-2">Megnevezés<input required value={evidenceDraft.title} onChange={(e) => setEvidenceDraft({ ...evidenceDraft, title: e.target.value })} /></label>
+                    <label className="mi-field">Dokumentumazonosító / hivatkozási szám<input value={evidenceDraft.reference} placeholder="pl. AUD-2026-0042" onChange={(e) => setEvidenceDraft({ ...evidenceDraft, reference: e.target.value })} /></label>
+                    <label className="mi-field">URL / belső fájlhivatkozás<input value={evidenceDraft.url} placeholder="https://… vagy /uploads/…" onChange={(e) => setEvidenceDraft({ ...evidenceDraft, url: e.target.value })} /></label>
+                    <label className="mi-field mi-span-2">Megjegyzés<textarea rows={2} value={evidenceDraft.notes} onChange={(e) => setEvidenceDraft({ ...evidenceDraft, notes: e.target.value })} /></label>
+                  </div>
+                  <button className="mi-btn mi-btn-secondary" disabled={saving}><Plus size={16} /> Bizonyíték hozzáadása</button>
+                </form>}
+              </section>
+
               <div className="mi-two-col">
                 <section className="mi-panel">
                   <div className="mi-section-head"><div><h3><ShieldCheck size={18} /> Jóváhagyási történet</h3><small>Maker-checker kontroll.</small></div></div>
@@ -613,7 +781,7 @@ export default function ManagementImprovementPage() {
         </section>
       </main>
 
-      {showCreate && <div className="mi-modal-backdrop" onMouseDown={() => !saving && setShowCreate(false)}><div className="mi-modal" onMouseDown={(e) => e.stopPropagation()}><div className="mi-modal-head"><div><span className="mi-eyebrow">Új fejlesztési projekt</span><h2>Projektindítás</h2></div><button className="mi-icon-btn" onClick={() => setShowCreate(false)}><XCircle /></button></div><form onSubmit={createProject}><div className="mi-form-grid"><label className="mi-field mi-span-2">Megnevezés<input autoFocus required value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} /></label><label className="mi-field mi-span-2">Probléma / lehetőség<textarea rows={3} value={newProject.problem_statement} onChange={(e) => setNewProject({ ...newProject, problem_statement: e.target.value })} /></label><label className="mi-field mi-span-2">Cél<textarea rows={3} value={newProject.objective} onChange={(e) => setNewProject({ ...newProject, objective: e.target.value })} /></label><label className="mi-field mi-span-2">Kezdeti elemzés<textarea rows={4} value={newProject.analysis} onChange={(e) => setNewProject({ ...newProject, analysis: e.target.value })} /></label><label className="mi-field">Felelős<select value={newProject.owner_employee_id} onChange={(e) => setNewProject({ ...newProject, owner_employee_id: e.target.value })}><option value="">Nincs kijelölve</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}</select></label><label className="mi-field">Prioritás<select value={newProject.priority} onChange={(e) => setNewProject({ ...newProject, priority: e.target.value as Project["priority"] })}>{Object.entries(priorityLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><label className="mi-field">Kezdés<input type="date" value={newProject.start_date} onChange={(e) => setNewProject({ ...newProject, start_date: e.target.value })} /></label><label className="mi-field">Határidő<input type="date" value={newProject.due_date} onChange={(e) => setNewProject({ ...newProject, due_date: e.target.value })} /></label><label className="mi-field mi-span-2">Módszertan<input value={newProject.methodology} onChange={(e) => setNewProject({ ...newProject, methodology: e.target.value })} /></label></div><div className="mi-modal-actions"><button type="button" className="mi-btn mi-btn-secondary" onClick={() => setShowCreate(false)}>Mégse</button><button className="mi-btn mi-btn-primary" disabled={saving}><Plus size={16} /> Projekt létrehozása</button></div></form></div></div>}
+      {showCreate && <div className="mi-modal-backdrop" onMouseDown={() => !saving && setShowCreate(false)}><div className="mi-modal" onMouseDown={(e) => e.stopPropagation()}><div className="mi-modal-head"><div><span className="mi-eyebrow">Új fejlesztési projekt</span><h2>Projektindítás</h2></div><button className="mi-icon-btn" onClick={() => setShowCreate(false)}><XCircle /></button></div><form onSubmit={createProject}><div className="mi-form-grid"><label className="mi-field mi-span-2">Megnevezés<input autoFocus required value={newProject.title} onChange={(e) => setNewProject({ ...newProject, title: e.target.value })} /></label><label className="mi-field mi-span-2">Probléma / lehetőség<textarea rows={3} value={newProject.problem_statement} onChange={(e) => setNewProject({ ...newProject, problem_statement: e.target.value })} /></label><label className="mi-field mi-span-2">Cél<textarea rows={3} value={newProject.objective} onChange={(e) => setNewProject({ ...newProject, objective: e.target.value })} /></label><label className="mi-field mi-span-2">Kezdeti elemzés<textarea rows={4} value={newProject.analysis} onChange={(e) => setNewProject({ ...newProject, analysis: e.target.value })} /></label><label className="mi-field mi-span-2">Tanulságok / standardizálás<textarea rows={2} value={newProject.lessons_learned} onChange={(e) => setNewProject({ ...newProject, lessons_learned: e.target.value })} /></label><label className="mi-field">Felelős<select value={newProject.owner_employee_id} onChange={(e) => setNewProject({ ...newProject, owner_employee_id: e.target.value })}><option value="">Nincs kijelölve</option>{employees.map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}</select></label><label className="mi-field">Prioritás<select value={newProject.priority} onChange={(e) => setNewProject({ ...newProject, priority: e.target.value as Project["priority"] })}>{Object.entries(priorityLabel).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label><label className="mi-field">Kezdés<input type="date" value={newProject.start_date} onChange={(e) => setNewProject({ ...newProject, start_date: e.target.value })} /></label><label className="mi-field">Határidő<input type="date" value={newProject.due_date} onChange={(e) => setNewProject({ ...newProject, due_date: e.target.value })} /></label><label className="mi-field mi-span-2">Módszertan<input value={newProject.methodology} onChange={(e) => setNewProject({ ...newProject, methodology: e.target.value })} /></label></div><div className="mi-modal-actions"><button type="button" className="mi-btn mi-btn-secondary" onClick={() => setShowCreate(false)}>Mégse</button><button className="mi-btn mi-btn-primary" disabled={saving}><Plus size={16} /> Projekt létrehozása</button></div></form></div></div>}
     </div>
   );
 }
