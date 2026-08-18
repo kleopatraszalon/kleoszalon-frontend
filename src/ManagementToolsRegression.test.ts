@@ -27,13 +27,12 @@ test('management tools are available from the management sidebar',()=>{
   expect(top).toContain('<ManagementToolsPage/>');
 });
 
-test('continuous improvement workbench includes the requested analysis families',()=>{
-  const page=read('src/pages/ManagementToolsPage.tsx');
-  for(const marker of ['Pareto','SWOT','Ishikawa / halszálka','5 Miért','FMEA / RPN','PDCA','DMAIC','SIPOC','Affinitásdiagram','Fa-diagram','Kapcsolati térkép','Prioritási mátrix','Döntési mátrix','Ellenőrzőlap','Hisztogram','Szórásdiagram','PDPC','Aktivitási háló']){
-    expect(page).toContain(marker);
-  }
-  expect(page).toContain('/transactions/operations-quality/overview');
-  expect(page).toContain('/employees');
-  expect(page).toContain('getVirRevenueSeries');
-  expect(page).toContain('localStorage.setItem(STORE');
+test('management tools route now resolves to the database project workspace',()=>{
+  const bridge=read('src/pages/ManagementToolsPage.tsx');
+  const page=read('src/pages/ManagementImprovementProjectPage.tsx');
+  const client=read('src/api/managementImprovement.ts');
+  expect(bridge).toContain("ManagementImprovementProjectPage");
+  for(const marker of ['Fejlesztési projektek','Intézkedések / CAPA','Előtte–utána KPI','Jóváhagyás','Audit trail','Pareto','SWOT','Ishikawa / halszálka','5 Miért','FMEA / RPN','PDCA','DMAIC','SIPOC'])expect(page).toContain(marker);
+  for(const endpoint of ['/projects','/request-approval','/approve','/reject','/close','/actions','/kpis'])expect(client).toContain(endpoint);
+  expect(page).not.toContain('localStorage.setItem');
 });
