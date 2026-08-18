@@ -1,6 +1,5 @@
 // src/utils/fetch.ts
 import { idempotencyKeyFor } from "./financialIdempotency";
-import { hasStoredAuthToken } from "./authSession";
 
 const rawBase =
   (process.env.REACT_APP_API_BASE as string | undefined) ||
@@ -36,14 +35,14 @@ export function withBase(path: string): string {
   return base + p;
 }
 
-/**
- * Legacy name kept for compatibility. Authentication is no longer returned
- * here; the browser credential is the HttpOnly cookie and the custom header is
- * only a CSRF/browser-origin signal allowed by the API CORS policy.
- */
 export function authHeaders(): Record<string, string> {
-  hasStoredAuthToken();
-  return { "X-Requested-With": "XMLHttpRequest" };
+  try {
+    const token =
+      localStorage.getItem("token") || localStorage.getItem("kleo_token");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
 }
 
 function parsedBody(init:RequestInit){
@@ -60,12 +59,11 @@ export async function apiFetch(
   const headers = new Headers(typeof input === "string" ? undefined : input.headers);
   new Headers(init.headers).forEach((value,key)=>headers.set(key,value));
   Object.entries(authHeaders()).forEach(([key,value])=>headers.set(key,value));
-  headers.delete("Authorization");
   const requestMethod=init.method||(typeof input === "string" ? "GET" : input.method);
   const idempotencyKey=idempotencyKeyFor(typeof url === "string" ? url : url.url,requestMethod);
   if(idempotencyKey&&!headers.has("Idempotency-Key"))headers.set("Idempotency-Key",idempotencyKey);
 
-  const res = await fetch(url as RequestInfo, { ...init, credentials: "include", headers });
+  const res = await fetch(url as RequestInfo, { ...init, headers });
 
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
@@ -92,7 +90,7 @@ export async function apiFetch(
       const recovery=withBase(`/api/workorders/${encodeURIComponent(decodeURIComponent(match[1]))}/settle-recovery`);
       const recoveryHeaders=new Headers(headers);
       recoveryHeaders.set("X-Kleo-Settlement-Recovery","cashier-shift-409");
-      const retry=await fetch(recovery,{...init,credentials:"include",headers:recoveryHeaders});
+      const retry=await fetch(recovery,{...init,headers:recoveryHeaders});
       if(retry.ok)return retry;
       try{const recoveryData=await retry.json();msg=recoveryData?.message||recoveryData?.error||`${retry.status} ${retry.statusText}`}catch{msg=`${retry.status} ${retry.statusText}`}
     }

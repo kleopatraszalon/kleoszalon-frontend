@@ -35,5 +35,6 @@ jobs:
         run: npm test -- --watchAll=false
       - name: Assert browser auth is cookie-only
         run: |
-          ! grep -R "Authorization =.*Bearer" -n src/api src/utils src/pages/Login.tsx
-          ! grep -R "body.token" -n src/pages/Login.tsx
+          ! grep -R --exclude='*.test.*' --exclude='*.spec.*' -E "Authorization.*Bearer|Bearer.*Authorization" -n src
+          ! grep -R --exclude='*.test.*' --exclude='*.spec.*' -E "localStorage\.getItem\(['\"](token|kleo_token)['\"]\)|sessionStorage\.getItem\(['\"](token|kleo_token)['\"]\)" -n src
+          ! grep -R --exclude='*.test.*' --exclude='*.spec.*' -E "body\.token|req\.query.*token" -n src
