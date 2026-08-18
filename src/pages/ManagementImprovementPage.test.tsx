@@ -4,7 +4,7 @@ import path from "path";
 describe("Management improvement project workspace", () => {
   const page = fs.readFileSync(path.join(__dirname, "ManagementImprovementPage.tsx"), "utf8");
   const app = fs.readFileSync(path.join(__dirname, "..", "App.tsx"), "utf8");
-  const projectTemplate = "/projects/" + "$" + "{detail.project.id}";
+  const projectTemplate = "/projects/" + String.fromCharCode(36) + "{detail.project.id}";
 
   test("is routed as a management-only operations module", () => {
     expect(app).toContain('const ManagementImprovementPage = lazy(() => import("./pages/ManagementImprovementPage"))');
