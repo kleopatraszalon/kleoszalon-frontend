@@ -26,10 +26,10 @@ describe("KLEO-GEN-I18N-001 – HU/EN UI and persisted language",()=>{
 
   test("a new provider session restores the previously selected English language",()=>{
     localStorage.setItem("kleo_language","en");
-    const first=render(<LanguageProvider><Probe/></LanguageProvider>);
+    const view=render(<LanguageProvider><Probe/></LanguageProvider>);
     expect(screen.getByTestId("language")).toHaveTextContent("en");
     expect(screen.getByTestId("search")).toHaveTextContent("Search");
-    first.unmount();
+    view.unmount();
     render(<LanguageProvider><Probe/></LanguageProvider>);
     expect(screen.getByTestId("language")).toHaveTextContent("en");
     expect(screen.getByTestId("search")).toHaveTextContent("Search");
