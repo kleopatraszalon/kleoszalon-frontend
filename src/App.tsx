@@ -63,7 +63,8 @@ const VirDashboardPage = lazy(() => import("./pages/VirDashboardPage"));
 const VirStaffDetailPage = lazy(() => import("./pages/VirStaffDetailPage"));
 const VirServiceDetailPage = lazy(() => import("./pages/VirServiceDetailPage"));
 const VirReportsAdminPage = lazy(() => import("./pages/VirReportsAdminPage"));
-const VirTopMetricsPage = lazy(() => import("./pages/VirTopMetricsPage"));
+const VirTopMetricsExtendedPage = lazy(() => import("./pages/VirTopMetricsExtendedPage"));
+const VirSupplementaryReportsPage = lazy(() => import("./pages/VirSupplementaryReportsPage"));
 const ModulePlaceholderPage = lazy(
   () => import("./pages/ModulePlaceholderPage"),
 );
@@ -335,15 +336,17 @@ const router = createBrowserRouter([
   { path: "/services/*", element: R(MANAGEMENT, <ServicesList />) },
   { path: "/hr", element: A(<EmployeesList />) },
   { path: "/reports", element: <Navigate to="/reports/top-metrics" replace /> },
-  {
-    path: "/reports/top-metrics",
-    element: R(MANAGEMENT, <VirTopMetricsPage />),
-  },
+  { path: "/reports/top", element: R(MANAGEMENT, <VirTopMetricsExtendedPage />) },
+  { path: "/reports/top-metrics", element: R(MANAGEMENT, <VirTopMetricsExtendedPage />) },
+  { path: "/reports/profit", element: R(MANAGEMENT, <Penzugy />) },
+  { path: "/reports/inventory-movement", element: R(MANAGEMENT, <InventoryOperationsPage />) },
+  { path: "/reports/expected-revenue", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
+  { path: "/reports/custom", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
   {
     path: "/reports/vir",
     element: <Navigate to="/reports/top-metrics" replace />,
   },
-  { path: "/reports/*", element: R(MANAGEMENT, <VirTopMetricsPage />) },
+  { path: "/reports/*", element: <Navigate to="/reports/top-metrics" replace /> },
   {
     path: "/appointments",
     element: <Navigate to="/appointments/calendar" replace />,
@@ -381,6 +384,8 @@ const router = createBrowserRouter([
   { path: "/modules/team/attendance", element: A(<HrAttendancePage />) },
   { path: "/staff/chat", element: A(<StaffChatPage />) },
   { path: "/admin/vir", element: R(MANAGEMENT, <VirDashboardPage />) },
+  { path: "/admin/finance", element: R(MANAGEMENT, <VirDashboardPage />) },
+  { path: "/admin/reports", element: R(MANAGEMENT, <VirReportsAdminPage />) },
   { path: "/admin/vir/spec-parity", element: R(MANAGEMENT, <VirSpecParityPage />) },
   {
     path: "/admin/vir/staff/:id",
