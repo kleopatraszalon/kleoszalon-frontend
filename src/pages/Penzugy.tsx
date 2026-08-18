@@ -18,6 +18,7 @@ import ExceptionIntelligencePage from "./ExceptionIntelligencePage";
 import ExceptionCapaPage from "./ExceptionCapaPage";
 import MajorIncidentWarRoomPage from "./MajorIncidentWarRoomPage";
 import ResilienceRecoveryPage from "./ResilienceRecoveryPage";
+import BusinessContinuityGameDayPage from "./BusinessContinuityGameDayPage";
 import "./TransactionTraceForensics.css";
 
 /**
@@ -34,8 +35,9 @@ import "./TransactionTraceForensics.css";
  * management work queue for automatically detected business exceptions, while
  * Exception Intelligence provides recurrence, escalation and root-cause analytics,
  * CAPA governs corrective/preventive action, Major Incident / War Room owns
- * severe correlated incident command, and Resilience & Recovery governs RTO/RPO,
- * recovery runbooks, change-freeze and evidence-based ALL CLEAR.
+ * severe correlated incident command, Resilience & Recovery governs RTO/RPO,
+ * recovery runbooks, change-freeze and evidence-based ALL CLEAR, and Business
+ * Continuity GameDay proves the same recovery discipline in safe simulations.
  */
 
 export default function Penzugy() {
@@ -46,6 +48,7 @@ export default function Penzugy() {
   if(pathname.startsWith("/finance/fixed-assets")) return <><FixedAssetGovernancePanel/><FixedAssetsPage /></>;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
+  if(pathname.startsWith("/finance/exception-command-center/gameday")) return management ? <BusinessContinuityGameDayPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/resilience")) return management ? <ResilienceRecoveryPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/major-incidents")) return management ? <MajorIncidentWarRoomPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/intelligence")) return management ? <ExceptionIntelligencePage /> : <Navigate to="/finance" replace />;
@@ -72,6 +75,7 @@ export default function Penzugy() {
       {management&&<Link to="/finance/exception-command-center/capa" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#5b21b6",color:"white"}}>CAPA központ</Link>}
       {management&&<Link to="/finance/exception-command-center/major-incidents" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#7f1d1d",color:"white"}}>Major Incident / War Room</Link>}
       {management&&<Link to="/finance/exception-command-center/resilience" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Resilience & Recovery</Link>}
+      {management&&<Link to="/finance/exception-command-center/gameday" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#115e59",color:"white"}}>Üzletmenet-folytonossági GameDay</Link>}
       <Link to="/finance/executive-ai" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4c3b91",color:"white"}}>AI vezetői asszisztens</Link>
       <Link to="/finance/reconciliation" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#172554",color:"white"}}>Pénzügyi egyeztető központ</Link>
       <Link to="/finance/transaction-trace" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Tranzakció-életút</Link>
