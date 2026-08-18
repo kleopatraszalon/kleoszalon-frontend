@@ -1,4 +1,5 @@
 import React,{useEffect,useMemo,useState}from"react";
+import{useLocation}from"react-router-dom";
 import api from"../api";
 import{useCurrentUser}from"../hooks/useCurrentUser";
 import InventoryStockLevelSettings from"./inventory/InventoryStockLevelSettings";
@@ -34,13 +35,15 @@ const blankLine=():Line=>({product_id:"",quantity:"",unit_cost:""});
 function downloadCsv(name:string,rows:any[]){if(!rows.length)return;const keys=Object.keys(rows[0]);const cell=(v:any)=>`"${String(v??"").replace(/"/g,'""')}"`;const csv=[keys.map(cell).join(";"),...rows.map(r=>keys.map(k=>cell(r[k])).join(";"))].join("\n");const blob=new Blob(["\uFEFF",csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 
 export default function InventoryOperationsPage(){
+ const route=useLocation();
  const{user,loading:userLoading}=useCurrentUser();
  const roles=useMemo(()=>roleList(user?.role),[user?.role]);
  const isGlobal=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager"].includes(r));
  const canApprove=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","location_manager","üzletvezető","uzletvezeto"].includes(r));
  const canMaster=roles.some(r=>["admin","administrator","rendszergazda","superadmin","super_admin","manager"].includes(r));
  const ownLocation=user?.location_id?String(user.location_id):"";
- const[tab,setTab]=useState<Tab>("dashboard");const[locations,setLocations]=useState<Location[]>([]);const[locationId,setLocationId]=useState("");
+ const requestedTab=useMemo<Tab>(()=>{const queryTab=new URLSearchParams(route.search).get("tab") as Tab|null;const valid:Tab[]=["dashboard","operations","stocktakes","transfers","warehouses","reorder","bom","settings","reports"];if(queryTab&&valid.includes(queryTab))return queryTab;if(route.pathname==="/reports/inventory-movement")return"reports";return"dashboard"},[route.pathname,route.search]);
+ const[tab,setTab]=useState<Tab>(requestedTab);const[locations,setLocations]=useState<Location[]>([]);const[locationId,setLocationId]=useState("");
  const[warehouses,setWarehouses]=useState<Warehouse[]>([]);const[transferTargets,setTransferTargets]=useState<Warehouse[]>([]);const[products,setProducts]=useState<Product[]>([]);const[services,setServices]=useState<Service[]>([]);const[categories,setCategories]=useState<Category[]>([]);const[units,setUnits]=useState<Unit[]>([]);
  const[balances,setBalances]=useState<Balance[]>([]);const[stocktakes,setStocktakes]=useState<Stocktake[]>([]);const[transfers,setTransfers]=useState<Transfer[]>([]);const[suggestions,setSuggestions]=useState<Suggestion[]>([]);const[movements,setMovements]=useState<Movement[]>([]);const[bom,setBom]=useState<Bom[]>([]);
  const[summary,setSummary]=useState<any>({});const[settings,setSettings]=useState<Settings>({cost_method:"weighted_average",prevent_negative_stock:true,stocktake_missing_mode:"system",barcode_increment:1});
@@ -60,6 +63,7 @@ export default function InventoryOperationsPage(){
 
  async function loadRefs(){const jobs=await Promise.all([api.get("/api/locations"),api.get("/api/transactions/inventory/ops/catalog/products"),api.get("/api/transactions/inventory/ops/catalog/categories"),api.get("/api/transactions/inventory/ops/units")]);setLocations(arr<Location>(jobs[0].data));setProducts(arr<Product>(jobs[1].data));setCategories(arr<Category>(jobs[2].data));setUnits(arr<Unit>(jobs[3].data))}
  async function loadData(){setLoading(true);setError("");try{const qs=`?${locationQuery}`;const [w,s,b,st,tr,rs,mo,bo,se]=await Promise.all([api.get(`/api/transactions/inventory/ops/warehouses${qs}`),api.get(`/api/transactions/inventory/ops/summary${qs}`),api.get(`/api/transactions/inventory/ops/balances${qs}`),api.get(`/api/transactions/inventory/ops/stocktakes${qs}`),api.get(`/api/transactions/inventory/ops/transfers${qs}`),api.get(`/api/transactions/inventory/ops/reorder-suggestions${qs}`),api.get(`/api/transactions/inventory/ops/operations?${locationQuery}&limit=400`),api.get("/api/transactions/inventory/ops/bom"),api.get(`/api/transactions/inventory/ops/settings${qs}`)]);setWarehouses(arr<Warehouse>(w.data));setSummary(s.data||{});setBalances(arr<Balance>(b.data));setStocktakes(arr<Stocktake>(st.data));setTransfers(arr<Transfer>(tr.data));setSuggestions(arr<Suggestion>(rs.data));setMovements(arr<Movement>(mo.data));setBom(arr<Bom>(bo.data));setSettings(se.data||settings)}catch(e:any){setError(e?.response?.data?.message||"A raktári adatok betöltése nem sikerült.")}finally{setLoading(false)}}
+ useEffect(()=>{setTab(requestedTab)},[requestedTab]);
  useEffect(()=>{void loadRefs().catch(()=>setError("A törzsadatok betöltése nem sikerült."))},[]);
  useEffect(()=>{if(canMaster)void api.get("/api/services").then(r=>setServices(arr<Service>(r.data))).catch(()=>setServices([]));else setServices([])},[canMaster]);
  useEffect(()=>{if(!userLoading&&!isGlobal&&ownLocation&&locationId!==ownLocation)setLocationId(ownLocation)},[userLoading,isGlobal,ownLocation,locationId]);
