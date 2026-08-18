@@ -56,11 +56,13 @@ jobs:
       - name: TypeScript typecheck
         run: npm run typecheck
 
-      - name: ESLint zero-warning gate
+      - name: ESLint zero-error / warning-regression gate
         run: npm run lint:strict
 
       - name: Run complete frontend regression suite
         run: npm test -- --watchAll=false --runInBand
 
       - name: Strict production build
+        env:
+          DISABLE_ESLINT_PLUGIN: 'true'
         run: npm run build
