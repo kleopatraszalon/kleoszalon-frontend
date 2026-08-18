@@ -1,0 +1,14 @@
+import{useCallback,useEffect,useState}from'react';
+import{Activity,AlertTriangle,Clock3,ExternalLink,LockKeyhole,RefreshCw,ShieldAlert,UnlockKeyhole}from'lucide-react';
+import{useNavigate}from'react-router-dom';
+import api from'../api';
+import'./ResilienceRecoveryHealthPanel.css';
+
+const BASE='/api/transactions/notifications/exceptions/intelligence/resilience';
+export default function ResilienceRecoveryHealthPanel(){
+ const navigate=useNavigate();const[data,setData]=useState<any>(null),[loading,setLoading]=useState(false),[error,setError]=useState('');const locationId=localStorage.getItem('kleo_location_id')||'';
+ const load=useCallback(async()=>{setLoading(true);setError('');try{const q=locationId?`?location_id=${encodeURIComponent(locationId)}`:'';const r=await api.get(`${BASE}/summary${q}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||'A Resilience & Recovery állapot nem tölthető be.')}finally{setLoading(false)}},[locationId]);
+ useEffect(()=>{void load();const t=window.setInterval(()=>void load(),45_000);return()=>window.clearInterval(t)},[load]);
+ const freezes=Number(data?.active_freezes||0),rto=Number(data?.rto_breaches||0),rpo=Number(data?.rpo_breaches||0),unverified=Number(data?.unverified_services||0),pending=Number(data?.pending_overrides||0);const healthy=data&&freezes===0&&rto===0&&rpo===0&&unverified===0;
+ return <section className={`rr-health ${healthy?'ok':rto||rpo?'critical':'warning'}`}><header><div><span>RESILIENCE & RECOVERY</span><h2><Activity/> Business continuity readiness</h2><p>RTO/RPO, recovery verifikáció, change-freeze és emergency override governance állapota.</p></div><div><button onClick={load} disabled={loading}><RefreshCw className={loading?'spin':''}/>{loading?'Frissítés…':'Frissítés'}</button><button className="open" onClick={()=>navigate('/finance/exception-command-center/resilience')}><ExternalLink/> Recovery Center</button></div></header>{error&&<div className="rr-health-error"><AlertTriangle/>{error}</div>}{data&&<section><article className={freezes?'warn':''}><LockKeyhole/><div><small>Aktív change-freeze</small><b>{freezes}</b></div></article><article className={rto?'danger':''}><Clock3/><div><small>RTO sértés</small><b>{rto}</b></div></article><article className={rpo?'danger':''}><ShieldAlert/><div><small>RPO sértés</small><b>{rpo}</b></div></article><article className={unverified?'warn':''}><Activity/><div><small>Nem verifikált</small><b>{unverified}</b></div></article><article className={pending?'warn':'good'}><UnlockKeyhole/><div><small>Override függőben</small><b>{pending}</b></div></article></section>}</section>
+}
