@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from'react';
+import React,{useCallback,useEffect,useMemo,useState}from'react';
 import{AlertTriangle,CheckCircle2,ChevronDown,ChevronRight,Database,GitCommit,RefreshCw,Save,Server,ShieldCheck,TestTube2,XCircle}from'lucide-react';
 import api from'../api';
 import'./ReleaseControlCenter.css';
@@ -12,8 +12,8 @@ const statusIcon=(status:GateStatus)=>status==='pass'?<CheckCircle2 size={18}/>:
 
 export default function ReleaseControlCenter(){
  const[data,setData]=useState<Snapshot|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState(''),[openGroups,setOpenGroups]=useState<Record<string,boolean>>({}),[drafts,setDrafts]=useState<Record<string,{status:GateStatus;evidence:string}>>({}),[saving,setSaving]=useState('');
- async function load(){setLoading(true);setError('');try{const r=await api.get('/api/transactions/release-control');setData(r.data);const next:Record<string,{status:GateStatus;evidence:string}>={};for(const g of(r.data?.gates||[]))if(g.editable)next[g.key]={status:g.status,evidence:g.evidence||''};setDrafts(next)}catch(e:any){setError(e?.response?.data?.message||'A Release Control Center nem tölthető be.')}finally{setLoading(false)}}
- useEffect(()=>{void load()},[]);
+ const load=useCallback(async()=>{setLoading(true);setError('');try{const r=await api.get('/api/transactions/release-control');setData(r.data);const next:Record<string,{status:GateStatus;evidence:string}>={};for(const g of(r.data?.gates||[]))if(g.editable)next[g.key]={status:g.status,evidence:g.evidence||''};setDrafts(next)}catch(e:any){setError(e?.response?.data?.message||'A Release Control Center nem tölthető be.')}finally{setLoading(false)}},[]);
+ useEffect(()=>{void load()},[load]);
  const groups=useMemo(()=>{const m=new Map<string,Gate[]>();for(const g of(data?.gates||[])){if(!m.has(g.group))m.set(g.group,[]);m.get(g.group)!.push(g)}return Array.from(m.entries()).sort((a,b)=>(order.indexOf(a[0])<0?99:order.indexOf(a[0]))-(order.indexOf(b[0])<0?99:order.indexOf(b[0])));},[data]);
  async function save(g:Gate){const d=drafts[g.key];if(!data||!d)return;setSaving(g.key);setError('');try{await api.post('/api/transactions/release-control/evidence',{release_ref:data.release_ref,key:g.key,status:d.status,evidence:d.evidence,source:'vir-admin'});await load()}catch(e:any){setError(e?.response?.data?.message||'A release-bizonyíték nem menthető.')}finally{setSaving('')}}
  function toggle(group:string){setOpenGroups(x=>({...x,[group]:x[group]===false?true:false}))}
