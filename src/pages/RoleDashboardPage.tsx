@@ -34,7 +34,6 @@ export default function RoleDashboardPage(){
  return <>
    {admin&&<Suspense fallback={null}><AdminProductSaleQuickAction/></Suspense>}
    <Suspense fallback={<Fallback/>}><Home/></Suspense>
-   <Delayed ms={300}><WorkOrderDashboardPanel/></Delayed>
    <Delayed ms={750}><DashboardDailyOperations/></Delayed>
    {payrollEligible&&<Delayed ms={1100}><HrPayrollReadinessPanel/></Delayed>}
  </>;

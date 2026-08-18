@@ -20,8 +20,11 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(sidebar).toContain('const VIR_ADMIN');
     expect(sidebar).toContain('const RECEIPT_COMPLIANCE');
     expect(sidebar).toContain('const FITNESS_GYONGYOS');
-    expect(sidebar).toContain('extras=[FITNESS_GYONGYOS,RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY,SAAS_ADMIN,VIR_ADMIN]');
-    expect(sidebar).toContain('else if(isManager){const extras=[RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY,VIR_ADMIN]');
+    expect(sidebar).toContain('extras=[FITNESS_GYONGYOS,RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY,SAAS_ADMIN]');
+    expect(sidebar).toContain('else if(isManager){const extras=[RECEIPT_COMPLIANCE,WALLBOARD,SPEC_PARITY]');
+    expect(sidebar).toContain('return withVirAdminInSettings(configuredMenu(combined,vir),isAdmin||isManager)');
+    expect(sidebar).toContain("name:'Rendszerbeállítások'");
+    expect(sidebar).toContain('VIR_ADMIN]}');
     const managerPart=sidebar.split('else if(isManager)')[1]?.split('else if(isLocationScoped')[0]||'';
     expect(managerPart).not.toContain('SAAS_ADMIN');
     expect(managerPart).not.toContain('FITNESS_GYONGYOS');
