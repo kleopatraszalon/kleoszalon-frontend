@@ -19,6 +19,8 @@ export default function CapaManagementWorkqueuePage(){
   const[selectedId,setSelectedId]=useState('');
   const[loading,setLoading]=useState(false);
   const[actionLoading,setActionLoading]=useState(false);
+  const[previewLoading,setPreviewLoading]=useState(false);
+  const[preview,setPreview]=useState<any>(null);
   const[error,setError]=useState('');
   const[notice,setNotice]=useState('');
   const[status,setStatus]=useState('recommended');
@@ -45,20 +47,20 @@ export default function CapaManagementWorkqueuePage(){
     return params;
   },[currentLocationId,onlyCurrentLocation,onlyOverdue,onlyUnassigned,q,severity,status]);
 
+  const queueScopeSuffix=useCallback(()=>onlyCurrentLocation&&currentLocationId?`?location_id=${encodeURIComponent(currentLocationId)}`:'',[currentLocationId,onlyCurrentLocation]);
+
   const load=useCallback(async()=>{
     setLoading(true);setError('');
     try{
       const params=buildParams();
-      const summaryParams=new URLSearchParams();
-      if(onlyCurrentLocation&&currentLocationId)summaryParams.set('location_id',currentLocationId);
       const suffix=params.toString()?`?${params.toString()}`:'';
-      const summarySuffix=summaryParams.toString()?`?${summaryParams.toString()}`:'';
+      const summarySuffix=queueScopeSuffix();
       const[listResponse,summaryResponse]=await Promise.all([api.get(`${BASE}${suffix}`),api.get(`${BASE}/summary${summarySuffix}`)]);
       const nextItems=listResponse.data?.items||[];
       setItems(nextItems);setSummary(summaryResponse.data||{});
       setSelectedId(current=>current&&nextItems.some((item:any)=>String(item.capa_id)===current)?current:String(nextItems[0]?.capa_id||''));
     }catch(e:any){setError(e?.response?.data?.message||'A CAPA vezetői munkasor nem tölthető be.')}finally{setLoading(false)}
-  },[buildParams,currentLocationId,onlyCurrentLocation]);
+  },[buildParams,queueScopeSuffix]);
 
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{
@@ -89,6 +91,14 @@ export default function CapaManagementWorkqueuePage(){
     }catch(e:any){setError(e?.response?.data?.message||'A visszaigazolás nem sikerült.')}finally{setActionLoading(false)}
   }
 
+  async function previewEscalations(){
+    setPreviewLoading(true);setError('');
+    try{
+      const response=await api.post(`${BASE}/escalations/preview${queueScopeSuffix()}`);
+      setPreview(response.data||{});
+    }catch(e:any){setError(e?.response?.data?.message||'Az eszkalációs előnézet nem készíthető el.')}finally{setPreviewLoading(false)}
+  }
+
   const score=Number(selected?.score||0);
   return <div className="capa-mq-page">
     <header className="capa-mq-hero">
@@ -111,6 +121,8 @@ export default function CapaManagementWorkqueuePage(){
       <article><CheckCircle2/><div><small>Projektre kész</small><b>{summary.ready_to_promote||0}</b></div></article>
       <article><ExternalLink/><div><small>Kapcsolt projekt</small><b>{summary.linked_projects||0}</b></div></article>
     </section>}
+
+    {summary&&<section className={`capa-mq-automation ${summary.escalation_enabled?'enabled':'disabled'}`}><div><Mail/><div><b>Automatikus vezetői eszkaláció: {summary.escalation_enabled?'AKTÍV':'KIKAPCSOLVA'}</b><span>Kritikus, lejárt vagy {summary.acknowledgement_grace_hours||4} órán túl vissza nem igazolt tételek · értesítési cooldown: {summary.escalation_cooldown_minutes||360} perc.</span></div></div><button onClick={previewEscalations} disabled={previewLoading}><Search/>{previewLoading?'Elemzés…':'Eszkaláció előnézet'}</button>{preview&&<p>Előnézet: <b>{preview.candidates||0}</b> érintett CAPA · <b>{preview.attempts||0}</b> tervezett címzett · <b>{preview.cooldown||0}</b> cooldown miatt kihagyva. Az előnézet nem küld e-mailt.</p>}</section>}
 
     <section className="capa-mq-toolbar">
       <div className="capa-mq-search"><Search/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="CAPA, klaszter vagy probléma keresése…"/></div>
