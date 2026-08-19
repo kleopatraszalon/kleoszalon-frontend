@@ -36,20 +36,14 @@ export function parseRoles(raw: unknown): string[] {
   return Array.from(new Set(values.map(normalizeRole).filter(Boolean)));
 }
 
-function decodePayload(token:string):any{
-  try{
-    const part=token.split(".")[1];if(!part)return null;
-    const base64=part.replace(/-/g,"+").replace(/_/g,"/");
-    const padded=base64+"=".repeat((4-base64.length%4)%4);
-    return JSON.parse(decodeURIComponent(Array.prototype.map.call(atob(padded),(c:string)=>`%${("00"+c.charCodeAt(0).toString(16)).slice(-2)}`).join("")));
-  }catch{return null}
-}
-
+/**
+ * UI-only role hint. This value is intentionally non-authoritative and may be
+ * modified by the browser user. Backend RBAC and /api/me remain the security
+ * boundary. The legacy export name is retained to avoid a broad router rewrite.
+ */
 export function rolesFromStoredToken():string[]{
   try{
-    const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");
-    if(!token)return[];
-    return parseRoles(decodePayload(token)?.role);
+    return parseRoles(localStorage.getItem("kleo_role"));
   }catch{return[]}
 }
 
