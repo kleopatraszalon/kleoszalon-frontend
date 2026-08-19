@@ -3,8 +3,9 @@ import path from'node:path';
 
 describe('Customer Intelligence -> Marketing Automation v20',()=>{
  const page=fs.readFileSync(path.join(process.cwd(),'src/pages/CustomerIntelligencePage.tsx'),'utf8');
- test('shows the bridge and four controlled channels',()=>{
-  expect(page).toContain('Next Best Action → Marketing Automation');
+ test('keeps the NBA marketing bridge and four controlled channels',()=>{
+  expect(page).toContain('NBA → Marketing Automation');
+  expect(page).toContain('Marketing Automation sor');
   for(const marker of ['E-mail','SMS','Push','Visszahívás'])expect(page).toContain(marker);
  });
  test('accepts the NBA before creating a marketing job',()=>{
