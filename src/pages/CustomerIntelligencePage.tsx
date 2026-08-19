@@ -16,7 +16,7 @@ type Overview={
  action_mix:Array<{action_code:string;title:string;count:number}>;rows:Recommendation[];
 };
 
-const auth=()=>{const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");return{withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}}};};
+const auth=()=>{const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");return{withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}};};
 const huf=(v:number)=>new Intl.NumberFormat("hu-HU",{style:"currency",currency:"HUF",maximumFractionDigits:0}).format(Number(v||0));
 const date=(v?:string|null)=>v?new Intl.DateTimeFormat("hu-HU",{year:"numeric",month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(v)):"—";
 const tier=(v:Recommendation["value_tier"])=>v==="vip"?"VIP":v==="loyal"?"Törzsvendég":v==="new"?"Új":"Normál";
