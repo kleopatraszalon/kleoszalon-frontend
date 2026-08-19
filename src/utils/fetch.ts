@@ -35,14 +35,10 @@ export function withBase(path: string): string {
   return base + p;
 }
 
+// Kept as a compatibility export for legacy callers. Browser authentication is
+// cookie-only, therefore this helper must never expose an Authorization header.
 export function authHeaders(): Record<string, string> {
-  try {
-    const token =
-      localStorage.getItem("token") || localStorage.getItem("kleo_token");
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
+  return {};
 }
 
 function parsedBody(init:RequestInit){
@@ -58,12 +54,15 @@ export async function apiFetch(
 
   const headers = new Headers(typeof input === "string" ? undefined : input.headers);
   new Headers(init.headers).forEach((value,key)=>headers.set(key,value));
-  Object.entries(authHeaders()).forEach(([key,value])=>headers.set(key,value));
   const requestMethod=init.method||(typeof input === "string" ? "GET" : input.method);
   const idempotencyKey=idempotencyKeyFor(typeof url === "string" ? url : url.url,requestMethod);
   if(idempotencyKey&&!headers.has("Idempotency-Key"))headers.set("Idempotency-Key",idempotencyKey);
 
-  const res = await fetch(url as RequestInfo, { ...init, headers });
+  const res = await fetch(url as RequestInfo, {
+    ...init,
+    headers,
+    credentials: "include",
+  });
 
   if (!res.ok) {
     let msg = `${res.status} ${res.statusText}`;
@@ -90,7 +89,7 @@ export async function apiFetch(
       const recovery=withBase(`/api/workorders/${encodeURIComponent(decodeURIComponent(match[1]))}/settle-recovery`);
       const recoveryHeaders=new Headers(headers);
       recoveryHeaders.set("X-Kleo-Settlement-Recovery","cashier-shift-409");
-      const retry=await fetch(recovery,{...init,headers:recoveryHeaders});
+      const retry=await fetch(recovery,{...init,headers:recoveryHeaders,credentials:"include"});
       if(retry.ok)return retry;
       try{const recoveryData=await retry.json();msg=recoveryData?.message||recoveryData?.error||`${retry.status} ${retry.statusText}`}catch{msg=`${retry.status} ${retry.statusText}`}
     }
