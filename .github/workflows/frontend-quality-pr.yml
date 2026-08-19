@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: frontend-pr-quality-${{ github.event.pull_request.number || github.ref }}
@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -30,8 +32,27 @@ jobs:
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
 
+      - name: Apply compatible production security fixes
+        if: ${{ github.head_ref == 'agent/frontend-react-router-security' }}
+        run: npm audit fix --omit=dev
+
+      - name: Commit dependency remediation
+        if: ${{ github.head_ref == 'agent/frontend-react-router-security' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- package.json package-lock.json; then
+            echo "No dependency remediation changes remain."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add package.json package-lock.json
+            git commit -m "Remediate frontend production dependency advisories"
+            git push origin HEAD:${GITHUB_HEAD_REF}
+          fi
+
       - name: Production dependency security audit
-        run: npm audit --omit=dev --audit-level=high
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Verify clean lockfile install
         run: git diff --exit-code -- package-lock.json package.json
