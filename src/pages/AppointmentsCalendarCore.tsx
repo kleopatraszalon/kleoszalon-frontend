@@ -140,7 +140,7 @@ function roleList(raw: unknown): string[] {
   } catch {}
   return text
     .split(",")
-    .map((value) => value.replace(/[\[\]"]/g, "").trim().toLocaleLowerCase("hu-HU"))
+    .map((value) => value.replace(/[[\]"]/g, "").trim().toLocaleLowerCase("hu-HU"))
     .filter(Boolean);
 }
 

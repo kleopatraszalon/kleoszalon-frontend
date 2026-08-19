@@ -21,7 +21,7 @@ type Appointment={id:string;location_id?:string|null;location_name?:string|null;
 type Options={scope:{is_admin:boolean;location_id:string|null};location?:Location|null;locations:Location[];employees:Employee[];clients:Client[];services:Service[];products:Product[];appointment?:Appointment|null};
 type CreateResult={id?:string|number;work_order_number?:string;existing?:boolean};
 const emptyLoyalty:LoyaltySelection={walletAmount:0,pointsToSpend:0,couponCode:'',couponDiscount:0,voucherCode:'',voucherAmount:0,estimatedPayable:0,passUsages:[]};
-const roleList=(raw:unknown)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||''));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[\[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
+const roleList=(raw:unknown)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||''));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
 const money=(v:unknown)=>`${Number(v||0).toLocaleString('hu-HU',{maximumFractionDigits:0})} Ft`;
 const dt=(v?:string|null)=>v?new Date(v).toLocaleString('hu-HU',{year:'numeric',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'—';
 const scrollToStep=(id:string)=>document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});

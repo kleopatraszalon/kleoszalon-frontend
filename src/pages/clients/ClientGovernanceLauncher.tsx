@@ -59,7 +59,7 @@ const roleList = (raw: any) => {
     const parsed = JSON.parse(String(raw || ""));
     if (Array.isArray(parsed)) return parsed.map(String).map((x) => x.toLowerCase());
   } catch {}
-  return String(raw || "").split(",").map((x) => x.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return String(raw || "").split(",").map((x) => x.replace(/[[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
 };
 const MANAGERS = new Set(["admin", "administrator", "rendszergazda", "superadmin", "super_admin", "manager", "location_manager", "salon_manager", "szalonvezető", "szalonvezeto", "üzletvezető", "uzletvezeto", "store_manager", "branch_manager"]);
 

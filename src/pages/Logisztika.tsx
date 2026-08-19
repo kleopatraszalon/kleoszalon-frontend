@@ -72,7 +72,7 @@ const roleList = (raw: any) => {
     const p = JSON.parse(String(raw || ""));
     if (Array.isArray(p)) return p.map(String).map((x) => x.toLowerCase());
   } catch {}
-  return String(raw || "").split(",").map((x) => x.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return String(raw || "").split(",").map((x) => x.replace(/[[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
 };
 const ADMIN = ["admin", "administrator", "rendszergazda", "superadmin", "super_admin"];
 const taxonomyLabel = (x: { product_type_name?: string | null; product_group_name?: string | null; product_category_name?: string | null }) =>

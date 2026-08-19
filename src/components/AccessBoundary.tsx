@@ -5,7 +5,7 @@ import { useCapabilities } from "../hooks/useCapabilities";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 
 type Rule = { feature?: string; menu?: string; financial?: boolean };
-function roles(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase());if(p!=null)return[String(p).toLowerCase()]}catch{}return t.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
+function roles(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase());if(p!=null)return[String(p).toLowerCase()]}catch{}return t.split(",").map(x=>x.replace(/[[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
 
 function ruleFor(pathname: string, search: string): Rule | null {
   const q = new URLSearchParams(search);

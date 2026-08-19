@@ -1,5 +1,5 @@
 import React,{useEffect,useMemo,useRef,useState}from'react';
-import{Activity,CalendarClock,CheckCircle2,CircleDollarSign,Clock3,CreditCard,Dumbbell,KeyRound,Package,Plus,RefreshCw,Save,ScanLine,Settings2,ShieldCheck,Tag,Wrench,XCircle}from'lucide-react';
+import{Activity,CalendarClock,CheckCircle2,CircleDollarSign,Clock3,CreditCard,Dumbbell,KeyRound,Package,Plus,RefreshCw,Save,ScanLine,Settings2,ShieldCheck,Tag,Wrench}from'lucide-react';
 import api from'../api/api';
 
 type Tab='overview'|'memberships'|'access'|'products'|'promotions'|'equipment'|'settings';

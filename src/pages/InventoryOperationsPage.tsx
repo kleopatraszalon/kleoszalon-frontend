@@ -26,7 +26,7 @@ type Line={product_id:string;quantity:string;unit_cost:string};
 const arr=<T,>(v:any):T[]=>Array.isArray(v)?v:Array.isArray(v?.items)?v.items:Array.isArray(v?.data)?v.data:[];
 const q=(v:unknown)=>Number(v||0).toLocaleString("hu-HU",{maximumFractionDigits:3});
 const huf=(v:unknown)=>`${Number(v||0).toLocaleString("hu-HU",{maximumFractionDigits:0})} Ft`;
-const roleList=(raw:any)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||""));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||"").split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)};
+const roleList=(raw:any)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||""));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||"").split(",").map(x=>x.replace(/[[\]"]/g,"").trim().toLowerCase()).filter(Boolean)};
 const typeLabels:Record<string,string>={retail:"Értékesítési",consumable:"Fogyóanyag",mixed:"Vegyes",transit:"Átmeneti"};
 const opLabels:Record<string,string>={receipt:"Bevételezés",sale:"Termékeladás",writeoff:"Selejt / kivezetés",adjustment:"Korrekció",stocktake_adjustment:"Leltárkorrekció",transfer_out:"Áthelyezés ki",transfer_in:"Áthelyezés be",work_order_consumption:"Munkalap anyagfelhasználás",work_order_reversal:"Munkalap visszaforgatás"};
 const statusLabels:Record<string,string>={draft:"Piszkozat",submitted:"Jóváhagyásra vár",approved:"Lezárt",cancelled:"Visszavont",pending:"Előkészítve",in_transit:"Úton",received:"Átvéve"};

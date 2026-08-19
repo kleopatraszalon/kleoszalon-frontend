@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useMemo,useState}from"react";
 import axios from"axios";
-import{AlertTriangle,Building2,CheckCircle2,Clock3,Plus,RefreshCw,Rocket,ShieldCheck,Store,Users}from"lucide-react";
+import{AlertTriangle,Building2,Clock3,Plus,RefreshCw,Rocket,ShieldCheck}from"lucide-react";
 import"./SaasFranchiseAdminPage.css";
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
