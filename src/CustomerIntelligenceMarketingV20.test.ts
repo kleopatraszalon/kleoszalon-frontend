@@ -17,7 +17,7 @@ describe('Customer Intelligence -> Marketing Automation v20',()=>{
   expect(page).toContain('jobAction("approve")');
   expect(page).toContain('jobAction("send")');
   expect(page).toContain('jobAction("complete")');
-  expect(page).toContain('/${action}');
+  expect(page).toContain('const jobAction=async(action:');
  });
  test('explains consent recheck and push fail closed behavior',()=>{
   expect(page).toContain('backend újra ellenőrzi a hozzájárulást');
