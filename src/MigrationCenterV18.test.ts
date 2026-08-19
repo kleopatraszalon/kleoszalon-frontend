@@ -16,10 +16,10 @@ describe('VIR Migration Center v18 contract',()=>{
   expect(page).toContain('/vir/migration-center/runs');
   expect(page).toContain('Staging + előnézet');
  });
- test('has a dedicated admin entry point without replacing the legacy app',()=>{
-  expect(app).toContain('/admin/migration-center');
-  expect(app).toContain('./AppLegacy');
-  expect(saas).toContain('/admin/migration-center');
+ test('uses the existing protected SaaS admin route as a dedicated workspace',()=>{
+  expect(app).toContain('path: "/admin/saas"');
+  expect(saas).toContain('workspace=migration-center');
+  expect(saas).toContain('MigrationCenterPage');
   expect(saas).toContain('VIR Migrációs Központ v18');
  });
 });
