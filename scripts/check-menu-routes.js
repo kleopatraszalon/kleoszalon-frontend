@@ -1,5 +1,7 @@
 const fs=require('fs');
-const app=fs.readFileSync('src/App.tsx','utf8');
+const appEntry=fs.readFileSync('src/App.tsx','utf8');
+const delegatedApp=fs.existsSync('src/AppLegacy.tsx')?fs.readFileSync('src/AppLegacy.tsx','utf8'):'';
+const app=appEntry+'\n'+delegatedApp;
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
 const accountingSidebar=fs.existsSync('src/components/AccountingSidebar.tsx')?fs.readFileSync('src/components/AccountingSidebar.tsx','utf8'):'';
 const staticMenus=sidebar+'\n'+accountingSidebar;
@@ -28,4 +30,4 @@ const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
 if(!/MENU_CACHE_KEY='kleo\.menu\.cache\.v\d+'/.test(sidebar)) failures.push('A menü-cache kulcs nincs verziózva.');
 if(failures.length){console.error('MENÜ ROUTE AUDIT HIBA');failures.forEach(x=>console.error(' - '+x));process.exit(1)}
-console.log(`Menü route audit OK: ${critical.length} router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);
+console.log(`Menü route audit OK: ${critical.length} router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve${delegatedApp?' (AppLegacy delegációval)':''}.`);
