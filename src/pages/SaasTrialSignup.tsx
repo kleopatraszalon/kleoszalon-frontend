@@ -11,7 +11,7 @@ const requestKey=()=>typeof crypto!=='undefined'&&'randomUUID'in crypto?crypto.r
 
 export default function SaasTrialSignup(){
  const navigate=useNavigate(),[params]=useSearchParams();const initialPlan=String(params.get('plan')||'pro').toLowerCase();
- const[plans,setPlans]=useState<Plan[]>([]),[planCode,setPlanCode]=useState(initialPlan==='start'?'start':'pro'),[interval,setInterval]=useState<'month'|'year'>('month');
+ const[plans,setPlans]=useState<Plan[]>([]),[planCode,setPlanCode]=useState(initialPlan==='start'?'start':'pro'),[interval,setBillingInterval]=useState<'month'|'year'>('month');
  const[form,setForm]=useState({company_name:'',legal_name:'',tax_number:'',owner_email:'',location_name:'',city:'',address:'',terms_accepted:false,privacy_accepted:false,marketing_consent:false,website:''});
  const[loading,setLoading]=useState(false),[error,setError]=useState(''),[done,setDone]=useState<any>(null),[plansLoading,setPlansLoading]=useState(true);const idempotency=useRef(requestKey());
  useEffect(()=>{let live=true;(async()=>{try{const r=await axios.get(`${API_BASE}/saas/self-service/plans`,{withCredentials:false});if(live)setPlans(Array.isArray(r.data?.plans)?r.data.plans:[]);}catch(e:any){if(live)setError(e?.response?.data?.error||'A SaaS csomagok nem tölthetők be.');}finally{if(live)setPlansLoading(false)}})();return()=>{live=false}},[]);
@@ -22,7 +22,7 @@ export default function SaasTrialSignup(){
  return <div className="saas-signup-page"><main className="saas-signup-shell">
   <header><span className="saas-signup-kicker"><Sparkles size={15}/> KLEO SAAS</span><h1>Indítsa el a szalonját 14 napos próbaidővel</h1><p>Bankkártya nélkül. A próbaidő csak az e-mailes tulajdonosi aktiválás után indul.</p></header>
   <div className="saas-plan-switch">{plansLoading?<span>Csomagok betöltése…</span>:plans.map(p=><button type="button" key={p.code} className={planCode===p.code?'active':''} onClick={()=>setPlanCode(p.code)}><strong>{p.name}</strong>{p.recommended&&<em>AJÁNLOTT</em>}<span>{money(interval==='year'?p.annual_price:p.monthly_price,p.currency)} / {interval==='year'?'év':'hó'}</span><small>{p.max_locations} telephely · {p.max_users} felhasználó · {p.trial_days} nap próba</small></button>)}</div>
-  <div className="saas-billing-toggle"><button type="button" className={interval==='month'?'active':''} onClick={()=>setInterval('month')}>Havi</button><button type="button" className={interval==='year'?'active':''} onClick={()=>setInterval('year')}>Éves · 2 hónap kedvezmény</button></div>
+  <div className="saas-billing-toggle"><button type="button" className={interval==='month'?'active':''} onClick={()=>setBillingInterval('month')}>Havi</button><button type="button" className={interval==='year'?'active':''} onClick={()=>setBillingInterval('year')}>Éves · 2 hónap kedvezmény</button></div>
   {selected&&<div className="saas-trial-strip"><Clock3 size={18}/><span><b>{selected.trial_days} nap ingyenes próba</b> · {selected.booking_commission_percent}% foglalási jutalék · fizetés csak a próbaidő után</span></div>}
   {error&&<div className="saas-signup-error">{error}</div>}
   <form onSubmit={submit} className="saas-signup-form">
