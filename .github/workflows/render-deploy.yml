@@ -47,6 +47,9 @@ jobs:
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
 
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Verify clean lockfile install
         shell: bash
         run: |
@@ -179,7 +182,7 @@ jobs:
           response="$(curl -fsS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=kleoszalon-release-control")"
           oidc="$(printf '%s' "$response" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>process.stdout.write(JSON.parse(s).value||''))")"
           test -n "$oidc"
-          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; exact Render release-meta SHA verified; aggregate live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + menu audit + TypeScript typecheck + ESLint warning-regression gate + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true production build + exact Render SHA verification + aggregate live bundle smoke PASS"}]}))')"
+          payload="$(node -e 'process.stdout.write(JSON.stringify({entries:[{key:"version.frontend",status:"pass",evidence:`Frontend Git SHA ${process.env.GITHUB_SHA}; exact Render release-meta SHA verified; aggregate live bundle smoke PASS`},{key:"tests.frontend",status:"pass",evidence:"npm ci + production dependency audit + menu audit + TypeScript typecheck + ESLint warning-regression gate + CI test suite PASS"},{key:"build.frontend",status:"pass",evidence:"CI=true production build + exact Render SHA verification + aggregate live bundle smoke PASS"}]}))')"
           published=0
           for attempt in $(seq 1 30); do
             code="$(curl -sS --max-time 30 -o /tmp/release-evidence-response.json -w '%{http_code}' \
