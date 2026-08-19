@@ -30,6 +30,9 @@ jobs:
       - name: Install dependencies from lockfile
         run: npm ci --no-audit --no-fund
 
+      - name: Production dependency security audit
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Verify clean lockfile install
         run: git diff --exit-code -- package-lock.json package.json
 
