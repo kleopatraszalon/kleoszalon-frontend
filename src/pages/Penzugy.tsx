@@ -16,6 +16,7 @@ import FixedAssetsPage from "./FixedAssetsPage";
 import ExceptionCommandCenterPage from "./ExceptionCommandCenterPage";
 import ExceptionIntelligencePage from "./ExceptionIntelligencePage";
 import ExceptionCapaPage from "./ExceptionCapaPage";
+import CapaImprovementCommandQueuePage from "./CapaImprovementCommandQueuePage";
 import MajorIncidentWarRoomPage from "./MajorIncidentWarRoomPage";
 import ResilienceRecoveryPage from "./ResilienceRecoveryPage";
 import "./TransactionTraceForensics.css";
@@ -33,7 +34,8 @@ import "./TransactionTraceForensics.css";
  * business transactions. Exception Command Center is the cross-functional
  * management work queue for automatically detected business exceptions, while
  * Exception Intelligence provides recurrence, escalation and root-cause analytics,
- * CAPA governs corrective/preventive action, Major Incident / War Room owns
+ * CAPA governs corrective/preventive action, the CAPA improvement command queue
+ * prioritises governed project recommendations, Major Incident / War Room owns
  * severe correlated incident command, and Resilience & Recovery governs RTO/RPO,
  * recovery runbooks, change-freeze and evidence-based ALL CLEAR.
  */
@@ -49,6 +51,7 @@ export default function Penzugy() {
   if(pathname.startsWith("/finance/exception-command-center/resilience")) return management ? <ResilienceRecoveryPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/major-incidents")) return management ? <MajorIncidentWarRoomPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/intelligence")) return management ? <ExceptionIntelligencePage /> : <Navigate to="/finance" replace />;
+  if(pathname.startsWith("/finance/exception-command-center/capa/improvement-recommendations")) return management ? <CapaImprovementCommandQueuePage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center/capa")) return management ? <ExceptionCapaPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/exception-command-center")) return management ? <ExceptionCommandCenterPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/executive-ai")) return <ExecutiveAiAssistantPage />;
@@ -70,6 +73,7 @@ export default function Penzugy() {
       {management&&<Link to="/finance/exception-command-center" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#991b1b",color:"white"}}>Exception Command Center</Link>}
       {management&&<Link to="/finance/exception-command-center/intelligence" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#312e81",color:"white"}}>Exception Intelligence</Link>}
       {management&&<Link to="/finance/exception-command-center/capa" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#5b21b6",color:"white"}}>CAPA központ</Link>}
+      {management&&<Link to="/finance/exception-command-center/capa/improvement-recommendations" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4338ca",color:"white"}}>CAPA fejlesztési javaslatok</Link>}
       {management&&<Link to="/finance/exception-command-center/major-incidents" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#7f1d1d",color:"white"}}>Major Incident / War Room</Link>}
       {management&&<Link to="/finance/exception-command-center/resilience" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Resilience & Recovery</Link>}
       <Link to="/finance/executive-ai" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#4c3b91",color:"white"}}>AI vezetői asszisztens</Link>
