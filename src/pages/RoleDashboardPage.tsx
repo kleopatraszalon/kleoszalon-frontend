@@ -12,7 +12,7 @@ const WorkOrderDashboardPanel=lazy(()=>import("./dashboard/WorkOrderDashboardPan
 const HrPayrollReadinessPanel=lazy(()=>import("./dashboard/HrPayrollReadinessPanel"));
 const AdminProductSaleQuickAction=lazy(()=>import("./dashboard/AdminProductSaleQuickAction"));
 
-function roles(raw:unknown){if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase());if(p!=null)return[String(p).toLowerCase()]}catch{}return t.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
+function roles(raw:unknown){if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase());if(p!=null)return[String(p).toLowerCase()]}catch{}return t.split(",").map(x=>x.replace(/[[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
 const Fallback=()=> <div style={{padding:18,display:"flex",gap:8,alignItems:"center"}}><RefreshCw className="spin" size={16}/> Betöltés…</div>;
 function Delayed({ms,children}:{ms:number;children:React.ReactNode}){const[ready,setReady]=useState(false);useEffect(()=>{const id=window.setTimeout(()=>setReady(true),ms);return()=>window.clearTimeout(id)},[ms]);return ready?<Suspense fallback={null}>{children}</Suspense>:null}
 function WithWorkOrders({children}:{children:React.ReactNode}){return <><Suspense fallback={null}><WorkOrderDashboardPanel/></Suspense>{children}</>}

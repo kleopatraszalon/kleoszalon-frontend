@@ -100,7 +100,7 @@ const initials = (name = "") =>
 const cleanRoleToken = (value?: string | null) => {
   if (!value) return "";
   return String(value)
-    .replace(/[\[\]{}"']/g, " ")
+    .replace(/[[\]{}"']/g, " ")
     .replace(/\\/g, " ")
     .replace(/\s+/g, " ")
     .trim();

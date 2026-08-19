@@ -31,7 +31,7 @@ export function parseRoles(raw: unknown): string[] {
     const text=String(raw??"").trim();
     if(!text)return[];
     try{const parsed=JSON.parse(text);values=Array.isArray(parsed)?parsed:[parsed]}
-    catch{values=text.split(",").map(x=>x.replace(/[\[\]"]/g,"").trim())}
+    catch{values=text.split(",").map(x=>x.replace(/[[\]"]/g,"").trim())}
   }
   return Array.from(new Set(values.map(normalizeRole).filter(Boolean)));
 }

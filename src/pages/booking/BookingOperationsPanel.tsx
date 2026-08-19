@@ -21,7 +21,7 @@ type Props = { appointments: BookingOperationAppointment[]; employeeCount: numbe
 const normalizeStatus=(value?:string|null)=>String(value||"confirmed").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
 const minutesBetween=(start:string,end:string)=>Math.max(0,(new Date(end).getTime()-new Date(start).getTime())/60000);
 const timeText=(value:string)=>new Date(value).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
-const roleList=(raw:unknown)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const parsed=JSON.parse(String(raw||''));if(Array.isArray(parsed))return parsed.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[\[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
+const roleList=(raw:unknown)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const parsed=JSON.parse(String(raw||''));if(Array.isArray(parsed))return parsed.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
 const EDITOR_ROLES=new Set(['admin','administrator','rendszergazda','superadmin','super_admin','receptionist','recepciós','recepcios','reception','location_manager','üzletvezető','uzletvezeto','store_manager','branch_manager']);
 
 function apiErrorText(error:any,fallback:string){
