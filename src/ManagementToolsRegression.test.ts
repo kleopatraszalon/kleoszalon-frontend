@@ -18,7 +18,8 @@ test('top metrics keeps the Altegio parity indicators visible',()=>{
 test('management tools are available from the management sidebar',()=>{
   const sidebar=read('src/components/Sidebar.tsx');
   const top=read('src/pages/VirTopMetricsPage.tsx');
-  expect(sidebar).toContain("name:'Vállalat irányítási eszközök'");
+  expect(sidebar).toContain("code:'management.tools'");
+  expect(sidebar).toContain("name:'Vállalatirányítási eszközök'");
   expect(sidebar).toContain('/reports/management-tools?tool=pareto');
   expect(sidebar).toContain('/reports/management-tools?tool=swot');
   expect(sidebar).toContain('/reports/management-tools?tool=root-cause');
