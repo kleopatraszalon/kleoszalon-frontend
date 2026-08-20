@@ -5,7 +5,8 @@ import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 import CopyrightNotice from "./components/CopyrightNotice";
 import AppLayout from "./layouts/AppLayout";
-import BookingV4AdminProPage from "./pages/BookingV4AdminProPage";
+import BookingV4GrowthPage from "./pages/BookingV4GrowthPage";
+import { hasStoredAuthToken } from "./utils/authSession";
 import { hasStoredRole } from "./utils/roles";
 
 // Globális stílusok visszakötése
@@ -20,10 +21,9 @@ if (!container) throw new Error("Hiányzik a #root elem az index.html-ből");
 
 function bookingV4AdminEntry(){
   if(window.location.pathname!=="/admin/booking-v4")return null;
-  const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");
-  if(!token){window.location.replace("/login");return <></>;}
+  if(!hasStoredAuthToken()){window.location.replace("/login");return <></>;}
   if(!hasStoredRole(["admin","manager"])){window.location.replace("/");return <></>;}
-  return <AppLayout><BookingV4AdminProPage/></AppLayout>;
+  return <AppLayout><BookingV4GrowthPage/></AppLayout>;
 }
 
 const specialEntry=bookingV4AdminEntry();
