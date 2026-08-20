@@ -5,7 +5,7 @@ import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 import CopyrightNotice from "./components/CopyrightNotice";
 import AppLayout from "./layouts/AppLayout";
-import BookingV4GrowthPage from "./pages/BookingV4GrowthPage";
+import BookingV4TaxonomyOptimizerPage from "./pages/BookingV4TaxonomyOptimizerPage";
 import { hasStoredAuthToken } from "./utils/authSession";
 import { hasStoredRole } from "./utils/roles";
 
@@ -23,7 +23,7 @@ function bookingV4AdminEntry(){
   if(window.location.pathname!=="/admin/booking-v4")return null;
   if(!hasStoredAuthToken()){window.location.replace("/login");return <></>;}
   if(!hasStoredRole(["admin","manager"])){window.location.replace("/");return <></>;}
-  return <AppLayout><BookingV4GrowthPage/></AppLayout>;
+  return <AppLayout><BookingV4TaxonomyOptimizerPage/></AppLayout>;
 }
 
 const specialEntry=bookingV4AdminEntry();
