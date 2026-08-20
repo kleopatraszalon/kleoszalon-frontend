@@ -8,6 +8,7 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import CopyrightNotice from "../components/CopyrightNotice";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
+import { invalidateCurrentUserCache } from "../hooks/useCurrentUser";
 import { markAuthenticatedSession } from "../utils/authSession";
 
 type LoginResponse = {
@@ -96,8 +97,10 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
-      // The server has already set HttpOnly access/refresh cookies. Never copy
-      // credentials into Web Storage; keep only non-secret UI metadata here.
+      // /api/me has already verified the freshly issued HttpOnly cookie at this
+      // point. Invalidate every previous-session user cache before exposing the
+      // routing marker and navigating to the authenticated application shell.
+      invalidateCurrentUserCache();
       markAuthenticatedSession();
       const user = body.user || {};
       const role = body.role ?? user.role;
@@ -137,6 +140,7 @@ const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
+    let credentialsAccepted = false;
     try {
       const response = await api.post<LoginResponse>("/login", {
         identifier: identifier.trim(),
@@ -147,19 +151,49 @@ const LoginPage: React.FC = () => {
         setError(body.error || t("login.unexpected"));
         return;
       }
-      persistAuthAndGoHome(body);
+      credentialsAccepted = true;
+
+      // Do not navigate on the login POST alone. The protected /api/me readback
+      // proves that Chromium stored the cross-site HttpOnly cookie and will send
+      // it back to the API. This removes the dashboard/login flicker loop.
+      const sessionCheck = await api.get<LoginResponse>("/me", {
+        headers: { "Cache-Control": "no-cache" },
+      });
+      const verified = sessionCheck.data || {};
+      if (verified.ok === false || !verified.user) {
+        throw new Error("SESSION_VERIFICATION_FAILED");
+      }
+
+      const verifiedUser = verified.user;
+      persistAuthAndGoHome({
+        ...body,
+        user: { ...(body.user || {}), ...verifiedUser },
+        role: verifiedUser.role ?? body.role,
+        location_id: verifiedUser.location_id ?? body.location_id,
+        location_name: verifiedUser.location_name ?? body.location_name,
+        full_name: verifiedUser.full_name ?? body.full_name,
+        email: verifiedUser.email ?? body.email,
+      });
     } catch (err: any) {
       console.error("Login error:", err);
       const status = err?.response?.status;
       const body = err?.response?.data as LoginResponse | undefined;
-      setError(
-        body?.error ||
-          (status
-            ? language === "en"
-              ? `Sign-in failed (HTTP ${status}).`
-              : `Sikertelen belépés (HTTP ${status}).`
-            : t("login.unexpected")),
-      );
+      if (credentialsAccepted) {
+        setError(
+          language === "en"
+            ? "Sign-in was accepted, but the secure browser session could not be verified. Please try again."
+            : "A belépési adatok helyesek, de a biztonságos böngészős munkamenet nem ellenőrizhető. Kérjük, próbáld újra.",
+        );
+      } else {
+        setError(
+          body?.error ||
+            (status
+              ? language === "en"
+                ? `Sign-in failed (HTTP ${status}).`
+                : `Sikertelen belépés (HTTP ${status}).`
+              : t("login.unexpected")),
+        );
+      }
     } finally {
       setLoading(false);
     }
