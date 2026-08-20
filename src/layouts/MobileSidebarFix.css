@@ -1,4 +1,6 @@
-/* Mobil navigáció végleges felülírásai. Csak 900 px alatt aktív. */
+/* Felbontásfüggetlen VIR navigáció.
+   A sidebar állapotát kizárólag az .is-sidebar-collapsed osztály vezérli.
+   Breakpoint vagy viewport-váltás önmagában soha nem rejtheti el a menüt. */
 @media (max-width: 900px) {
   html, body, #root {
     width: 100%;
@@ -23,13 +25,9 @@
     min-width: 0 !important;
   }
 
-  .app-layout-shell > .kleo-sidebar.app-sidebar,
-  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
+  .app-layout-shell > .kleo-sidebar.app-sidebar {
     position: fixed !important;
-    top: 0 !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: auto !important;
+    inset: 0 auto 0 0 !important;
     z-index: 1200 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -41,20 +39,19 @@
     margin: 0 !important;
     padding: max(8px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom)) !important;
     overflow: hidden !important;
-    transform: translate3d(-105%, 0, 0) !important;
-    opacity: 1 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    box-shadow: 18px 0 50px rgba(8,10,20,.34) !important;
-    transition: transform .22s ease, visibility .22s ease !important;
-    will-change: transform;
-  }
-
-  .app-layout-shell.is-mobile-sidebar-open > .kleo-sidebar.app-sidebar,
-  .app-layout-shell.is-mobile-sidebar-open.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
     transform: translate3d(0,0,0) !important;
+    opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
+    box-shadow: 18px 0 50px rgba(8,10,20,.34) !important;
+    transition: transform .22s ease, opacity .2s ease, visibility .22s ease !important;
+  }
+
+  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
+    transform: translate3d(-105%,0,0) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
   }
 
   .app-layout-shell > .kleo-sidebar .kleo-sidebar-hero-card {
@@ -73,10 +70,6 @@
     margin: 0 !important;
   }
 
-  .app-layout-shell > .kleo-sidebar .kleo-sidebar-logo-wrap {
-    min-width: 0 !important;
-  }
-
   .app-layout-shell > .kleo-sidebar .kleo-sidebar-logo {
     max-height: 42px !important;
     width: auto !important;
@@ -93,7 +86,6 @@
     overflow-x: hidden !important;
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
-    scrollbar-gutter: auto;
     touch-action: pan-y;
   }
 
@@ -112,8 +104,6 @@
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 
   .app-layout-shell .kleo-sidebar-menu-button,
@@ -128,32 +118,22 @@
     padding: 10px 9px !important;
     column-gap: 9px !important;
     text-align: left !important;
-    justify-items: stretch !important;
   }
 
   .app-layout-shell .kleo-sidebar-menu-link {
     grid-template-columns: 20px minmax(0,1fr) !important;
   }
 
-  .app-layout-shell .kleo-sidebar-menu-icon {
-    justify-self: center !important;
-    width: 18px !important;
-    min-width: 18px !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu-label {
-    display: block !important;
+  .app-layout-shell .kleo-sidebar-menu-label,
+  .app-layout-shell .kleo-sidebar-submenu-item {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
-    justify-self: stretch !important;
-    text-align: left !important;
     white-space: normal !important;
     overflow: visible !important;
     text-overflow: clip !important;
     overflow-wrap: anywhere !important;
-    word-break: normal !important;
-    line-height: 1.25 !important;
+    text-align: left !important;
   }
 
   .app-layout-shell .kleo-sidebar-submenu {
@@ -163,25 +143,6 @@
     margin: 2px 0 7px !important;
     padding: 0 3px 0 29px !important;
     gap: 2px !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-submenu-item {
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 38px !important;
-    padding: 8px 9px !important;
-    text-align: left !important;
-    white-space: normal !important;
-    overflow-wrap: anywhere !important;
-  }
-
-  .kleo-menu-sort-hint,
-  .kleo-menu-drag-handle {
-    display: none !important;
-  }
-
-  .kleo-sidebar-menu-item[draggable="true"] {
-    cursor: default !important;
   }
 
   .sidebar-backdrop {
@@ -195,17 +156,19 @@
     padding: 0 !important;
     border: 0 !important;
     background: rgba(12,10,8,.55) !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    transition: opacity .2s ease, visibility .2s ease !important;
-  }
-
-  .app-layout-shell.is-mobile-sidebar-open .sidebar-backdrop {
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
   }
+
+  .app-layout-shell.is-sidebar-collapsed .sidebar-backdrop {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+
+  .kleo-menu-sort-hint,
+  .kleo-menu-drag-handle { display: none !important; }
 
   .modern-topbar {
     z-index: 1000 !important;
@@ -216,52 +179,16 @@
     gap: 8px !important;
   }
 
-  .modern-topbar-left {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    gap: 8px !important;
-  }
-
-  .modern-topbar-right {
-    flex: 0 0 auto !important;
-    gap: 6px !important;
-  }
-
-  .topbar-collapse {
-    width: 40px !important;
-    height: 40px !important;
-    min-width: 40px !important;
-  }
-
+  .modern-topbar-left { flex: 1 1 auto !important; min-width: 0 !important; gap: 8px !important; }
+  .modern-topbar-right { flex: 0 0 auto !important; gap: 6px !important; }
+  .topbar-collapse { width: 40px !important; height: 40px !important; min-width: 40px !important; }
   .desktop-sidebar-icon { display: none !important; }
   .mobile-sidebar-icon { display: grid !important; place-items: center !important; }
-  .topbar-global-search,
-  .topbar-location,
-  .topbar-profile { display: none !important; }
-
-  .topbar-breadcrumb {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-  }
-
-  .topbar-breadcrumb span,
-  .topbar-breadcrumb svg { display: none !important; }
-
-  .topbar-breadcrumb b {
-    display: block !important;
-    max-width: 46vw !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-  }
-
-  .topbar-logout {
-    width: 40px !important;
-    min-width: 40px !important;
-    height: 40px !important;
-    padding: 0 !important;
-  }
-
+  .topbar-global-search, .topbar-location, .topbar-profile { display: none !important; }
+  .topbar-breadcrumb { flex: 1 1 auto !important; min-width: 0 !important; }
+  .topbar-breadcrumb span, .topbar-breadcrumb svg { display: none !important; }
+  .topbar-breadcrumb b { display: block !important; max-width: 46vw !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+  .topbar-logout { width: 40px !important; min-width: 40px !important; height: 40px !important; padding: 0 !important; }
   .topbar-logout span { display: none !important; }
 
   .app-layout-main {
@@ -272,22 +199,10 @@
     padding: 10px !important;
     overflow-x: hidden !important;
   }
-
-  .app-layout-main > * {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
 }
 
 @media (max-width: 430px) {
-  .app-layout-shell > .kleo-sidebar.app-sidebar,
-  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
-    width: min(92vw, 310px) !important;
-  }
-
+  .app-layout-shell > .kleo-sidebar.app-sidebar { width: min(92vw,310px) !important; }
   .modern-topbar { padding-inline: 7px !important; }
   .topbar-breadcrumb b { max-width: 38vw !important; }
   .app-layout-main { padding: 7px !important; }
