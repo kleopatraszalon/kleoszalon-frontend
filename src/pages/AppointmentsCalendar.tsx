@@ -2,6 +2,7 @@ import React from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import AppointmentsCalendarCore from "./AppointmentsCalendarCore";
 import AdvancedBookingLauncher from "./booking/AdvancedBookingLauncher";
+import BookingWaitlistPage from "./BookingWaitlistPage";
 
 const LEGACY_VIEW_ROUTES: Record<string, string> = {
   "voice-booking": "/appointments/voice-booking-stats",
@@ -14,6 +15,7 @@ const LEGACY_VIEW_ROUTES: Record<string, string> = {
 export default function AppointmentsCalendarPage(){
   const location = useLocation();
   const view = new URLSearchParams(location.search).get("view");
+  if(view==="waitlist") return <BookingWaitlistPage/>;
   const redirect = view ? LEGACY_VIEW_ROUTES[view] : undefined;
   if (redirect) return <Navigate to={redirect} replace />;
 
