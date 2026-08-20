@@ -4,6 +4,9 @@ import App from "./App";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 import CopyrightNotice from "./components/CopyrightNotice";
+import AppLayout from "./layouts/AppLayout";
+import BookingV4AdminPage from "./pages/BookingV4AdminPage";
+import { hasStoredRole } from "./utils/roles";
 
 // Globális stílusok visszakötése
 import "./styles/kleo-theme.css";
@@ -15,12 +18,21 @@ import "./styles/mobile-admin-menu-hotfix.css";
 const container = document.getElementById("root");
 if (!container) throw new Error("Hiányzik a #root elem az index.html-ből");
 
+function bookingV4AdminEntry(){
+  if(window.location.pathname!=="/admin/booking-v4")return null;
+  const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");
+  if(!token){window.location.replace("/login");return <></>;}
+  if(!hasStoredRole(["admin","manager"])){window.location.replace("/");return <></>;}
+  return <AppLayout><BookingV4AdminPage/></AppLayout>;
+}
+
+const specialEntry=bookingV4AdminEntry();
 const root = createRoot(container);
 root.render(
   <React.StrictMode>
     <LanguageProvider>
       <VirCustomizationRuntime/>
-      <App />
+      {specialEntry||<App />}
       <CopyrightNotice />
     </LanguageProvider>
   </React.StrictMode>
