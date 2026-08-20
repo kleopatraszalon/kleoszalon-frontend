@@ -6,6 +6,7 @@ import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 import CopyrightNotice from "./components/CopyrightNotice";
 import AppLayout from "./layouts/AppLayout";
 import BookingV4TaxonomyOptimizerPage from "./pages/BookingV4TaxonomyOptimizerPage";
+import { hasStoredAuthToken } from "./utils/authSession";
 import { hasStoredRole } from "./utils/roles";
 
 // Globális stílusok visszakötése
@@ -20,8 +21,7 @@ if (!container) throw new Error("Hiányzik a #root elem az index.html-ből");
 
 function bookingV4AdminEntry(){
   if(window.location.pathname!=="/admin/booking-v4")return null;
-  const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");
-  if(!token){window.location.replace("/login");return <></>;}
+  if(!hasStoredAuthToken()){window.location.replace("/login");return <></>;}
   if(!hasStoredRole(["admin","manager"])){window.location.replace("/");return <></>;}
   return <AppLayout><BookingV4TaxonomyOptimizerPage/></AppLayout>;
 }

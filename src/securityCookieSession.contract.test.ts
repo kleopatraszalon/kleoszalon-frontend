@@ -33,12 +33,40 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
-  test("session marker is explicitly non-secret and legacy JWTs are overwritten", () => {
+  test("session marker is isolated from every legacy bearer token key", () => {
     const source = read("utils/authSession.ts");
-    expect(source).toContain('COOKIE_SESSION_MARKER = "cookie-session"');
+    expect(source).toContain('COOKIE_SESSION_KEY = "kleo_cookie_session"');
+    expect(source).toContain('COOKIE_SESSION_MARKER = "active"');
     expect(source).toContain('localStorage.removeItem("token")');
-    expect(source).toContain('localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER)');
+    expect(source).toContain('localStorage.removeItem("kleo_token")');
+    expect(source).toContain("localStorage.setItem(COOKIE_SESSION_KEY, COOKIE_SESSION_MARKER)");
+    expect(source).not.toMatch(/localStorage\.setItem\(\s*["']kleo_token["']/);
+    expect(source).not.toContain('COOKIE_SESSION_MARKER = "cookie-session"');
     expect(source).toMatch(/credentials:\s*["']include["']/);
+  });
+
+  test("private route uses the cookie-session routing helper", () => {
+    const source = read("PrivateRoute.tsx");
+    expect(source).toContain("hasStoredAuthToken");
+    expect(source).not.toMatch(/localStorage\.getItem\(\s*["']kleo_token["']/);
+  });
+
+  test("special Booking 4 entry uses the cookie-session routing helper", () => {
+    const source = read("index.tsx");
+    expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
+    expect(source).toContain("if(!hasStoredAuthToken())");
+    expect(source).not.toMatch(/const\s+token\s*=\s*localStorage\.getItem\(\s*["']kleo_token["']/);
+  });
+
+  test("the cookie session marker cannot masquerade as a bearer credential", () => {
+    const authSession = read("utils/authSession.ts");
+    const sidebar = read("components/Sidebar.tsx");
+    const websiteAdmin = read("pages/WebsiteAdminPage.tsx");
+
+    expect(authSession).not.toContain('localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER)');
+    expect(authSession).toContain('localStorage.removeItem("kleo_token")');
+    expect(sidebar).not.toContain("kleo_cookie_session");
+    expect(websiteAdmin).not.toContain("kleo_cookie_session");
   });
 
   test("frontend role guards do not decode browser JWTs", () => {
