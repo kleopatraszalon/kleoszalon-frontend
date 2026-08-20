@@ -51,6 +51,13 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["']kleo_token["']/);
   });
 
+  test("special Booking 4 entry uses the cookie-session routing helper", () => {
+    const source = read("index.tsx");
+    expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
+    expect(source).toContain("if(!hasStoredAuthToken())");
+    expect(source).not.toMatch(/const\s+token\s*=\s*localStorage\.getItem\(\s*["']kleo_token["']/);
+  });
+
   test("the cookie session marker cannot masquerade as a bearer credential", () => {
     const authSession = read("utils/authSession.ts");
     const sidebar = read("components/Sidebar.tsx");
