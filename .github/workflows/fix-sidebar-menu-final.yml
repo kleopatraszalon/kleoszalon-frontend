@@ -1,0 +1,64 @@
+name: Final VIR sidebar and menu repair
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Apply deterministic sidebar/menu repair
+        shell: python
+        run: |
+          from pathlib import Path
+
+          layout = Path('src/layouts/AppLayout.tsx')
+          s = layout.read_text()
+          s = s.replace('import "./MobileSidebarFix.css";\n', '')
+          s = s.replace('const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");', 'const [collapsed, setCollapsed] = useState(false);')
+          s = s.replace('''  useEffect(() => {\n    localStorage.setItem("kleo.sidebar.collapsed", String(collapsed));\n  }, [collapsed]);\n\n''', '')
+          layout.write_text(s)
+
+          sidebar = Path('src/components/Sidebar.tsx')
+          s = sidebar.read_text()
+          old = "const visible=useMemo(()=>{const base=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:menus;"
+          new = "const visible=useMemo(()=>{const base=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:isAdmin?FALLBACK:menus;"
+          if old not in s:
+              raise SystemExit('Sidebar visible base pattern not found')
+          s = s.replace(old, new)
+          sidebar.write_text(s)
+
+          css = Path('src/layouts/AppLayout.css')
+          c = css.read_text()
+          start = c.find('@media (max-width: 900px) {')
+          end = c.find('@media (max-width: 560px) {', start)
+          if start >= 0 and end > start:
+              replacement = '''@media (max-width: 900px) {\n  .app-layout-shell {\n    --sidebar-width: 250px;\n    display: grid !important;\n    grid-template-columns: var(--sidebar-width) minmax(0,1fr) !important;\n  }\n  .app-layout-shell.is-sidebar-collapsed {\n    grid-template-columns: 0 minmax(0,1fr) !important;\n  }\n  .app-layout-shell > .kleo-sidebar.app-sidebar {\n    position: sticky !important;\n    top: 0 !important;\n    left: 0 !important;\n    width: var(--sidebar-width) !important;\n    min-width: var(--sidebar-width) !important;\n    max-width: var(--sidebar-width) !important;\n    height: 100dvh !important;\n    transform: none !important;\n    opacity: 1 !important;\n    visibility: visible !important;\n    pointer-events: auto !important;\n    box-shadow: none !important;\n  }\n  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {\n    width: 0 !important; min-width: 0 !important; max-width: 0 !important;\n    transform: translateX(-100%) !important;\n    opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;\n  }\n  .sidebar-backdrop { display:none !important; }\n  .desktop-sidebar-icon { display:grid !important; place-items:center !important; }\n  .mobile-sidebar-icon { display:none !important; }\n  .topbar-global-search,.topbar-location,.topbar-profile { display:none !important; }\n  .app-layout-main { min-width:0 !important; max-width:100% !important; padding:10px !important; }\n}\n\n'''
+              c = c[:start] + replacement + c[end:]
+          css.write_text(c)
+      - name: Verify repair invariants
+        run: |
+          grep -q 'const \[collapsed, setCollapsed\] = useState(false)' src/layouts/AppLayout.tsx
+          ! grep -q 'MobileSidebarFix.css' src/layouts/AppLayout.tsx
+          grep -q 'isAdmin?FALLBACK:menus' src/components/Sidebar.tsx
+          npm ci --no-audit --no-fund
+          npm run typecheck
+          npm test -- --watchAll=false
+          CI=true DISABLE_ESLINT_PLUGIN=true npm run build
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/layouts/AppLayout.tsx src/layouts/AppLayout.css src/components/Sidebar.tsx
+          git diff --cached --quiet && exit 0
+          git commit -m 'Final fix: complete admin menu and viewport-invariant sidebar'
+          git push origin main
