@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useState}from"react";
 import api from"../api/api";
 import BookingV4AdminPage from"./BookingV4AdminPage";
 
@@ -8,7 +8,6 @@ type Chain={id:string;status:string;location_id:string;location_name:string;clie
 const msg=(e:any)=>e?.response?.data?.error||e?.response?.data?.message||e?.message||"A művelet sikertelen.";
 const dt=(v:string)=>new Date(v).toLocaleString("hu-HU",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"});
 const hm=(v:string)=>new Date(v).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
-const money=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;
 const minuteToTime=(m:number)=>`${String(Math.floor(Number(m||0)/60)).padStart(2,"0")}:${String(Number(m||0)%60).padStart(2,"0")}`;
 const timeToMinute=(v:string)=>{const[a,b]=v.split(":").map(Number);return a*60+b};
 
@@ -20,8 +19,8 @@ export default function BookingV4AdminProPage(){
  const[tab,setTab]=useState<Tab>("overview"),[locationId,setLocationId]=useState(""),[days,setDays]=useState(30),[busy,setBusy]=useState(false),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const[catalog,setCatalog]=useState<any>({locations:[],services:[],staff_levels:[],employees:[]}),[overview,setOverview]=useState<any>({summary:{},locations:[],recent_bookings:[]}),[chains,setChains]=useState<Chain[]>([]),[recommendations,setRecommendations]=useState<any[]>([]),[staff,setStaff]=useState<any[]>([]),[settings,setSettings]=useState<any[]>([]);
  const[recForm,setRecForm]=useState<any>({source_service_id:"",recommended_service_id:"",location_id:"",recommendation_type:"cross_sell",priority:100,label:"",discount_percent:""});
- async function load(){setBusy(true);setError("");try{const q=locationId?`&location_id=${encodeURIComponent(locationId)}`:"";const[cat,ov,ch,re,sp,se]=await Promise.all([api.get("/admin/booking-v4/catalog"),api.get(`/admin/booking-v4/overview?days=${days}${q}`),api.get(`/admin/booking-v4/chains?limit=150${locationId?`&location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/recommendations?${locationId?`location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/staff-profiles?${locationId?`location_id=${locationId}`:""}`),api.get("/admin/booking-v4/location-settings")]);setCatalog(cat.data||{});setOverview(ov.data||{});setChains(ch.data?.chains||[]);setRecommendations(re.data?.recommendations||[]);setStaff(sp.data?.staff||[]);setSettings(se.data?.settings||[])}catch(e){setError(msg(e))}finally{setBusy(false)}}
- useEffect(()=>{void load()},[locationId,days]);
+ const load=useCallback(async()=>{setBusy(true);setError("");try{const q=locationId?`&location_id=${encodeURIComponent(locationId)}`:"";const[cat,ov,ch,re,sp,se]=await Promise.all([api.get("/admin/booking-v4/catalog"),api.get(`/admin/booking-v4/overview?days=${days}${q}`),api.get(`/admin/booking-v4/chains?limit=150${locationId?`&location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/recommendations?${locationId?`location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/staff-profiles?${locationId?`location_id=${locationId}`:""}`),api.get("/admin/booking-v4/location-settings")]);setCatalog(cat.data||{});setOverview(ov.data||{});setChains(ch.data?.chains||[]);setRecommendations(re.data?.recommendations||[]);setStaff(sp.data?.staff||[]);setSettings(se.data?.settings||[])}catch(e){setError(msg(e))}finally{setBusy(false)}},[locationId,days]);
+ useEffect(()=>{void load()},[load]);
  const s=overview.summary||{};const staffCoverage=Number(s.active_staff||0)?Math.round(Number(s.classified_staff||0)/Number(s.active_staff||1)*100):0;
  const filteredChains=useMemo(()=>locationId?chains.filter(x=>x.location_id===locationId):chains,[chains,locationId]);
  async function cancelChain(id:string){if(!window.confirm("Biztosan lemondod a teljes foglalási láncot és minden hozzá tartozó időpontot?"))return;const reason=window.prompt("Lemondás oka:","Booking 4.0 admin lemondás")||"Booking 4.0 admin lemondás";setBusy(true);try{await api.post(`/admin/booking-v4/chains/${id}/cancel`,{reason});setNotice("A teljes foglalási lánc lemondva.");await load()}catch(e){setError(msg(e))}finally{setBusy(false)}}
