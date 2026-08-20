@@ -63,26 +63,34 @@ export default function CopyrightNotice() {
         style={{
           position: "fixed",
           zIndex: 1205,
-          left: isLogin ? "50%" : 10,
+          left: isLogin ? "50%" : 12,
           bottom: isLogin ? 12 : 8,
           transform: isLogin ? "translateX(-50%)" : undefined,
-          width: isLogin ? "auto" : "calc(var(--sidebar-width, 270px) - 20px)",
+          width: isLogin ? "auto" : "calc(var(--sidebar-width, 270px) - 24px)",
           maxWidth: isLogin ? "calc(100vw - 24px)" : undefined,
-          padding: isLogin ? "7px 12px" : "7px 8px",
-          border: "1px solid rgba(196,155,82,.28)",
-          borderRadius: 9,
-          background: isLogin ? "rgba(255,255,255,.88)" : "rgba(24,22,28,.92)",
-          color: isLogin ? "#5d5548" : "#d8c49d",
-          boxShadow: isLogin ? "0 8px 24px rgba(0,0,0,.08)" : "0 6px 18px rgba(0,0,0,.18)",
-          backdropFilter: "blur(10px)",
+          padding: 0,
+          border: 0,
+          borderRadius: 0,
+          background: "transparent",
+          boxShadow: "none",
+          color: isLogin ? "#6f675b" : "#b9aa8d",
           fontSize: 10,
           lineHeight: 1.35,
           textAlign: "center",
           cursor: "pointer",
+          appearance: "none",
         }}
       >
-        <strong>{COPYRIGHT_TEXT}</strong>
-        <span style={{ display: "block", marginTop: 2, textDecoration: "underline", textUnderlineOffset: 2 }}>
+        <span>{COPYRIGHT_TEXT}</span>
+        <span
+          style={{
+            display: "block",
+            marginTop: 2,
+            textDecoration: "underline",
+            textUnderlineOffset: 2,
+            opacity: 0.9,
+          }}
+        >
           Szerzői jogi és tulajdonosi tájékoztató
         </span>
       </button>
