@@ -24,33 +24,20 @@ export default function CopyrightNotice() {
       );
     };
 
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-    const notify = () => window.dispatchEvent(new Event("kleo-route-change"));
-    history.pushState = function (...args) {
-      const result = originalPushState.apply(this, args as any);
-      notify();
-      return result;
-    } as typeof history.pushState;
-    history.replaceState = function (...args) {
-      const result = originalReplaceState.apply(this, args as any);
-      notify();
-      return result;
-    } as typeof history.replaceState;
-
     const observer = new MutationObserver(update);
-    observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ["class"] });
+    observer.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ["class"],
+    });
     window.addEventListener("popstate", update);
-    window.addEventListener("kleo-route-change", update);
     window.addEventListener("resize", update);
     update();
 
     return () => {
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
       observer.disconnect();
       window.removeEventListener("popstate", update);
-      window.removeEventListener("kleo-route-change", update);
       window.removeEventListener("resize", update);
     };
   }, []);
