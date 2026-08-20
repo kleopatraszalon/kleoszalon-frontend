@@ -1,16 +1,15 @@
 // src/PrivateRoute.tsx
 import React from "react";
 import { Navigate } from "react-router-dom";
+import { hasStoredAuthToken } from "./utils/authSession";
 
 type PrivateRouteProps = {
-  children: React.ReactElement; // csak egy React elementet fogad el
+  children: React.ReactElement;
 };
 
 const PrivateRoute: React.FC<PrivateRouteProps> = ({ children }) => {
- const token = localStorage.getItem("kleo_token");
-if (!token) return <Navigate to="/" replace />;
-return children;
+  if (!hasStoredAuthToken()) return <Navigate to="/" replace />;
+  return children;
 };
 
-// **Ez a sor legyen az export**
 export default PrivateRoute;
