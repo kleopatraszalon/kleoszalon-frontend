@@ -1,209 +1,111 @@
-/* Felbontásfüggetlen VIR navigáció.
-   A sidebar állapotát kizárólag az .is-sidebar-collapsed osztály vezérli.
-   Breakpoint vagy viewport-váltás önmagában soha nem rejtheti el a menüt. */
-@media (max-width: 900px) {
-  html, body, #root {
-    width: 100%;
-    max-width: 100%;
-    min-height: 100%;
-    overflow-x: hidden;
-  }
+/* VIR sidebar: ugyanaz a viselkedés minden viewporton.
+   A menüt kizárólag az .is-sidebar-collapsed osztály rejtheti el. */
 
+@media (max-width: 900px) {
   .app-layout-shell,
   .app-layout-shell.is-sidebar-collapsed {
-    position: relative;
-    display: block !important;
+    --sidebar-width: 270px;
+    display: grid !important;
+    grid-template-columns: var(--sidebar-width) minmax(0,1fr) !important;
     width: 100% !important;
-    max-width: 100vw !important;
-    min-height: 100dvh;
+    min-height: 100dvh !important;
     overflow-x: hidden !important;
   }
 
-  .app-layout-column {
-    width: 100% !important;
-    max-width: 100vw !important;
-    min-width: 0 !important;
+  .app-layout-shell.is-sidebar-collapsed {
+    grid-template-columns: 0 minmax(0,1fr) !important;
   }
 
   .app-layout-shell > .kleo-sidebar.app-sidebar {
-    position: fixed !important;
-    inset: 0 auto 0 0 !important;
-    z-index: 1200 !important;
+    position: sticky !important;
+    inset: 0 auto auto 0 !important;
+    z-index: 1000 !important;
     display: flex !important;
     flex-direction: column !important;
-    width: min(88vw, 320px) !important;
-    min-width: 0 !important;
-    max-width: 320px !important;
+    width: var(--sidebar-width) !important;
+    min-width: var(--sidebar-width) !important;
+    max-width: var(--sidebar-width) !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     margin: 0 !important;
-    padding: max(8px, env(safe-area-inset-top)) 0 max(10px, env(safe-area-inset-bottom)) !important;
     overflow: hidden !important;
-    transform: translate3d(0,0,0) !important;
+    transform: none !important;
     opacity: 1 !important;
     visibility: visible !important;
     pointer-events: auto !important;
-    box-shadow: 18px 0 50px rgba(8,10,20,.34) !important;
-    transition: transform .22s ease, opacity .2s ease, visibility .22s ease !important;
+    box-shadow: none !important;
   }
 
   .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
-    transform: translate3d(-105%,0,0) !important;
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    transform: translateX(-100%) !important;
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
-  }
-
-  .app-layout-shell > .kleo-sidebar .kleo-sidebar-hero-card {
-    flex: 0 0 auto !important;
-    margin: 0 8px 6px !important;
-    padding: 9px 10px !important;
-    border-radius: 12px !important;
-  }
-
-  .app-layout-shell > .kleo-sidebar .sidebar-calendar {
-    display: none !important;
-  }
-
-  .app-layout-shell > .kleo-sidebar .kleo-sidebar-header {
-    min-height: 48px !important;
-    margin: 0 !important;
-  }
-
-  .app-layout-shell > .kleo-sidebar .kleo-sidebar-logo {
-    max-height: 42px !important;
-    width: auto !important;
-    max-width: 132px !important;
   }
 
   .app-layout-shell > .kleo-sidebar .kleo-sidebar-nav {
     flex: 1 1 auto !important;
     min-height: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 4px 8px calc(18px + env(safe-area-inset-bottom)) !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-y;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
-    width: 100% !important;
-    gap: 4px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu-item {
-    display: block !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu-button,
-  .app-layout-shell .kleo-sidebar-menu-item:not([draggable="true"]) .kleo-sidebar-menu-button {
-    display: grid !important;
-    grid-template-columns: 20px minmax(0,1fr) 18px !important;
-    align-items: center !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    min-height: 44px !important;
-    margin: 0 !important;
-    padding: 10px 9px !important;
-    column-gap: 9px !important;
-    text-align: left !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu-link {
-    grid-template-columns: 20px minmax(0,1fr) !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-menu-label,
-  .app-layout-shell .kleo-sidebar-submenu-item {
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: 100% !important;
-    white-space: normal !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
-    overflow-wrap: anywhere !important;
-    text-align: left !important;
-  }
-
-  .app-layout-shell .kleo-sidebar-submenu {
-    display: flex !important;
-    flex-direction: column !important;
-    width: 100% !important;
-    margin: 2px 0 7px !important;
-    padding: 0 3px 0 29px !important;
-    gap: 2px !important;
+    overscroll-behavior-y: contain;
   }
 
   .sidebar-backdrop {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 1150 !important;
-    display: block !important;
-    width: 100vw !important;
-    height: 100dvh !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: rgba(12,10,8,.55) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-  }
-
-  .app-layout-shell.is-sidebar-collapsed .sidebar-backdrop {
+    display: none !important;
     opacity: 0 !important;
     visibility: hidden !important;
     pointer-events: none !important;
   }
 
-  .kleo-menu-sort-hint,
-  .kleo-menu-drag-handle { display: none !important; }
-
-  .modern-topbar {
-    z-index: 1000 !important;
+  .app-layout-column {
+    min-width: 0 !important;
     width: 100% !important;
-    max-width: 100vw !important;
-    height: 58px !important;
-    padding: 0 9px !important;
-    gap: 8px !important;
   }
 
-  .modern-topbar-left { flex: 1 1 auto !important; min-width: 0 !important; gap: 8px !important; }
-  .modern-topbar-right { flex: 0 0 auto !important; gap: 6px !important; }
-  .topbar-collapse { width: 40px !important; height: 40px !important; min-width: 40px !important; }
-  .desktop-sidebar-icon { display: none !important; }
-  .mobile-sidebar-icon { display: grid !important; place-items: center !important; }
-  .topbar-global-search, .topbar-location, .topbar-profile { display: none !important; }
-  .topbar-breadcrumb { flex: 1 1 auto !important; min-width: 0 !important; }
-  .topbar-breadcrumb span, .topbar-breadcrumb svg { display: none !important; }
-  .topbar-breadcrumb b { display: block !important; max-width: 46vw !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
-  .topbar-logout { width: 40px !important; min-width: 40px !important; height: 40px !important; padding: 0 !important; }
-  .topbar-logout span { display: none !important; }
+  .modern-topbar {
+    width: 100% !important;
+    min-width: 0 !important;
+    padding-inline: 10px !important;
+  }
+
+  .topbar-global-search,
+  .topbar-location,
+  .topbar-profile {
+    display: none !important;
+  }
+
+  .desktop-sidebar-icon { display: grid !important; place-items: center !important; }
+  .mobile-sidebar-icon { display: none !important; }
 
   .app-layout-main {
     width: 100% !important;
-    max-width: 100vw !important;
     min-width: 0 !important;
-    margin: 0 !important;
+    max-width: 100% !important;
     padding: 10px !important;
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
   }
 }
 
-@media (max-width: 430px) {
-  .app-layout-shell > .kleo-sidebar.app-sidebar { width: min(92vw,310px) !important; }
-  .modern-topbar { padding-inline: 7px !important; }
-  .topbar-breadcrumb b { max-width: 38vw !important; }
-  .app-layout-main { padding: 7px !important; }
+@media (max-width: 560px) {
+  .app-layout-shell,
+  .app-layout-shell.is-sidebar-collapsed {
+    --sidebar-width: 250px;
+  }
+
+  .topbar-breadcrumb span,
+  .topbar-breadcrumb svg {
+    display: none !important;
+  }
+
+  .topbar-breadcrumb b {
+    max-width: 34vw !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
 }
