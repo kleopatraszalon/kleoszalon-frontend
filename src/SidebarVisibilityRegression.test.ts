@@ -8,9 +8,11 @@ describe('VIR sidebar visibility regression', () => {
 
   it('uses one persisted visibility source on desktop and mobile', () => {
     expect(layout).toContain('const [collapsed, setCollapsed]');
-    expect(layout).toContain('setMobileOpen(!collapsed)');
+    expect(layout).not.toContain('const [mobileOpen, setMobileOpen]');
+    expect(layout).not.toContain('setMobileOpen(!collapsed)');
     expect(layout).toContain('const toggleSidebar = () => setCollapsed(v=>!v);');
     expect(layout).not.toContain('window.matchMedia("(max-width: 900px)").matches ? setMobileOpen');
+    expect(layout).not.toContain('is-mobile-sidebar-open');
   });
 
   it('does not auto-close the menu when navigation or resolution changes', () => {
