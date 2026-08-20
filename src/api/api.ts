@@ -1,5 +1,6 @@
 import axios from "axios";
 import { idempotencyKeyFor } from "../utils/financialIdempotency";
+import { getSessionBearerToken } from "../utils/authSession";
 
 function norm(v?: string) {
   return (v ?? "")
@@ -60,6 +61,13 @@ function clearVoiceOrigin(){try{sessionStorage.removeItem(VOICE_ORIGIN_KEY);}cat
 function urlOf(config:any){return String(config?.url||"");}
 function isInterpretUrl(url:string){return url.includes("/public/marketing/booking/voice/interpret");}
 function isFinalPublicBookingUrl(url:string){return url.includes("/public/marketing/booking/book")||url.includes("/public/marketing/booking/waitlist");}
+function targetsConfiguredApi(config:any){
+  try{
+    const target=new URL(String(config?.url||""),String(config?.baseURL||baseURL));
+    const expected=new URL(apiOrigin||window.location.origin);
+    return target.origin===expected.origin;
+  }catch{return true;}
+}
 
 export function isRetryableReadFailure(error:any){
   const method=String(error?.config?.method||"get").toLowerCase();
@@ -78,8 +86,9 @@ function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 
 const api = axios.create({
   baseURL,
-  // Browser authentication is cookie-only. HttpOnly cookies are attached by
-  // the browser and are never readable by application JavaScript.
+  // HttpOnly cookie is the primary credential. A tab-scoped Bearer token is
+  // attached below only as a compatibility fallback for cross-origin Render
+  // deployments where the browser refuses the third-party cookie.
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
@@ -92,6 +101,12 @@ api.interceptors.request.use((config) => {
   const configuredBase=String(config.baseURL||"");
   if(!/^https?:\/\//i.test(requestUrl)&&/\/api\/?$/i.test(configuredBase)&&/^\/api(?:\/|$)/i.test(requestUrl)){
     config.url=requestUrl.replace(/^\/api(?=\/|$)/i,"")||"/";
+  }
+
+  const bearer=getSessionBearerToken();
+  if(bearer&&targetsConfiguredApi(config)&&!config.headers?.Authorization){
+    config.headers=config.headers||{};
+    config.headers.Authorization=`Bearer ${bearer}`;
   }
 
   const idempotencyKey=idempotencyKeyFor(`${String(config.baseURL||"")}${String(config.url||"")}`,config.method);
@@ -126,7 +141,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     if (error?.response?.status === 401) {
-      console.warn("API 401: a HttpOnly cookie munkamenet lejárt vagy hiányzik.");
+      console.warn("API 401: a böngészős munkamenet cookie és Bearer ellenőrzése sikertelen.");
     }
 
     // Olvasási kérésnél átmeneti hálózati/edge hiba után kontrolláltan újrapróbálunk.
