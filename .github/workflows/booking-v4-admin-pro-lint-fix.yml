@@ -1,0 +1,36 @@
+name: Booking 4 admin pro lint fix
+on:
+  push:
+    branches: [feature/booking-4-admin-pro]
+    paths: [.github/workflows/booking-v4-admin-pro-lint-fix.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/booking-4-admin-pro
+      - name: Remove Booking 4 lint warnings
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/pages/BookingV4AdminProPage.tsx');s=p.read_text()
+          s=s.replace('import React,{useEffect,useMemo,useState}from"react";','import React,{useCallback,useEffect,useMemo,useState}from"react";',1)
+          s=s.replace('const money=(v:any)=>`${Math.round(Number(v||0)).toLocaleString("hu-HU")} Ft`;\n','',1)
+          old=' async function load(){setBusy(true);setError("");try{const q=locationId?`&location_id=${encodeURIComponent(locationId)}`:"";const[cat,ov,ch,re,sp,se]=await Promise.all([api.get("/admin/booking-v4/catalog"),api.get(`/admin/booking-v4/overview?days=${days}${q}`),api.get(`/admin/booking-v4/chains?limit=150${locationId?`&location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/recommendations?${locationId?`location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/staff-profiles?${locationId?`location_id=${locationId}`:""}`),api.get("/admin/booking-v4/location-settings")]);setCatalog(cat.data||{});setOverview(ov.data||{});setChains(ch.data?.chains||[]);setRecommendations(re.data?.recommendations||[]);setStaff(sp.data?.staff||[]);setSettings(se.data?.settings||[])}catch(e){setError(msg(e))}finally{setBusy(false)}}\n useEffect(()=>{void load()},[locationId,days]);'
+          new=' const load=useCallback(async()=>{setBusy(true);setError("");try{const q=locationId?`&location_id=${encodeURIComponent(locationId)}`:"";const[cat,ov,ch,re,sp,se]=await Promise.all([api.get("/admin/booking-v4/catalog"),api.get(`/admin/booking-v4/overview?days=${days}${q}`),api.get(`/admin/booking-v4/chains?limit=150${locationId?`&location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/recommendations?${locationId?`location_id=${locationId}`:""}`),api.get(`/admin/booking-v4/staff-profiles?${locationId?`location_id=${locationId}`:""}`),api.get("/admin/booking-v4/location-settings")]);setCatalog(cat.data||{});setOverview(ov.data||{});setChains(ch.data?.chains||[]);setRecommendations(re.data?.recommendations||[]);setStaff(sp.data?.staff||[]);setSettings(se.data?.settings||[])}catch(e){setError(msg(e))}finally{setBusy(false)}},[locationId,days]);\n useEffect(()=>{void load()},[load]);'
+          if old not in s: raise SystemExit('load anchor not found')
+          s=s.replace(old,new,1);p.write_text(s)
+          PY
+      - run: |
+          ! grep -q 'const money=' src/pages/BookingV4AdminProPage.tsx
+          grep -q 'useCallback' src/pages/BookingV4AdminProPage.tsx
+          grep -q 'useEffect(()=>{void load()},\[load\])' src/pages/BookingV4AdminProPage.tsx
+      - name: Commit lint fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- src/pages/BookingV4AdminProPage.tsx
+          git diff --cached --quiet || (git commit -m "fix(booking-v4): remove release lint regression" && git push origin HEAD:feature/booking-4-admin-pro)
