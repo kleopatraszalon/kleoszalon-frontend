@@ -88,10 +88,24 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["']kleo_token["']/);
   });
 
-  test("special Booking 4 entry uses the cookie-session routing helper", () => {
+  test("Kleo Team uses the HttpOnly cookie session instead of legacy bearer storage", () => {
+    const source = read("pages/EmployeeMobileApp.tsx");
+    expect(source).toContain("withCredentials: true");
+    expect(source).toContain("requestError?.response?.status === 401");
+    expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
+    expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
+    expect(source).not.toMatch(/Bearer\s+\$\{/);
+  });
+
+  test("Booking 4 route bridge catches SPA navigation and keeps a router context", () => {
     const source = read("index.tsx");
-    expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
-    expect(source).toContain("if(!hasStoredAuthToken())");
+    expect(source).toContain('BOOKING_V4_PATH = "/admin/booking-v4"');
+    expect(source).toContain('ROUTE_CHANGE_EVENT = "kleo:route-change"');
+    expect(source).toContain("window.history.pushState");
+    expect(source).toContain("window.history.replaceState");
+    expect(source).toContain("<BrowserRouter>");
+    expect(source).toContain("<BookingV4TaxonomyOptimizerPage />");
+    expect(source).toContain("if (!hasStoredAuthToken())");
     expect(source).not.toMatch(/const\s+token\s*=\s*localStorage\.getItem\(\s*["']kleo_token["']/);
   });
 
