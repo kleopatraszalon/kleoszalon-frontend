@@ -5,6 +5,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import CopyrightNotice from "../components/CopyrightNotice";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
 
@@ -224,6 +225,7 @@ const LoginPage: React.FC = () => {
                 {t("login.register")}
               </button>
             </div>
+            <CopyrightNotice inline />
           </form>
         </div>
       </div>
