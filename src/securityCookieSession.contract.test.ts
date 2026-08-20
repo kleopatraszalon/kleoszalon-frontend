@@ -45,6 +45,14 @@ describe("browser cookie-session security contract", () => {
     expect(source).toMatch(/credentials:\s*["']include["']/);
   });
 
+  test("application router guards use the cookie-session routing helper", () => {
+    const source = read("App.tsx");
+    expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
+    expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
+    expect(source).not.toContain("function getToken()");
+    expect((source.match(/hasStoredAuthToken\(\)/g) || []).length).toBeGreaterThanOrEqual(4);
+  });
+
   test("private route uses the cookie-session routing helper", () => {
     const source = read("PrivateRoute.tsx");
     expect(source).toContain("hasStoredAuthToken");
