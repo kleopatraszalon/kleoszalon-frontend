@@ -153,12 +153,10 @@ const LoginPage: React.FC = () => {
       }
       credentialsAccepted = true;
 
-      // Do not navigate on the login POST alone. The protected /api/me readback
-      // proves that Chromium stored the cross-site HttpOnly cookie and will send
-      // it back to the API. This removes the dashboard/login flicker loop.
-      const sessionCheck = await api.get<LoginResponse>("/me", {
-        headers: { "Cache-Control": "no-cache" },
-      });
+      // Keep the protected readback a simple credentialed GET. Adding custom
+      // request headers here triggers a CORS preflight and can block sign-in
+      // before /api/me is even sent by the browser.
+      const sessionCheck = await api.get<LoginResponse>("/me");
       const verified = sessionCheck.data || {};
       if (verified.ok === false || !verified.user) {
         throw new Error("SESSION_VERIFICATION_FAILED");
