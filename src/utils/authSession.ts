@@ -1,14 +1,16 @@
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
 
-// Compatibility marker for the existing synchronous router guard. This value is
-// deliberately NOT a credential and must never be sent as an Authorization
-// header. Authentication authority lives exclusively in the HttpOnly cookies.
-export const COOKIE_SESSION_MARKER = "cookie-session";
+// Browser authentication is cookie-only. This dedicated storage marker is only
+// a synchronous UI routing hint and deliberately lives outside the legacy token
+// keys so old components can never mistake it for a Bearer credential.
+export const COOKIE_SESSION_KEY = "kleo_cookie_session";
+export const COOKIE_SESSION_MARKER = "active";
 
 const LOCAL_AUTH_KEYS = [
   "token",
   "kleo_token",
+  COOKIE_SESSION_KEY,
   "kleo_role",
   "kleo_location_id",
   "kleo_location_name",
@@ -22,6 +24,7 @@ const LOCAL_AUTH_KEYS = [
 const SESSION_AUTH_KEYS = [
   "token",
   "kleo_token",
+  COOKIE_SESSION_KEY,
   "kleo_role",
   "kleo_location_id",
   "kleo_location_name",
@@ -42,12 +45,14 @@ function logoutEndpoint(): string {
 
 export function markAuthenticatedSession(): void {
   try {
-    // Overwrite any legacy JWT that may still be present from an older build.
-    // The marker is only a UI routing hint; /api/me remains authoritative.
+    // /api/me and the HttpOnly cookie are authoritative. Remove every legacy
+    // browser-readable token key, then retain only the isolated non-token marker.
     localStorage.removeItem("token");
-    localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER);
+    localStorage.removeItem("kleo_token");
+    localStorage.setItem(COOKIE_SESSION_KEY, COOKIE_SESSION_MARKER);
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("kleo_token");
+    sessionStorage.removeItem(COOKIE_SESSION_KEY);
   } catch {
     // Storage is optional. Cookie authentication remains authoritative.
   }
@@ -55,10 +60,10 @@ export function markAuthenticatedSession(): void {
 
 export function hasStoredAuthToken(): boolean {
   try {
-    // Legacy JWT values are accepted only as a temporary routing hint so an
-    // already logged-in user can reach /api/me once and be migrated to the
-    // non-secret marker by useCurrentUser().
+    // The dedicated marker is the normal path. Legacy JWT keys are accepted only
+    // as a temporary routing hint so /api/me can migrate an older live session.
     return Boolean(
+      localStorage.getItem(COOKIE_SESSION_KEY) ||
       localStorage.getItem("kleo_token") ||
       localStorage.getItem("token") ||
       sessionStorage.getItem("kleo_token") ||
