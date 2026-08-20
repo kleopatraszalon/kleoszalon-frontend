@@ -19,9 +19,7 @@ jobs:
           from pathlib import Path
           p=Path('src/components/Sidebar.tsx')
           s=p.read_text()
-          # Admin must never lose Gyongyos Fitness because an access probe is slow or unavailable.
           s=s.replace("}else if(isAdmin&&!fitnessAllowed){combined=base.filter(x=>x.code!=='fitness.gyongyos')}","}")
-          # Add a first-class Franchise root instead of burying it under settings.
           anchor="const CUSTOMER_INTELLIGENCE_CHILD:MenuItem="
           franchise="const FRANCHISE_ADMIN_TOOLS:MenuItem={id:99410,code:'franchise.admin',name:'Franchise',icon:'Building2',children:[{id:994101,name:'Franchise központ',route:'/admin/saas?workspace=franchise',children:[]},{id:994102,name:'Franchise érdeklődők és Mailchimp',route:'/admin/franchise-leads',children:[]},{id:994103,name:'SaaS platform és franchise',route:'/admin/saas',children:[]}]};\n"
           if 'const FRANCHISE_ADMIN_TOOLS:MenuItem=' not in s:
@@ -29,7 +27,6 @@ jobs:
           old="if(isAdmin){combined=stripRoutes(combined,new Set(['/admin/saas','/admin/saas?workspace=migration-center']));combined=[...combined,SAAS_ADMIN_TOOLS]}"
           new="if(isAdmin){combined=stripRoutes(combined,new Set(['/admin/saas','/admin/saas?workspace=migration-center','/admin/franchise-leads']));combined=[...combined,FRANCHISE_ADMIN_TOOLS,SAAS_ADMIN_TOOLS]}"
           s=s.replace(old,new)
-          # Admin canonical menu is authoritative: VIR customization switches must not hide modules from administrators.
           s=s.replace("return configuredMenu(combined,vir)},[isCustomer,isAccounting,isLocationScoped,isStaff,isAdmin,isManager,menus,vir,fitnessAllowed]);","return isAdmin?combined:configuredMenu(combined,vir)},[isCustomer,isAccounting,isLocationScoped,isStaff,isAdmin,isManager,menus,vir,fitnessAllowed]);")
           p.write_text(s)
           PY
@@ -60,3 +57,4 @@ jobs:
             git commit -m "Enforce complete admin menu including franchise and fitness"
             git push origin HEAD:main
           fi
+# trigger: 2026-08-20T19:12+02:00
