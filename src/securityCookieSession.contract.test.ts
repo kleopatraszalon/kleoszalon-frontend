@@ -13,10 +13,11 @@ describe("browser cookie-session security contract", () => {
 
   test("login verifies the newly issued cookie before authenticated navigation", () => {
     const source = read("pages/Login.tsx");
-    expect(source).toContain('api.get<LoginResponse>("/me"');
+    expect(source).toContain('api.get<LoginResponse>("/me")');
     expect(source).toContain("credentialsAccepted = true");
     expect(source).toContain("invalidateCurrentUserCache()");
-    expect(source.indexOf('api.get<LoginResponse>("/me"')).toBeLessThan(source.indexOf("persistAuthAndGoHome({"));
+    expect(source.indexOf('api.get<LoginResponse>("/me")')).toBeLessThan(source.indexOf("persistAuthAndGoHome({"));
+    expect(source).not.toMatch(/api\.get<LoginResponse>\(\s*["']\/me["']\s*,\s*\{[^}]*Cache-Control/s);
   });
 
   test("canonical axios client authenticates only with cookies", () => {
