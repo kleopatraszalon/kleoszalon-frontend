@@ -19,6 +19,7 @@ const OperationsQualityPage = lazy(
   () => import("./pages/OperationsQualityPage"),
 );
 const ManagementImprovementPage = lazy(() => import("./pages/ManagementImprovementPage"));
+const ManagementToolsPage = lazy(() => import("./pages/ManagementToolsPage"));
 const NewsletterPage = lazy(() => import("./pages/NewsletterPage"));
 const DailyActionsPage = lazy(() => import("./pages/DailyActionsPage"));
 const WallBoardDailyActionPage = lazy(() => import("./pages/WallBoardDailyActionPage"));
@@ -211,22 +212,27 @@ const router = createBrowserRouter([
     element: <Navigate to="/hr/evaluations" replace />,
   },
   { path: "/extra/tasks", element: R(MANAGEMENT, <OperationsQualityPage />) },
+  { path: "/operations/tasks", element: <Navigate to="/extra/tasks" replace /> },
   {
     path: "/spec/maintenance",
     element: R(MANAGEMENT, <OperationsQualityPage />),
   },
+  { path: "/operations/maintenance", element: <Navigate to="/spec/maintenance" replace /> },
   {
     path: "/extra/documents",
     element: R(MANAGEMENT, <OperationsQualityPage />),
   },
+  { path: "/operations/documents", element: <Navigate to="/extra/documents" replace /> },
   {
     path: "/spec/internal-email",
     element: R(MANAGEMENT, <OperationsQualityPage />),
   },
+  { path: "/operations/email", element: <Navigate to="/spec/internal-email" replace /> },
   {
     path: "/marketing/complaints",
     element: R(MANAGEMENT, <OperationsQualityPage />),
   },
+  { path: "/operations/complaints", element: <Navigate to="/marketing/complaints" replace /> },
   {
     path: "/operations/improvement",
     element: R(MANAGEMENT, <ManagementImprovementPage />),
@@ -291,12 +297,14 @@ const router = createBrowserRouter([
   { path: "/masterdata/departments", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="departments" />) },
   { path: "/masterdata/equipment-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="equipment-types" />) },
   { path: "/masterdata/assets", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="equipment" />) },
+  { path: "/masterdata/equipment", element: <Navigate to="/masterdata/assets" replace /> },
   { path: "/masterdata/suppliers", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="suppliers" />) },
   { path: "/masterdata/warehouses", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="warehouses" />) },
   { path: "/masterdata/units", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="units" />) },
   { path: "/masterdata/price-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="price-types" />) },
   { path: "/masterdata/leave-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="leave-types" />) },
   { path: "/masterdata/movement-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="movement-types" />) },
+  { path: "/masterdata/stock-movement-types", element: <Navigate to="/masterdata/movement-types" replace /> },
   { path: "/masterdata/payment-methods", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="payment-methods" />) },
   { path: "/masterdata/financial-transaction-types", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="financial-transaction-types" />) },
   { path: "/spec/warehouses", element: R(MANAGEMENT, <CentralMasterDataPage entityKey="warehouses" />) },
@@ -345,8 +353,11 @@ const router = createBrowserRouter([
   { path: "/reports/top-metrics", element: R(MANAGEMENT, <VirTopMetricsExtendedPage />) },
   { path: "/reports/profit", element: R(MANAGEMENT, <Penzugy />) },
   { path: "/reports/inventory-movement", element: R(MANAGEMENT, <InventoryOperationsPage />) },
+  { path: "/reports/inventory-movements", element: R(MANAGEMENT, <InventoryOperationsPage />) },
   { path: "/reports/expected-revenue", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
   { path: "/reports/custom", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
+  { path: "/reports/builder", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
+  { path: "/reports/management-tools", element: R(MANAGEMENT, <ManagementToolsPage />) },
   {
     path: "/reports/vir",
     element: <Navigate to="/reports/top-metrics" replace />,
@@ -357,6 +368,7 @@ const router = createBrowserRouter([
     element: <Navigate to="/appointments/calendar" replace />,
   },
   { path: "/appointments/calendar", element: A(<AppointmentsCalendar />) },
+  { path: "/appointments/list", element: <Navigate to="/modules/appointments/list" replace /> },
   {
     path: "/appointments/voice-booking-stats",
     element: R(MANAGEMENT, <BookingVoiceStatsPage />),
@@ -410,6 +422,7 @@ const router = createBrowserRouter([
     element: R(MANAGEMENT, <SignageAppearanceAdmin />),
   },
   { path: "/kiosk", element: R(KIOSK_MANAGERS, <KioskAdmin />) },
+  { path: "/kiosk/admin", element: R(KIOSK_MANAGERS, <KioskAdmin />) },
   { path: "/webshop/admin", element: R(MANAGEMENT, <WebshopAdmin />) },
   {
     path: "/marketing",
@@ -421,6 +434,10 @@ const router = createBrowserRouter([
   { path: "/finance/invoices/out", element: A(<Penzugy />) },
   { path: "/finance/invoices/in", element: A(<Penzugy />) },
   { path: "/settings", element: R(MANAGEMENT, <SystemSettingsPage />) },
+  { path: "/settings/menu-order", element: <Navigate to="/admin/menu-layout" replace /> },
+  { path: "/settings/system-health", element: <Navigate to="/admin/system-health" replace /> },
+  { path: "/settings/uat", element: <Navigate to="/admin/uat" replace /> },
+  { path: "/settings/gdpr", element: <Navigate to="/admin/gdpr" replace /> },
   { path: "/admin/gdpr", element: R(MANAGEMENT, <GdprCenterPage />) },
   { path: "/knowledge-base/checklists", element: A(<ChecklistsPage />) },
   { path: "/knowledge-base/library", element: A(<KnowledgeBasePage />) },
