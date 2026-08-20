@@ -35,6 +35,9 @@ export const ADMIN_MENU:AdminMenuItem[]=[
 {id:91012,code:'online',name:'Online foglalás és alkalmazás',icon:'Globe2',children:[
  leaf(911201,'Online időpontfoglalás','/customer/booking'),leaf(911202,'Weboldal admin','/admin/website'),leaf(911203,'Digitális kijelzők / WallBoard','/signage'),leaf(911204,'Kioszk','/kiosk'),leaf(911205,'Kiosk admin','/kiosk/admin')
 ]},
+{id:91940,code:'booking.v4',name:'Booking 4.0',icon:'CalendarClock',children:[
+ leaf(919401,'Foglalás és ajánlatok – Admin központ','/admin/booking-v4')
+]},
 {id:91013,code:'commerce',name:'Webshop és értékesítés',icon:'ShoppingBag',children:[leaf(911301,'Webshop adminisztráció','/webshop/admin')]},
 {id:91014,code:'knowledge',name:'Tudásbázis',icon:'BookOpenText',children:[
  leaf(911401,'Tudásanyagok','/knowledge-base/library'),leaf(911402,'Check listák','/knowledge-base/checklists'),leaf(911403,'Folyamatok és szabályzatok','/knowledge-base/processes'),leaf(911404,'Munkaköri teszt','/knowledge-base/quiz')
