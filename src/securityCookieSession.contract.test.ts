@@ -42,6 +42,14 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
+  test("management dashboard never gates a cookie session on legacy bearer keys", () => {
+    const source = read("pages/Home.tsx");
+    expect(source).toContain('import { clearLocalAuthenticatedSession } from "../utils/authSession"');
+    expect(source).toContain("clearLocalAuthenticatedSession()");
+    expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
+    expect(source).not.toMatch(/const\s+token\s*=\s*localStorage\.getItem/);
+  });
+
   test("authentication failure cannot send a delayed server logout", () => {
     const currentUser = read("hooks/useCurrentUser.ts");
     const session = read("utils/authSession.ts");
