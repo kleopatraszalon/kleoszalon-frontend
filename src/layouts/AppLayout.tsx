@@ -1,5 +1,5 @@
 import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, ChevronRight, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, X } from "lucide-react";
+import { Building2, ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import AccountingSidebar from "../components/AccountingSidebar";
@@ -17,6 +17,15 @@ import {
 } from "../utils/authSession";
 import "./AppLayout.css";
 import "./MobileSidebarFix.css";
+
+// A korábbi részleges menüválaszok böngésző-cache-e nem írhatja felül a friss
+// backend menüt. A cache csak gyorsító réteg, ezért új shell betöltéskor töröljük.
+try {
+  for (let i = localStorage.length - 1; i >= 0; i -= 1) {
+    const key = localStorage.key(i);
+    if (key?.startsWith("kleo.menu.cache.")) localStorage.removeItem(key);
+  }
+} catch {}
 
 const AiHelpChat=lazy(()=>import("../components/AiHelpChat"));
 const NotificationBell=lazy(()=>import("../components/NotificationBell"));
@@ -67,7 +76,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
-  const [mobileOpen, setMobileOpen] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") !== "true");
   const serviceView = new URLSearchParams(location.search).get("view") || "services";
   const currentPageHu = location.pathname === "/masterdata/services"
     ? serviceView === "categories" ? "Szolgáltatási kategóriák" : serviceView === "staff" ? "Szakember–szolgáltatás beállítások" : "Szolgáltatások"
@@ -87,7 +95,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     localStorage.setItem("kleo.sidebar.collapsed", String(collapsed));
-    setMobileOpen(!collapsed);
   }, [collapsed]);
 
   useEffect(() => {
@@ -160,10 +167,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isProducts) pageContent = <ProductCatalogPage />;
   const showImport = !isStaff && !isAccounting && (location.pathname === "/services" || (isMasterServices && serviceView === "services"));
 
-  return <div className={`altegio-page-shell app-layout-shell ${collapsed?"is-sidebar-collapsed":""} ${mobileOpen?"is-mobile-sidebar-open":""}`}>
+  return <div className={`altegio-page-shell app-layout-shell ${collapsed?"is-sidebar-collapsed":""}`}>
     {isAccounting?<AccountingSidebar/>:<Sidebar user={user}/>}<button className="sidebar-backdrop" type="button" aria-label={language==="en"?"Close menu":"Menü bezárása"} onClick={()=>setCollapsed(true)}/>
     <div className="app-layout-column">
-      <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-label={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-expanded={!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{collapsed?<Menu size={20}/>:<X size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isAccounting?"Könyvelési VIR":isStaff?t("shell.staff"):t("shell.vir")}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
+      <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-label={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-expanded={!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{collapsed?<PanelLeftOpen size={20}/>:<PanelLeftClose size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isAccounting?"Könyvelési VIR":isStaff?t("shell.staff"):t("shell.vir")}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
       <div className="modern-topbar-right"><LanguageSwitcher compact/>{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder={t("shell.quick_search")}/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>{t("shell.location")}</small><b>{salon}</b></span></div><Deferred><NotificationBell/></Deferred><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title={t("shell.logout")} aria-label={t("shell.logout")}><LogOut size={16}/><span>{t("shell.logout")}</span></button></div></header>
       <Deferred>{showImport&&<AltegioServiceImportButton/>}</Deferred>
       <div className="altegio-main app-layout-main"><AccessBoundary><Suspense fallback={<div style={{padding:"1rem"}}>{language==="en"?"Loading…":"Betöltés…"}</div>}>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</Suspense></AccessBoundary></div>
