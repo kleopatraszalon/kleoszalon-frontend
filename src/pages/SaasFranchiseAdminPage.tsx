@@ -5,6 +5,7 @@ import SaasQuotaUsagePanel from"./SaasQuotaUsagePanel";
 import ProvisioningRecoveryPanel from"./ProvisioningRecoveryPanel";
 import TenantOnboardingPanel from"./TenantOnboardingPanel";
 import LifecyclePolicyPanel from"./LifecyclePolicyPanel";
+import SaasRevenueEnginePanel from"./SaasRevenueEnginePanel";
 import SaasFranchiseAdminCorePage from"./SaasFranchiseAdminCorePage";
 import FranchiseSettlementPanel from"./FranchiseSettlementPanel";
 import MigrationCenterPage from"./MigrationCenterPage";
@@ -21,6 +22,7 @@ export default function SaasFranchiseAdminPage(){
   <PlatformTenantPanel/>
   <SaasQuotaUsagePanel/>
   <LifecyclePolicyPanel/>
+  <SaasRevenueEnginePanel/>
   <ProvisioningRecoveryPanel/>
   <TenantOnboardingPanel/>
   <SaasFranchiseAdminCorePage/>
