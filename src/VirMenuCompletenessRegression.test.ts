@@ -13,7 +13,8 @@ describe('VIR complete menu regression', () => {
 
   it('keeps sidebar visibility controlled only by the explicit toggle', () => {
     expect(layout).toContain('const toggleSidebar = () => setCollapsed(v=>!v);');
-    expect(layout).toContain('setMobileOpen(!collapsed)');
+    expect(layout).not.toContain('setMobileOpen(!collapsed)');
+    expect(layout).not.toContain('is-mobile-sidebar-open');
   });
 
   it('keeps all menu items reachable with vertical scrolling on desktop and mobile', () => {
