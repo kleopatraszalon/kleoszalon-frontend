@@ -32,7 +32,79 @@ const ACCOUNTING:MenuItem[]=[
  {id:99305,name:'Könyvelési adatok',icon:'Database',children:[{id:99351,name:'Lezárt munkalapok',route:'/workorders',children:[]},{id:99352,name:'Munkatársak és bérezési adatok',route:'/employees',children:[]},{id:99353,name:'Ügyfelek és vevők',route:'/modules/customers/clients',children:[]},{id:99354,name:'Beszállítói törzs',route:'/masterdata/suppliers',children:[]},{id:99355,name:'Telephelyek és költséghelyek',route:'/masterdata/salons',children:[]},{id:99356,name:'Fizetési módok',route:'/masterdata/payment-methods',children:[]},{id:99357,name:'Pénzügyi tranzakciótípusok',route:'/masterdata/financial-transaction-types',children:[]},{id:99358,name:'Raktárak',route:'/masterdata/warehouses',children:[]}]},
  {id:99306,name:'Vezetői riportok',icon:'ChartNoAxesCombined',route:'/reports/top-metrics',children:[]},{id:99307,name:'Könyvelési tudásbázis',icon:'BookOpenText',route:'/knowledge-base',children:[]}
 ];
-const FALLBACK:MenuItem[]=[{id:90001,name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:90007,name:'Pénzügyek',icon:'WalletCards',route:'/finance',children:[]},{id:90008,name:'Raktár és készlet',icon:'Boxes',route:'/warehouse',children:[]},{id:90009,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];
+const FALLBACK:MenuItem[]=[
+{id:90001,code:'dashboard',name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},
+{id:90002,code:'appointments',name:'Időpontok és beosztás',icon:'CalendarDays',children:[
+  {id:900021,name:'Időpontnaptár',route:'/appointments/calendar',children:[]},
+  {id:900022,name:'Munkalapok',route:'/workorders',children:[]},
+  {id:900023,name:'Beosztás',route:'/modules/team/timetable',children:[]}
+]},
+{id:90003,code:'customers',name:'Ügyfelek és CRM',icon:'Users',children:[
+  {id:900031,name:'Ügyfelek',route:'/modules/customers/clients',children:[]},
+  {id:900032,name:'CRM',route:'/modules/customers/crm',children:[]}
+]},
+{id:90004,code:'loyalty',name:'Törzsvásárlói program',icon:'Gift',route:'/modules/customers/loyalty-program',children:[]},
+{id:90005,code:'team',name:'Munkatársak és HR',icon:'UserCog',children:[
+  {id:900051,name:'Munkatársak',route:'/employees',children:[]},
+  {id:900052,name:'Munkakörök',route:'/hr/positions',children:[]},
+  {id:900053,name:'Beosztás',route:'/modules/team/timetable',children:[]},
+  {id:900054,name:'Bér- és jutalékszámítás',route:'/modules/team/payroll',children:[]}
+]},
+{id:90006,code:'finance',name:'Pénzügyek',icon:'WalletCards',children:[
+  {id:900061,name:'Pénzügyi áttekintés',route:'/finance',children:[]},
+  {id:900062,name:'NAV Online Számla',route:'/finance/nav-online-invoice',children:[]},
+  {id:900063,name:'Nyugta és NAV-adatszolgáltatás',route:'/finance/receipt-compliance',children:[]}
+]},
+{id:90007,code:'inventory',name:'Raktár és készlet',icon:'Boxes',children:[
+  {id:900071,name:'Készletáttekintés',route:'/warehouse',children:[]},
+  {id:900072,name:'Termékek',route:'/warehouse/products',children:[]},
+  {id:900073,name:'Készletműveletek',route:'/warehouse/operations',children:[]},
+  {id:900074,name:'Sarzsok és lejáratok (FEFO)',route:'/warehouse/lots',children:[]}
+]},
+{id:90008,code:'procurement',name:'Beszerzés',icon:'ShoppingBag',children:[
+  {id:900081,name:'Beszerzési áttekintés',route:'/warehouse?view=procurement&section=dashboard',children:[]},
+  {id:900082,name:'Jóváhagyások',route:'/warehouse?view=procurement&section=approvals',children:[]},
+  {id:900083,name:'Rendelések',route:'/warehouse?view=procurement&section=orders',children:[]},
+  {id:900084,name:'Beszállítók',route:'/warehouse?view=procurement&section=suppliers',children:[]},
+  {id:900085,name:'Központi ellátás',route:'/warehouse/central-supply',children:[]}
+]},
+{id:90009,code:'analytics',name:'Vezetői riportok',icon:'ChartNoAxesCombined',children:[
+  {id:900091,name:'Vezetői mutatók',route:'/reports/top-metrics',children:[]},
+  {id:900092,name:'VIR riportok',route:'/admin/vir/reports',children:[]}
+]},
+{id:90010,code:'locations',name:'Telephelyek',icon:'Building2',route:'/masterdata/salons',children:[]},
+{id:90011,code:'marketing',name:'Marketing',icon:'Megaphone',children:[
+  {id:900111,name:'Hírlevelek',route:'/marketing/newsletter',children:[]},
+  {id:900112,name:'Napi akciók',route:'/marketing/daily-deals',children:[]}
+]},
+{id:90012,code:'online',name:'Online foglalás és alkalmazás',icon:'Globe2',children:[
+  {id:900121,name:'Online időpontfoglalás',route:'/customer/booking',children:[]},
+  {id:900122,name:'WallBoard / kijelző',route:'/signage',children:[]},
+  {id:900123,name:'Kioszk',route:'/kiosk',children:[]}
+]},
+{id:90013,code:'commerce',name:'Értékesítés és webshop',icon:'ShoppingBag',route:'/webshop/admin',children:[]},
+{id:90014,code:'operations',name:'Működés és minőség',icon:'ClipboardCheck',children:[
+  {id:900141,name:'Minőségellenőrzések és auditok',route:'/operations/audits',children:[]},
+  {id:900142,name:'Események és eltérések',route:'/operations/incidents',children:[]}
+]},
+{id:90015,code:'knowledge',name:'Tudásbázis',icon:'BookOpenText',children:[
+  {id:900151,name:'Tudásbázis',route:'/knowledge-base/library',children:[]},
+  {id:900152,name:'Folyamatok és szabályzatok',route:'/knowledge-base/processes',children:[]},
+  {id:900153,name:'Munkaköri teszt',route:'/knowledge-base/quiz',children:[]}
+]},
+{id:90016,code:'masterdata',name:'Törzsadatok',icon:'Database',children:[
+  {id:900161,name:'Szolgáltatások',route:'/masterdata/services',children:[]},
+  {id:900162,name:'Termékek',route:'/warehouse/products',children:[]},
+  {id:900163,name:'Beszállítók',route:'/masterdata/suppliers',children:[]},
+  {id:900164,name:'Telephelyek',route:'/masterdata/salons',children:[]},
+  {id:900165,name:'Raktárak',route:'/masterdata/warehouses',children:[]}
+]},
+{id:90017,code:'settings',name:'Beállítások és adminisztráció',icon:'Settings',children:[
+  {id:900171,name:'Jogosultságok és hozzáférések',route:'/settings/roles',children:[]},
+  {id:900172,name:'Audit és rendszeresemény-napló',route:'/modules/settings/audit-log',children:[]},
+  {id:900173,name:'Munkatársi chat felügyelet',route:'/modules/settings/chat-supervision',children:[]}
+]}
+];
 const RECEIPT_COMPLIANCE:MenuItem={id:99405,name:'Nyugta és NAV-adatszolgáltatás',icon:'WalletCards',route:'/finance/receipt-compliance',children:[]};
 const FITNESS_GYONGYOS:MenuItem={id:99406,name:'Fitnesz – Gyöngyös',icon:'Dumbbell',route:'/finance/fitness',children:[{id:994061,name:'Áttekintés és bérletek',route:'/finance/fitness',children:[]},{id:994062,name:'Öltözőszekrények',route:'/finance/fitness/lockers',children:[]}]};
 const MANAGEMENT_TOOLS:MenuItem={id:99407,name:'Vállalat irányítási eszközök',icon:'ChartNoAxesCombined',children:[

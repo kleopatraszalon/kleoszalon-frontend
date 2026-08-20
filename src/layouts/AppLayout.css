@@ -228,30 +228,12 @@
 }
 
 @media (max-width: 900px) {
-  .app-layout-shell,.app-layout-shell.is-sidebar-collapsed { display:block !important; }
-  .app-layout-shell > .kleo-sidebar.app-sidebar,
-  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
-    position:fixed !important;
-    inset:0 auto 0 0;
-    width:min(86vw,310px) !important;
-    height:100dvh !important;
-    transform:translateX(-102%);
-    opacity:1;
-    pointer-events:auto;
-    box-shadow:18px 0 50px rgba(8,10,20,.32);
-  }
-  .app-layout-shell.is-mobile-sidebar-open > .kleo-sidebar.app-sidebar { transform:translateX(0); }
-  .sidebar-backdrop { display:block; position:fixed; inset:0; z-index:950; border:0; background:rgba(14,17,29,.48); opacity:0; visibility:hidden; pointer-events:none; transition:opacity .2s ease,visibility .2s ease; }
-  .is-mobile-sidebar-open .sidebar-backdrop { opacity:1; visibility:visible; pointer-events:auto; }
-  .desktop-sidebar-icon { display:none; }
-  .mobile-sidebar-icon { display:grid; place-items:center; }
-  .modern-topbar { height:60px; padding-inline:12px; }
-  .topbar-location { display:none; }
-  .topbar-breadcrumb span,.topbar-breadcrumb svg { display:none; }
-  .app-layout-main { padding:12px !important; }
-  .kleo-menu-sort-hint,.kleo-menu-drag-handle{display:none}
-  .kleo-sidebar-menu-item[draggable="true"]{cursor:default}
-  .app-layout-shell .kleo-sidebar-menu-button{grid-template-columns:18px minmax(0,1fr) 16px;padding-left:10px!important}
+  /* A sidebar szerkezete felbontástól független: nem vált overlay/mobil módra. */
+  .modern-topbar { height:60px; padding-inline:10px; }
+  .topbar-global-search,.topbar-location,.topbar-profile { display:none; }
+  .desktop-sidebar-icon { display:grid; place-items:center; }
+  .mobile-sidebar-icon { display:none; }
+  .app-layout-main { padding:10px !important; overflow-x:auto !important; }
 }
 
 @media (max-width: 560px) {
