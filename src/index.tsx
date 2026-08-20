@@ -5,7 +5,7 @@ import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
 import CopyrightNotice from "./components/CopyrightNotice";
 import AppLayout from "./layouts/AppLayout";
-import BookingV4GrowthPage from "./pages/BookingV4GrowthPage";
+import BookingV4TaxonomyOptimizerPage from "./pages/BookingV4TaxonomyOptimizerPage";
 import { hasStoredRole } from "./utils/roles";
 
 // Globális stílusok visszakötése
@@ -23,7 +23,7 @@ function bookingV4AdminEntry(){
   const token=localStorage.getItem("kleo_token")||localStorage.getItem("token");
   if(!token){window.location.replace("/login");return <></>;}
   if(!hasStoredRole(["admin","manager"])){window.location.replace("/");return <></>;}
-  return <AppLayout><BookingV4GrowthPage/></AppLayout>;
+  return <AppLayout><BookingV4TaxonomyOptimizerPage/></AppLayout>;
 }
 
 const specialEntry=bookingV4AdminEntry();
