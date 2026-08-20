@@ -6,6 +6,7 @@ const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),'utf8');
 describe('VIR menu route integrity',()=>{
   const app=read('src/App.tsx');
   const calendar=read('src/pages/AppointmentsCalendar.tsx');
+  const waitlist=read('src/pages/BookingWaitlistPage.tsx');
 
   it('routes appointment menu views to their implemented screens',()=>{
     expect(app).toContain('path: "/appointments/list"');
@@ -14,6 +15,9 @@ describe('VIR menu route integrity',()=>{
     expect(calendar).toContain('"group-bookings": "/modules/appointments/group-bookings"');
     expect(calendar).toContain('notifications: "/modules/appointments/notifications"');
     expect(calendar).toContain('"no-show": "/modules/appointments/attendance"');
+    expect(calendar).toContain('if(view==="waitlist") return <BookingWaitlistPage/>');
+    expect(waitlist).toContain('/transactions/booking-operations/waitlist');
+    expect(waitlist).toContain('Intelligens várólista');
   });
 
   it('keeps legacy operational menu links on functional pages',()=>{
