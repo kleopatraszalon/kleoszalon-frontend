@@ -16,7 +16,6 @@ import {
   markSessionActivity,
 } from "../utils/authSession";
 import "./AppLayout.css";
-import "./MobileSidebarFix.css";
 
 // A korábbi részleges menüválaszok böngésző-cache-e nem írhatja felül a friss
 // backend menüt. A cache csak gyorsító réteg, ezért új shell betöltéskor töröljük.
@@ -75,7 +74,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isStaff=isReceptionist||(!isAccounting&&!isElevated&&roles.some(r=>["employee","staff","munkatárs","munkatars","professional","specialist"].includes(r)));
   const location = useLocation();
   const navigate = useNavigate();
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("kleo.sidebar.collapsed") === "true");
+  const [collapsed, setCollapsed] = useState(false);
   const serviceView = new URLSearchParams(location.search).get("view") || "services";
   const currentPageHu = location.pathname === "/masterdata/services"
     ? serviceView === "categories" ? "Szolgáltatási kategóriák" : serviceView === "staff" ? "Szakember–szolgáltatás beállítások" : "Szolgáltatások"
@@ -92,10 +91,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     navigate(reason === "idle" ? "/login?reason=idle" : "/login", { replace: true });
   }, [navigate]);
-
-  useEffect(() => {
-    localStorage.setItem("kleo.sidebar.collapsed", String(collapsed));
-  }, [collapsed]);
 
   useEffect(() => {
     if (!hasStoredAuthToken()) return;

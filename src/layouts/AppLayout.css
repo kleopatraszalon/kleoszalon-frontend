@@ -228,12 +228,38 @@
 }
 
 @media (max-width: 900px) {
-  /* A sidebar szerkezete felbontástól független: nem vált overlay/mobil módra. */
-  .modern-topbar { height:60px; padding-inline:10px; }
-  .topbar-global-search,.topbar-location,.topbar-profile { display:none; }
-  .desktop-sidebar-icon { display:grid; place-items:center; }
-  .mobile-sidebar-icon { display:none; }
-  .app-layout-main { padding:10px !important; overflow-x:auto !important; }
+  .app-layout-shell {
+    --sidebar-width: 250px;
+    display: grid !important;
+    grid-template-columns: var(--sidebar-width) minmax(0,1fr) !important;
+  }
+  .app-layout-shell.is-sidebar-collapsed {
+    grid-template-columns: 0 minmax(0,1fr) !important;
+  }
+  .app-layout-shell > .kleo-sidebar.app-sidebar {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: var(--sidebar-width) !important;
+    min-width: var(--sidebar-width) !important;
+    max-width: var(--sidebar-width) !important;
+    height: 100dvh !important;
+    transform: none !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+    box-shadow: none !important;
+  }
+  .app-layout-shell.is-sidebar-collapsed > .kleo-sidebar.app-sidebar {
+    width: 0 !important; min-width: 0 !important; max-width: 0 !important;
+    transform: translateX(-100%) !important;
+    opacity: 0 !important; visibility: hidden !important; pointer-events: none !important;
+  }
+  .sidebar-backdrop { display:none !important; }
+  .desktop-sidebar-icon { display:grid !important; place-items:center !important; }
+  .mobile-sidebar-icon { display:none !important; }
+  .topbar-global-search,.topbar-location,.topbar-profile { display:none !important; }
+  .app-layout-main { min-width:0 !important; max-width:100% !important; padding:10px !important; }
 }
 
 @media (max-width: 560px) {
