@@ -8,12 +8,11 @@ import LanguageSwitcher from "../components/LanguageSwitcher";
 import CopyrightNotice from "../components/CopyrightNotice";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
-import { markAuthenticatedSession, setSessionBearerToken } from "../utils/authSession";
+import { markAuthenticatedSession } from "../utils/authSession";
 
 type LoginResponse = {
   success?: boolean;
   ok?: boolean;
-  token?: string;
   role?: any;
   account_type?: "customer" | "staff" | "admin" | string;
   location_id?: string | number | null;
@@ -97,12 +96,9 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
-      // The HttpOnly cookie remains the primary browser credential. The backend
-      // currently also returns the same short-lived access token during the
-      // migration period; keep it only in this tab so Render cross-site cookie
-      // restrictions cannot break the session immediately after login.
+      // The server has already set HttpOnly access/refresh cookies. Never copy
+      // credentials into Web Storage; keep only non-secret UI metadata here.
       markAuthenticatedSession();
-      setSessionBearerToken(body.token);
       const user = body.user || {};
       const role = body.role ?? user.role;
       const fullName = body.full_name ?? user.full_name;
@@ -142,8 +138,6 @@ const LoginPage: React.FC = () => {
 
     setLoading(true);
     try {
-      // Never allow a stale tab token to leak into a fresh login attempt.
-      setSessionBearerToken(null);
       const response = await api.post<LoginResponse>("/login", {
         identifier: identifier.trim(),
         password,
