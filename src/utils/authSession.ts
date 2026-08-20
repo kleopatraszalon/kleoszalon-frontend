@@ -95,9 +95,34 @@ export function getLastActivityAt(): number | null {
   }
 }
 
+/**
+ * Clears only browser-readable routing/UI session state.
+ *
+ * IMPORTANT: authentication failures from /api/me must use this function rather
+ * than POST /logout. A delayed keepalive logout from a failed/stale session can
+ * otherwise arrive after a new successful login and delete the fresh HttpOnly
+ * cookie, producing a rapid login -> dashboard -> login flicker loop.
+ */
+export function clearLocalAuthenticatedSession(): void {
+  try {
+    LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
+  } catch {
+    // Ignore storage failures; the server-side cookie remains authoritative.
+  }
+  try {
+    SESSION_AUTH_KEYS.forEach((key) => sessionStorage.removeItem(key));
+  } catch {
+    // Do not clear unrelated session state owned by other application features.
+  }
+}
+
+/**
+ * Explicit user/idle logout. This is intentionally separate from local cleanup:
+ * only an actual logout action is allowed to invalidate the HttpOnly cookie.
+ */
 export function clearAuthenticatedSession(): void {
-  // The backend owns the authentication state through HttpOnly cookies.
-  // keepalive makes cookie invalidation survive an immediate redirect.
+  clearLocalAuthenticatedSession();
+
   if (typeof fetch === "function") {
     void fetch(logoutEndpoint(), {
       method: "POST",
@@ -106,16 +131,5 @@ export function clearAuthenticatedSession(): void {
       keepalive: true,
       headers: { "Content-Type": "application/json" },
     }).catch(() => undefined);
-  }
-
-  try {
-    LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
-  } catch {
-    // Ignore storage failures during logout; navigation still proceeds.
-  }
-  try {
-    SESSION_AUTH_KEYS.forEach((key) => sessionStorage.removeItem(key));
-  } catch {
-    // Do not clear unrelated session state owned by other application features.
   }
 }
