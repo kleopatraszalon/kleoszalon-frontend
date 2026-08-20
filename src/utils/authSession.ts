@@ -3,14 +3,8 @@ export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
 
 // Compatibility marker for the existing synchronous router guard. This value is
 // deliberately NOT a credential and must never be sent as an Authorization
-// header.
+// header. Authentication authority lives exclusively in the HttpOnly cookies.
 export const COOKIE_SESSION_MARKER = "cookie-session";
-
-// Render hosts the frontend and API on different origins. Some browsers can
-// block the cross-site HttpOnly cookie even though credentials:"include" is
-// used. Keep the freshly issued access token only for the lifetime of this tab
-// as a compatibility fallback; localStorage remains credential-free.
-export const SESSION_BEARER_KEY = "kleo_session_bearer";
 
 const LOCAL_AUTH_KEYS = [
   "token",
@@ -28,7 +22,6 @@ const LOCAL_AUTH_KEYS = [
 const SESSION_AUTH_KEYS = [
   "token",
   "kleo_token",
-  SESSION_BEARER_KEY,
   "kleo_role",
   "kleo_location_id",
   "kleo_location_name",
@@ -47,29 +40,10 @@ function logoutEndpoint(): string {
   return `${window.location.origin.replace(/\/$/, "")}/api/logout`;
 }
 
-export function setSessionBearerToken(token: unknown): void {
-  try {
-    const value = String(token ?? "").trim();
-    if (value) sessionStorage.setItem(SESSION_BEARER_KEY, value);
-    else sessionStorage.removeItem(SESSION_BEARER_KEY);
-  } catch {
-    // Cookie authentication can still work when Web Storage is unavailable.
-  }
-}
-
-export function getSessionBearerToken(): string {
-  try {
-    return String(sessionStorage.getItem(SESSION_BEARER_KEY) || "").trim();
-  } catch {
-    return "";
-  }
-}
-
 export function markAuthenticatedSession(): void {
   try {
     // Overwrite any legacy JWT that may still be present from an older build.
-    // The local marker is only a UI routing hint; /api/me remains authoritative.
-    // SESSION_BEARER_KEY is intentionally preserved as a tab-scoped fallback.
+    // The marker is only a UI routing hint; /api/me remains authoritative.
     localStorage.removeItem("token");
     localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER);
     sessionStorage.removeItem("token");
@@ -81,12 +55,14 @@ export function markAuthenticatedSession(): void {
 
 export function hasStoredAuthToken(): boolean {
   try {
+    // Legacy JWT values are accepted only as a temporary routing hint so an
+    // already logged-in user can reach /api/me once and be migrated to the
+    // non-secret marker by useCurrentUser().
     return Boolean(
       localStorage.getItem("kleo_token") ||
       localStorage.getItem("token") ||
       sessionStorage.getItem("kleo_token") ||
-      sessionStorage.getItem("token") ||
-      sessionStorage.getItem(SESSION_BEARER_KEY)
+      sessionStorage.getItem("token")
     );
   } catch {
     return false;
@@ -115,7 +91,7 @@ export function getLastActivityAt(): number | null {
 }
 
 export function clearAuthenticatedSession(): void {
-  // The backend owns the primary authentication state through HttpOnly cookies.
+  // The backend owns the authentication state through HttpOnly cookies.
   // keepalive makes cookie invalidation survive an immediate redirect.
   if (typeof fetch === "function") {
     void fetch(logoutEndpoint(), {
