@@ -8,6 +8,7 @@ import "./styles/kleo-theme.css";
 import AppLayout from "./layouts/AppLayout";
 import BrandLoadingScreen from "./components/BrandLoadingScreen";
 import { hasStoredRole } from "./utils/roles";
+import { hasStoredAuthToken } from "./utils/authSession";
 const ProductsList = lazy(() => import("./pages/ProductsList"));
 const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));
 const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));
@@ -102,32 +103,23 @@ const WebsitePagesAdminPage = lazy(
 );
 const NavOnlineInvoicePage = lazy(() => import("./pages/NavOnlineInvoicePage"));
 const HOME_PATH = "/";
-function getToken() {
-  try {
-    return typeof window === "undefined"
-      ? null
-      : localStorage.getItem("kleo_token") || localStorage.getItem("token");
-  } catch {
-    return null;
-  }
-}
 type GuardProps = { children: ReactElement };
 type RoleGuardProps = GuardProps & { allowed: string[] };
 function RequireAuth({ children }: GuardProps) {
-  if (!getToken()) return <Navigate to="/login" replace />;
+  if (!hasStoredAuthToken()) return <Navigate to="/login" replace />;
   const legacy = React.isValidElement(children) && children.type === "div";
   return <AppLayout>{legacy ? <ModulePlaceholderPage /> : children}</AppLayout>;
 }
 function RequireRoles({ children, allowed }: RoleGuardProps) {
-  if (!getToken()) return <Navigate to="/login" replace />;
+  if (!hasStoredAuthToken()) return <Navigate to="/login" replace />;
   if (!hasStoredRole(allowed)) return <Navigate to={HOME_PATH} replace />;
   return <RequireAuth>{children}</RequireAuth>;
 }
 function PublicOnly({ children }: GuardProps) {
-  return getToken() ? <Navigate to={HOME_PATH} replace /> : children;
+  return hasStoredAuthToken() ? <Navigate to={HOME_PATH} replace /> : children;
 }
 function FallbackRedirect() {
-  return getToken() ? (
+  return hasStoredAuthToken() ? (
     <RequireAuth>
       <ModulePlaceholderPage />
     </RequireAuth>
