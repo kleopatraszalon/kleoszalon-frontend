@@ -7,6 +7,7 @@ import SidebarCalendar from'./SidebarCalendar';
 import{useLanguage}from'../i18n/LanguageProvider';
 import{canonicalMenuLabel,menuLabel}from'../utils/menuLabels';
 import{featureEnabled,menuEnabled,readStoredVirCustomization,VIR_CUSTOMIZATION_EVENT,type VirCustomization}from'../utils/virCustomization';
+import{ADMIN_MENU}from'../config/adminMenu';
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
 const MENU_CACHE_KEY='kleo.menu.cache.v19';
@@ -34,92 +35,27 @@ const ACCOUNTING:MenuItem[]=[
 ];
 const FALLBACK:MenuItem[]=[
 {id:90001,code:'dashboard',name:'Irányítópult',icon:'LayoutDashboard',route:'/',children:[]},
-{id:90002,code:'appointments',name:'Időpontok és beosztás',icon:'CalendarDays',children:[
-  {id:900021,name:'Időpontnaptár',route:'/appointments/calendar',children:[]},
-  {id:900022,name:'Munkalapok',route:'/workorders',children:[]},
-  {id:900023,name:'Beosztás',route:'/modules/team/timetable',children:[]}
-]},
-{id:90003,code:'customers',name:'Ügyfelek és CRM',icon:'Users',children:[
-  {id:900031,name:'Ügyfelek',route:'/modules/customers/clients',children:[]},
-  {id:900032,name:'CRM',route:'/modules/customers/crm',children:[]}
-]},
+{id:90002,code:'appointments',name:'Időpontok és beosztás',icon:'CalendarDays',children:[{id:900021,name:'Időpontnaptár',route:'/appointments/calendar',children:[]},{id:900022,name:'Munkalapok',route:'/workorders',children:[]},{id:900023,name:'Beosztás',route:'/modules/team/timetable',children:[]}]},
+{id:90003,code:'customers',name:'Ügyfelek és CRM',icon:'Users',children:[{id:900031,name:'Ügyfelek',route:'/modules/customers/clients',children:[]},{id:900032,name:'CRM',route:'/modules/customers/crm',children:[]}]},
 {id:90004,code:'loyalty',name:'Törzsvásárlói program',icon:'Gift',route:'/modules/customers/loyalty-program',children:[]},
-{id:90005,code:'team',name:'Munkatársak és HR',icon:'UserCog',children:[
-  {id:900051,name:'Munkatársak',route:'/employees',children:[]},
-  {id:900052,name:'Munkakörök',route:'/hr/positions',children:[]},
-  {id:900053,name:'Beosztás',route:'/modules/team/timetable',children:[]},
-  {id:900054,name:'Bér- és jutalékszámítás',route:'/modules/team/payroll',children:[]}
-]},
-{id:90006,code:'finance',name:'Pénzügyek',icon:'WalletCards',children:[
-  {id:900061,name:'Pénzügyi áttekintés',route:'/finance',children:[]},
-  {id:900062,name:'NAV Online Számla',route:'/finance/nav-online-invoice',children:[]},
-  {id:900063,name:'Nyugta és NAV-adatszolgáltatás',route:'/finance/receipt-compliance',children:[]}
-]},
-{id:90007,code:'inventory',name:'Raktár és készlet',icon:'Boxes',children:[
-  {id:900071,name:'Készletáttekintés',route:'/warehouse',children:[]},
-  {id:900072,name:'Termékek',route:'/warehouse/products',children:[]},
-  {id:900073,name:'Készletműveletek',route:'/warehouse/operations',children:[]},
-  {id:900074,name:'Sarzsok és lejáratok (FEFO)',route:'/warehouse/lots',children:[]}
-]},
-{id:90008,code:'procurement',name:'Beszerzés',icon:'ShoppingBag',children:[
-  {id:900081,name:'Beszerzési áttekintés',route:'/warehouse?view=procurement&section=dashboard',children:[]},
-  {id:900082,name:'Jóváhagyások',route:'/warehouse?view=procurement&section=approvals',children:[]},
-  {id:900083,name:'Rendelések',route:'/warehouse?view=procurement&section=orders',children:[]},
-  {id:900084,name:'Beszállítók',route:'/warehouse?view=procurement&section=suppliers',children:[]},
-  {id:900085,name:'Központi ellátás',route:'/warehouse/central-supply',children:[]}
-]},
-{id:90009,code:'analytics',name:'Vezetői riportok',icon:'ChartNoAxesCombined',children:[
-  {id:900091,name:'Vezetői mutatók',route:'/reports/top-metrics',children:[]},
-  {id:900092,name:'VIR riportok',route:'/admin/vir/reports',children:[]}
-]},
+{id:90005,code:'team',name:'Munkatársak és HR',icon:'UserCog',children:[{id:900051,name:'Munkatársak',route:'/employees',children:[]},{id:900052,name:'Munkakörök',route:'/hr/positions',children:[]},{id:900053,name:'Beosztás',route:'/modules/team/timetable',children:[]},{id:900054,name:'Bér- és jutalékszámítás',route:'/modules/team/payroll',children:[]}]},
+{id:90006,code:'finance',name:'Pénzügyek',icon:'WalletCards',children:[{id:900061,name:'Pénzügyi áttekintés',route:'/finance',children:[]},{id:900062,name:'NAV Online Számla',route:'/finance/nav-online-invoice',children:[]},{id:900063,name:'Nyugta és NAV-adatszolgáltatás',route:'/finance/receipt-compliance',children:[]}]},
+{id:90007,code:'inventory',name:'Raktár és készlet',icon:'Boxes',children:[{id:900071,name:'Készletáttekintés',route:'/warehouse',children:[]},{id:900072,name:'Termékek',route:'/warehouse/products',children:[]},{id:900073,name:'Készletműveletek',route:'/warehouse/operations',children:[]},{id:900074,name:'Sarzsok és lejáratok (FEFO)',route:'/warehouse/lots',children:[]}]},
+{id:90008,code:'procurement',name:'Beszerzés',icon:'ShoppingBag',children:[{id:900081,name:'Beszerzési áttekintés',route:'/warehouse?view=procurement&section=dashboard',children:[]},{id:900082,name:'Jóváhagyások',route:'/warehouse?view=procurement&section=approvals',children:[]},{id:900083,name:'Rendelések',route:'/warehouse?view=procurement&section=orders',children:[]},{id:900084,name:'Beszállítók',route:'/warehouse?view=procurement&section=suppliers',children:[]},{id:900085,name:'Központi ellátás',route:'/warehouse/central-supply',children:[]}]},
+{id:90009,code:'analytics',name:'Vezetői riportok',icon:'ChartNoAxesCombined',children:[{id:900091,name:'Vezetői mutatók',route:'/reports/top-metrics',children:[]},{id:900092,name:'VIR riportok',route:'/admin/vir/reports',children:[]}]},
 {id:90010,code:'locations',name:'Telephelyek',icon:'Building2',route:'/masterdata/salons',children:[]},
-{id:90011,code:'marketing',name:'Marketing',icon:'Megaphone',children:[
-  {id:900111,name:'Hírlevelek',route:'/marketing/newsletter',children:[]},
-  {id:900112,name:'Napi akciók',route:'/marketing/daily-deals',children:[]}
-]},
-{id:90012,code:'online',name:'Online foglalás és alkalmazás',icon:'Globe2',children:[
-  {id:900121,name:'Online időpontfoglalás',route:'/customer/booking',children:[]},
-  {id:900122,name:'WallBoard / kijelző',route:'/signage',children:[]},
-  {id:900123,name:'Kioszk',route:'/kiosk',children:[]}
-]},
+{id:90011,code:'marketing',name:'Marketing',icon:'Megaphone',children:[{id:900111,name:'Hírlevelek',route:'/marketing/newsletter',children:[]},{id:900112,name:'Napi akciók',route:'/marketing/daily-deals',children:[]}]},
+{id:90012,code:'online',name:'Online foglalás és alkalmazás',icon:'Globe2',children:[{id:900121,name:'Online időpontfoglalás',route:'/customer/booking',children:[]},{id:900122,name:'WallBoard / kijelző',route:'/signage',children:[]},{id:900123,name:'Kioszk',route:'/kiosk',children:[]}]},
 {id:90013,code:'commerce',name:'Értékesítés és webshop',icon:'ShoppingBag',route:'/webshop/admin',children:[]},
-{id:90014,code:'operations',name:'Működés és minőség',icon:'ClipboardCheck',children:[
-  {id:900141,name:'Minőségellenőrzések és auditok',route:'/operations/audits',children:[]},
-  {id:900142,name:'Események és eltérések',route:'/operations/incidents',children:[]}
-]},
-{id:90015,code:'knowledge',name:'Tudásbázis',icon:'BookOpenText',children:[
-  {id:900151,name:'Tudásbázis',route:'/knowledge-base/library',children:[]},
-  {id:900152,name:'Folyamatok és szabályzatok',route:'/knowledge-base/processes',children:[]},
-  {id:900153,name:'Munkaköri teszt',route:'/knowledge-base/quiz',children:[]}
-]},
-{id:90016,code:'masterdata',name:'Törzsadatok',icon:'Database',children:[
-  {id:900161,name:'Szolgáltatások',route:'/masterdata/services',children:[]},
-  {id:900162,name:'Termékek',route:'/warehouse/products',children:[]},
-  {id:900163,name:'Beszállítók',route:'/masterdata/suppliers',children:[]},
-  {id:900164,name:'Telephelyek',route:'/masterdata/salons',children:[]},
-  {id:900165,name:'Raktárak',route:'/masterdata/warehouses',children:[]}
-]},
-{id:90017,code:'settings',name:'Beállítások és adminisztráció',icon:'Settings',children:[
-  {id:900171,name:'Jogosultságok és hozzáférések',route:'/settings/roles',children:[]},
-  {id:900172,name:'Audit és rendszeresemény-napló',route:'/modules/settings/audit-log',children:[]},
-  {id:900173,name:'Munkatársi chat felügyelet',route:'/modules/settings/chat-supervision',children:[]}
-]}
+{id:90014,code:'operations',name:'Működés és minőség',icon:'ClipboardCheck',children:[{id:900141,name:'Minőségellenőrzések és auditok',route:'/operations/audits',children:[]},{id:900142,name:'Események és eltérések',route:'/operations/incidents',children:[]}]},
+{id:90015,code:'knowledge',name:'Tudásbázis',icon:'BookOpenText',children:[{id:900151,name:'Tudásbázis',route:'/knowledge-base/library',children:[]},{id:900152,name:'Folyamatok és szabályzatok',route:'/knowledge-base/processes',children:[]},{id:900153,name:'Munkaköri teszt',route:'/knowledge-base/quiz',children:[]}]},
+{id:90016,code:'masterdata',name:'Törzsadatok',icon:'Database',children:[{id:900161,name:'Szolgáltatások',route:'/masterdata/services',children:[]},{id:900162,name:'Termékek',route:'/warehouse/products',children:[]},{id:900163,name:'Beszállítók',route:'/masterdata/suppliers',children:[]},{id:900164,name:'Telephelyek',route:'/masterdata/salons',children:[]},{id:900165,name:'Raktárak',route:'/masterdata/warehouses',children:[]}]},
+{id:90017,code:'settings',name:'Beállítások és adminisztráció',icon:'Settings',children:[{id:900171,name:'Jogosultságok és hozzáférések',route:'/settings/roles',children:[]},{id:900172,name:'Audit és rendszeresemény-napló',route:'/modules/settings/audit-log',children:[]},{id:900173,name:'Munkatársi chat felügyelet',route:'/modules/settings/chat-supervision',children:[]}]}
 ];
 const RECEIPT_COMPLIANCE:MenuItem={id:99405,name:'Nyugta és NAV-adatszolgáltatás',icon:'WalletCards',route:'/finance/receipt-compliance',children:[]};
 const FITNESS_GYONGYOS:MenuItem={id:99406,name:'Fitnesz – Gyöngyös',icon:'Dumbbell',route:'/finance/fitness',children:[{id:994061,name:'Áttekintés és bérletek',route:'/finance/fitness',children:[]},{id:994062,name:'Öltözőszekrények',route:'/finance/fitness/lockers',children:[]}]};
-const MANAGEMENT_TOOLS:MenuItem={id:99407,name:'Vállalat irányítási eszközök',icon:'ChartNoAxesCombined',children:[
- {id:994071,name:'Áttekintés',route:'/reports/management-tools',children:[]},
- {id:994072,name:'Pareto elemzés',route:'/reports/management-tools?tool=pareto',children:[]},
- {id:994073,name:'SWOT analízis',route:'/reports/management-tools?tool=swot',children:[]},
- {id:994074,name:'Okfeltárás',route:'/reports/management-tools?tool=root-cause',children:[]},
- {id:994075,name:'Döntés és kockázat',route:'/reports/management-tools?tool=decision-risk',children:[]},
- {id:994076,name:'Folyamatfejlesztés',route:'/reports/management-tools?tool=improvement',children:[]},
- {id:994077,name:'Adateszközök',route:'/reports/management-tools?tool=data-tools',children:[]}
-]};
-const SAAS_ADMIN_TOOLS:MenuItem={id:99408,code:'saas.admin',name:'SaaS admin',icon:'Database',children:[
- {id:994081,code:'saas.platform',name:'SaaS platform és franchise',route:'/admin/saas',children:[]},
- {id:994082,code:'saas.migration',name:'VIR Migrációs Központ v18',route:'/admin/saas?workspace=migration-center',children:[]}
-]};
+const MANAGEMENT_TOOLS:MenuItem={id:99407,name:'Vállalat irányítási eszközök',icon:'ChartNoAxesCombined',children:[{id:994071,name:'Áttekintés',route:'/reports/management-tools',children:[]},{id:994072,name:'Pareto elemzés',route:'/reports/management-tools?tool=pareto',children:[]},{id:994073,name:'SWOT analízis',route:'/reports/management-tools?tool=swot',children:[]},{id:994074,name:'Okfeltárás',route:'/reports/management-tools?tool=root-cause',children:[]},{id:994075,name:'Döntés és kockázat',route:'/reports/management-tools?tool=decision-risk',children:[]},{id:994076,name:'Folyamatfejlesztés',route:'/reports/management-tools?tool=improvement',children:[]},{id:994077,name:'Adateszközök',route:'/reports/management-tools?tool=data-tools',children:[]}]};
+const SAAS_ADMIN_TOOLS:MenuItem={id:99408,code:'saas.admin',name:'SaaS admin',icon:'Database',children:[{id:994081,code:'saas.platform',name:'SaaS platform és franchise',route:'/admin/saas',children:[]},{id:994082,code:'saas.migration',name:'VIR Migrációs Központ v18',route:'/admin/saas?workspace=migration-center',children:[]},{id:994083,code:'saas.revenue',name:'SaaS Revenue Engine',route:'/admin/saas',children:[]}]};
 const CUSTOMER_INTELLIGENCE_CHILD:MenuItem={id:994091,code:'customers.intelligence',name:'Customer Intelligence / Next Best Action',route:'/modules/customers/intelligence',children:[]};
 const CUSTOMER_INTELLIGENCE_ROOT:MenuItem={id:99409,code:'customers',name:'Ügyfelek és CRM',icon:'Users',children:[CUSTOMER_INTELLIGENCE_CHILD]};
 
@@ -142,7 +78,7 @@ export default function Sidebar({user}:SidebarProps){
  useEffect(()=>{if(!isAdmin&&!isLocationScoped){setFitnessAllowed(false);return}let alive=true;void(async()=>{const token=localStorage.getItem('token')||localStorage.getItem('kleo_token'),config={withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}};try{const r=await axios.get(`${API_BASE}/vir/fitness/access`,config);if(alive)setFitnessAllowed(Boolean(r.data?.allowed))}catch{if(alive)setFitnessAllowed(false)}})();return()=>{alive=false}},[isAdmin,isLocationScoped,user]);
  useEffect(()=>{if(isCustomer||isAccounting||isLocationScoped||isStaff)return;void(async()=>{const token=localStorage.getItem('token')||localStorage.getItem('kleo_token'),config={withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}};try{const r=await axios.get(`${API_BASE}/menus`,config),tree=buildTree(Array.isArray(r.data)?r.data:[],user?.role||null);if(tree.length){setMenus(tree);localStorage.setItem(MENU_CACHE_KEY,JSON.stringify(tree));return}}catch{}try{const p=JSON.parse(localStorage.getItem(MENU_CACHE_KEY)||'null');if(Array.isArray(p)&&p.length)setMenus(p)}catch{}})()},[user,isCustomer,isAccounting,isLocationScoped,isStaff]);
  useEffect(()=>{if(isAccounting)setOpen(p=>Array.from(new Set([...p,99302,99303,99304])));},[isAccounting]);
- const visible=useMemo(()=>{const base=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:isAdmin?FALLBACK:menus;let combined=base;if(isLocationScoped&&!isCustomer){const extras=[...(fitnessAllowed?[FITNESS_GYONGYOS]:[]),RECEIPT_COMPLIANCE].filter(extra=>!base.some(x=>x.route===extra.route));combined=extras.length?[...base,...extras]:base}else if(isAdmin&&!fitnessAllowed){combined=base.filter(x=>x.code!=='fitness.gyongyos')}if((isAdmin||isManager)&&!combined.some(x=>x.id===MANAGEMENT_TOOLS.id))combined=[...combined,MANAGEMENT_TOOLS];if(isAdmin){combined=stripRoutes(combined,new Set(['/admin/saas','/admin/saas?workspace=migration-center']));combined=[...combined,SAAS_ADMIN_TOOLS]}if(isAdmin||isManager)combined=injectCustomerIntelligence(combined);return configuredMenu(combined,vir)},[isCustomer,isAccounting,isLocationScoped,isStaff,isAdmin,isManager,menus,vir,fitnessAllowed]);
+ const visible=useMemo(()=>{const base=isCustomer?CUSTOMER:isAccounting?ACCOUNTING:isLocationScoped?LOCATION:isStaff?STAFF:isAdmin?ADMIN_MENU:menus;let combined=base;if(isLocationScoped&&!isCustomer){const extras=[...(fitnessAllowed?[FITNESS_GYONGYOS]:[]),RECEIPT_COMPLIANCE].filter(extra=>!base.some(x=>x.route===extra.route));combined=extras.length?[...base,...extras]:base}else if(isAdmin&&!fitnessAllowed){combined=base.filter(x=>x.code!=='fitness.gyongyos')}if((isAdmin||isManager)&&!combined.some(x=>x.id===MANAGEMENT_TOOLS.id))combined=[...combined,MANAGEMENT_TOOLS];if(isAdmin){combined=stripRoutes(combined,new Set(['/admin/saas','/admin/saas?workspace=migration-center']));combined=[...combined,SAAS_ADMIN_TOOLS]}if(isAdmin||isManager)combined=injectCustomerIntelligence(combined);return configuredMenu(combined,vir)},[isCustomer,isAccounting,isLocationScoped,isStaff,isAdmin,isManager,menus,vir,fitnessAllowed]);
  useEffect(()=>{const parents:number[]=[];const walk=(xs:MenuItem[],ps:number[]=[])=>xs.forEach(x=>{if(x.route&&routeActive(x.route,location))parents.push(...ps);if(x.children.length)walk(x.children,[...ps,x.id])});walk(visible);if(parents.length)setOpen(p=>Array.from(new Set([...p,...parents])))},[location.pathname,location.search,visible]);
  const dateSelect=(d:Date)=>{const s=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;navigate(`/appointments/calendar?date=${s}`)};
  const subtitle=isAccounting?(language==='en'?'Accounting workspace':'Könyvelési felület'):isCustomer?(language==='en'?'Customer account':'Ügyfélfiók'):isLocationScoped?(language==='en'?'Salon workspace':'Szalon felület'):isStaff?(language==='en'?'Staff workspace':'Munkatársi felület'):(language==='en'?'Admin workspace':'Admin felület');
