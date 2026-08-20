@@ -1,7 +1,11 @@
 // src/hooks/useCurrentUser.ts
 import { useCallback, useEffect, useState } from "react";
 import withBase from "../utils/apiBase";
-import { clearAuthenticatedSession, markAuthenticatedSession } from "../utils/authSession";
+import {
+  clearAuthenticatedSession,
+  getSessionBearerToken,
+  markAuthenticatedSession,
+} from "../utils/authSession";
 
 type CurrentUser = {
   id?: string | number | null;
@@ -52,9 +56,13 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
   if (cachedUser !== undefined) return cachedUser;
   if (userRequest) return userRequest;
   userRequest = (async () => {
+    const bearer = getSessionBearerToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+
     const res = await fetch(withBase("me"), {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers,
       credentials: "include",
       cache: "no-store",
     });
@@ -83,8 +91,9 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
 }
 
 /**
- * Cookie-only browser authentication bootstrap. /api/me is authoritative;
- * localStorage contains only non-secret UI metadata/routing hints.
+ * Browser authentication bootstrap. The HttpOnly cookie is preferred, while a
+ * tab-scoped Bearer token covers Render cross-origin cookie restrictions.
+ * /api/me remains authoritative for the current identity.
  */
 export function useCurrentUser(): HookResult {
   const [user, setUser] = useState<CurrentUser | null>(() => cachedUser ?? null);
