@@ -4,7 +4,7 @@ import{BadgePercent,CircleDollarSign,CreditCard,ExternalLink,RefreshCw,ShieldChe
 import"./SaasRevenueEnginePanel.css";
 
 const API_BASE=window.location.hostname==='localhost'||window.location.hostname==='127.0.0.1'?'http://localhost:5000/api':'https://kleoszalon-api-1.onrender.com/api';
-const authConfig=()=>{const token=localStorage.getItem('kleo_token')||localStorage.getItem('token');return{withCredentials:true,headers:token?{Authorization:`Bearer ${token}`}:{}}};
+const authConfig=()=>({withCredentials:true});
 type CatalogPlan={code:string;name:string;monthly_price:number|string;annual_price:number|string;onboarding_fee:number|string;currency:string;max_locations?:number|null;max_users?:number|null;trial_days:number;recommended:boolean;booking_commission_percent:number|string;addons?:Record<string,number>};
 type RevenueSummary={provider?:{configured:boolean;mode:string;tax_configured:boolean;webhook_verification?:string};subscription?:{status?:string;billing_provider?:string|null;billing_interval?:string;plan_code?:string;plan_name?:string;monthly_price?:number|string;annual_price?:number|string;currency?:string;grace_period_end?:string|null;next_retry_at?:string|null;dunning_step?:number;payment_method_status?:string|null;last_payment_status?:string|null;last_payment_at?:string|null;external_customer_id?:string|null};invoices?:Array<{id:string;status?:string;gross_amount?:number|string;currency?:string;paid_at?:string|null;due_at?:string|null}>};
 const money=(v:any,c='HUF')=>new Intl.NumberFormat('hu-HU',{style:'currency',currency:c,maximumFractionDigits:0}).format(Number(v||0));
