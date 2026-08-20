@@ -1,0 +1,46 @@
+name: Booking 4.0 menu patch
+on:
+  push:
+    branches: [feature/booking-4-menu-fix]
+    paths: [.github/workflows/booking-v4-menu-patch.yml]
+permissions:
+  contents: write
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/booking-4-menu-fix
+      - name: Add Booking 4.0 menu
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/config/adminMenu.ts')
+          s=p.read_text()
+          anchor="{id:91013,code:'commerce',name:'Webshop és értékesítés',icon:'ShoppingBag',children:[leaf(911301,'Webshop adminisztráció','/webshop/admin')]},"
+          block="""{id:91940,code:'booking.v4',name:'Booking 4.0',icon:'CalendarClock',children:[\n leaf(919401,'Foglalás és ajánlatok – Admin központ','/admin/booking-v4')\n]},\n"""
+          if "code:'booking.v4'" not in s:
+              if anchor not in s: raise SystemExit('menu anchor missing')
+              s=s.replace(anchor,block+anchor,1)
+          p.write_text(s)
+          PY
+      - name: Add regression test
+        run: |
+          cat > src/BookingV4Menu.test.ts <<'EOF'
+          import { ADMIN_MENU } from './config/adminMenu';
+          describe('Booking 4.0 admin menu',()=>{
+            it('is visible as a canonical top-level VIR menu group',()=>{
+              const group=ADMIN_MENU.find((x)=>x.code==='booking.v4');
+              expect(group).toBeTruthy();
+              expect(group?.name).toBe('Booking 4.0');
+              expect(group?.children.some((x)=>x.route==='/admin/booking-v4'&&x.name.includes('Admin központ'))).toBe(true);
+            });
+          });
+          EOF
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- src/config/adminMenu.ts src/BookingV4Menu.test.ts
+          git diff --cached --quiet || (git commit -m "fix(booking-v4): restore visible admin menu" && git push origin HEAD:feature/booking-4-menu-fix)
