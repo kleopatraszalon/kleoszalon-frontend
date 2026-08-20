@@ -1,4 +1,4 @@
 Render redeploy trigger
-2026-08-18T21:18:00+02:00
-Deploy latest main including the Resilience & Recovery executive workspace, RTO/RPO radar, service recovery matrix, evidence-based runbook checklist, active change-freeze visibility, two-person emergency override workflow, ALL CLEAR controls, editable service objectives, management-only route/menu and System Health resilience readiness panel.
-Reason: production redeploy after business-continuity and recovery governance UI was completed.
+2026-08-20T12:19:00+02:00
+Deploy latest main including the Kleopátra2003 Kft. copyright notice on the VIR login page and under the authenticated sidebar, with the clickable Szerzői jogi és tulajdonosi tájékoztató modal.
+Reason: production redeploy requested after copyright ownership notice was merged to main.
