@@ -1,6 +1,11 @@
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
 
+// Compatibility marker for the existing synchronous router guard. This value is
+// deliberately NOT a credential and must never be sent as an Authorization
+// header. Authentication authority lives exclusively in the HttpOnly cookies.
+export const COOKIE_SESSION_MARKER = "cookie-session";
+
 const LOCAL_AUTH_KEYS = [
   "token",
   "kleo_token",
@@ -35,8 +40,24 @@ function logoutEndpoint(): string {
   return `${window.location.origin.replace(/\/$/, "")}/api/logout`;
 }
 
+export function markAuthenticatedSession(): void {
+  try {
+    // Overwrite any legacy JWT that may still be present from an older build.
+    // The marker is only a UI routing hint; /api/me remains authoritative.
+    localStorage.removeItem("token");
+    localStorage.setItem("kleo_token", COOKIE_SESSION_MARKER);
+    sessionStorage.removeItem("token");
+    sessionStorage.removeItem("kleo_token");
+  } catch {
+    // Storage is optional. Cookie authentication remains authoritative.
+  }
+}
+
 export function hasStoredAuthToken(): boolean {
   try {
+    // Legacy JWT values are accepted only as a temporary routing hint so an
+    // already logged-in user can reach /api/me once and be migrated to the
+    // non-secret marker by useCurrentUser().
     return Boolean(
       localStorage.getItem("kleo_token") ||
       localStorage.getItem("token") ||
@@ -70,9 +91,8 @@ export function getLastActivityAt(): number | null {
 }
 
 export function clearAuthenticatedSession(): void {
-  // The backend owns an HttpOnly auth cookie as well as the browser-held bearer
-  // token. Keepalive makes the cookie invalidation survive an immediate redirect
-  // to /login after an idle timeout or explicit logout.
+  // The backend owns the authentication state through HttpOnly cookies.
+  // keepalive makes cookie invalidation survive an immediate redirect.
   if (typeof fetch === "function") {
     void fetch(logoutEndpoint(), {
       method: "POST",
