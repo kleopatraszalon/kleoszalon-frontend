@@ -57,4 +57,9 @@ export function applyVirCustomization(config:VirCustomization|null|undefined,{br
 }
 
 export function featureEnabled(config:VirCustomization|null|undefined,key:string,defaultValue=true){const v=config?.features?.[key];return typeof v==="boolean"?v:defaultValue}
-export function menuEnabled(config:VirCustomization|null|undefined,key:string,defaultValue=true){const v=config?.menu_visibility?.[key];return typeof v==="boolean"?v:defaultValue}
+
+// A VIR navigáció kanonikus moduljai nem rejthetők el régi böngésző-cache-ből
+// vagy korábbi testreszabási állapotból. A jogosultságot továbbra is a backend RBAC
+// határozza meg; ez a függvény csak azt akadályozza meg, hogy egy már engedélyezett
+// menüpont kliensoldali konfiguráció miatt eltűnjön.
+export function menuEnabled(_config:VirCustomization|null|undefined,_key:string,_defaultValue=true){return true}
