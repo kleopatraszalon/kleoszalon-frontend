@@ -40,7 +40,7 @@ test("receptionist does not inherit the generic work-order dashboard wrapper", (
 
 test("all receptionist role aliases use the staff shell without manager dashboard extras", () => {
   for (const alias of ["receptionist", "reception", "recepciós", "recepcios"]) {
-    expect(appLayout).toContain(`\"${alias}\"`);
+    expect(appLayout).toContain(`"${alias}"`);
   }
   expect(appLayout).toContain("const isReceptionist=");
   expect(appLayout).toContain("const isStaff=isReceptionist||");

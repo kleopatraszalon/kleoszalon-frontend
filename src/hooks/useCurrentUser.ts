@@ -1,6 +1,7 @@
 // src/hooks/useCurrentUser.ts
 import { useCallback, useEffect, useState } from "react";
 import withBase from "../utils/apiBase";
+import { clearAuthenticatedSession, markAuthenticatedSession } from "../utils/authSession";
 
 type CurrentUser = {
   id?: string | number | null;
@@ -15,32 +16,54 @@ type HookResult = {
   user: CurrentUser | null;
   loading: boolean;
   authError: string | null;
-  // Ha valahol "error"-ként hivatkozol rá, azt is kiszolgáljuk
   error?: string | null;
   refresh: () => Promise<void>;
 };
 
+class UnauthenticatedError extends Error {
+  constructor() {
+    super("unauthenticated");
+    this.name = "UnauthenticatedError";
+  }
+}
+
 let cachedUser: CurrentUser | null | undefined;
 let userRequest: Promise<CurrentUser | null> | null = null;
+
+function syncUiSessionMetadata(user: CurrentUser): void {
+  if (typeof window === "undefined") return;
+  try {
+    markAuthenticatedSession();
+    if (user.role != null) localStorage.setItem("kleo_role", String(user.role));
+    else localStorage.removeItem("kleo_role");
+    if (user.full_name) localStorage.setItem("kleo_full_name", String(user.full_name));
+    else localStorage.removeItem("kleo_full_name");
+    if (user.location_id != null) localStorage.setItem("kleo_location_id", String(user.location_id));
+    else localStorage.removeItem("kleo_location_id");
+    if (user.location_name) localStorage.setItem("kleo_location_name", String(user.location_name));
+    else localStorage.removeItem("kleo_location_name");
+    if (user.email) localStorage.setItem("email", String(user.email));
+  } catch {
+    // UI metadata is optional and never authoritative for access control.
+  }
+}
 
 async function requestCurrentUser(): Promise<CurrentUser | null> {
   if (cachedUser !== undefined) return cachedUser;
   if (userRequest) return userRequest;
   userRequest = (async () => {
-    const token = typeof window !== "undefined"
-      ? localStorage.getItem("kleo_token") || localStorage.getItem("token")
-      : null;
-    if (!token) return null;
     const res = await fetch(withBase("me"), {
       method: "GET",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      cache: "no-store",
     });
+    if (res.status === 401 || res.status === 403) throw new UnauthenticatedError();
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const json = await res.json().catch(() => ({} as any));
     const payload = json?.user ?? json?.data ?? json;
     if (!payload) throw new Error("Üres vagy értelmezhetetlen válasz a /me végponttól");
-    return {
+    const current: CurrentUser = {
       id: payload.id ?? payload.user_id ?? payload.userId ?? null,
       full_name: payload.full_name ?? payload.name ?? null,
       email: payload.email ?? null,
@@ -48,19 +71,20 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
       location_id: payload.location_id ?? null,
       location_name: payload.location_name ?? payload.location ?? null,
     };
+    syncUiSessionMetadata(current);
+    return current;
   })();
-  try { cachedUser = await userRequest; return cachedUser; }
-  finally { userRequest = null; }
+  try {
+    cachedUser = await userRequest;
+    return cachedUser;
+  } finally {
+    userRequest = null;
+  }
 }
 
 /**
- * Aktuális bejelentkezett user lekérése.
- * A token-t localStorage-ből olvassa, a backend felé pedig:
- *   - először:  GET /api/auth/me
- *   - ha az hibázik: GET /api/me
- *
- * FONTOS: itt is csak 'auth/me' és 'me' stringeket használunk,
- * az '/api' részt a withBase teszi hozzá.
+ * Cookie-only browser authentication bootstrap. /api/me is authoritative;
+ * localStorage contains only non-secret UI metadata/routing hints.
  */
 export function useCurrentUser(): HookResult {
   const [user, setUser] = useState<CurrentUser | null>(() => cachedUser ?? null);
@@ -72,15 +96,6 @@ export function useCurrentUser(): HookResult {
     setAuthError(null);
 
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("kleo_token") || localStorage.getItem("token") : null;
-
-      if (!token) {
-        setUser(null);
-        setAuthError("Nincs token – nem vagy bejelentkezve.");
-        setLoading(false);
-        return;
-      }
-
       const found = await requestCurrentUser();
       if (found) {
         setUser(found);
@@ -91,7 +106,16 @@ export function useCurrentUser(): HookResult {
       }
     } catch (e) {
       setUser(null);
-      setAuthError(String(e));
+      if (e instanceof UnauthenticatedError) {
+        cachedUser = null;
+        clearAuthenticatedSession();
+        setAuthError("A munkamenet lejárt. Jelentkezzen be újra.");
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+          window.location.replace("/login");
+        }
+      } else {
+        setAuthError(String(e));
+      }
     } finally {
       setLoading(false);
     }

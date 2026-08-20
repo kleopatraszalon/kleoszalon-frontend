@@ -5,12 +5,14 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import bg from "../assets/background_login.webp";
 import logo from "../assets/kleo_logo.png";
 import LanguageSwitcher from "../components/LanguageSwitcher";
+import CopyrightNotice from "../components/CopyrightNotice";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
+import { markAuthenticatedSession } from "../utils/authSession";
 
 type LoginResponse = {
   success?: boolean;
-  token?: string;
+  ok?: boolean;
   role?: any;
   account_type?: "customer" | "staff" | "admin" | string;
   location_id?: string | number | null;
@@ -18,6 +20,13 @@ type LoginResponse = {
   full_name?: string | null;
   email?: string | null;
   login_name?: string | null;
+  user?: {
+    role?: any;
+    location_id?: string | number | null;
+    location_name?: string | null;
+    full_name?: string | null;
+    email?: string | null;
+  } | null;
   error?: string;
 };
 
@@ -87,21 +96,27 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
-      if (body.token) {
-        localStorage.setItem("kleo_token", body.token);
-        localStorage.setItem("token", body.token);
-      }
-      if (body.role != null) localStorage.setItem("kleo_role", String(body.role));
-      if (body.full_name) localStorage.setItem("kleo_full_name", String(body.full_name));
+      // The server has already set HttpOnly access/refresh cookies. Never copy
+      // credentials into Web Storage; keep only non-secret UI metadata here.
+      markAuthenticatedSession();
+      const user = body.user || {};
+      const role = body.role ?? user.role;
+      const fullName = body.full_name ?? user.full_name;
+      const locationId = body.location_id ?? user.location_id;
+      const locationName = body.location_name ?? user.location_name;
+      const email = body.email ?? user.email;
+
+      if (role != null) localStorage.setItem("kleo_role", String(role));
+      if (fullName) localStorage.setItem("kleo_full_name", String(fullName));
       else localStorage.removeItem("kleo_full_name");
 
-      if (body.location_id != null) localStorage.setItem("kleo_location_id", String(body.location_id));
+      if (locationId != null) localStorage.setItem("kleo_location_id", String(locationId));
       else localStorage.removeItem("kleo_location_id");
 
-      if (body.location_name) localStorage.setItem("kleo_location_name", String(body.location_name));
+      if (locationName) localStorage.setItem("kleo_location_name", String(locationName));
       else localStorage.removeItem("kleo_location_name");
 
-      const storedIdentifier = body.email || body.login_name || identifier.trim();
+      const storedIdentifier = email || body.login_name || identifier.trim();
       if (storedIdentifier) localStorage.setItem("email", String(storedIdentifier));
       if (body.account_type) localStorage.setItem("kleo_account_type", String(body.account_type));
       else localStorage.removeItem("kleo_account_type");
@@ -128,7 +143,7 @@ const LoginPage: React.FC = () => {
         password,
       });
       const body = response.data || {};
-      if (body.success === false) {
+      if (body.success === false || body.ok === false) {
         setError(body.error || t("login.unexpected"));
         return;
       }
@@ -224,6 +239,7 @@ const LoginPage: React.FC = () => {
                 {t("login.register")}
               </button>
             </div>
+            <CopyrightNotice inline />
           </form>
         </div>
       </div>

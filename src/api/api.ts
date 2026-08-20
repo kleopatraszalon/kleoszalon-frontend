@@ -78,6 +78,8 @@ function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 
 const api = axios.create({
   baseURL,
+  // Browser authentication is cookie-only. HttpOnly cookies are attached by
+  // the browser and are never readable by application JavaScript.
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
@@ -90,12 +92,6 @@ api.interceptors.request.use((config) => {
   const configuredBase=String(config.baseURL||"");
   if(!/^https?:\/\//i.test(requestUrl)&&/\/api\/?$/i.test(configuredBase)&&/^\/api(?:\/|$)/i.test(requestUrl)){
     config.url=requestUrl.replace(/^\/api(?=\/|$)/i,"")||"/";
-  }
-
-  const token = localStorage.getItem("kleo_token") || localStorage.getItem("token");
-  if (token) {
-    config.headers = config.headers || {};
-    config.headers.Authorization = `Bearer ${token}`;
   }
 
   const idempotencyKey=idempotencyKeyFor(`${String(config.baseURL||"")}${String(config.url||"")}`,config.method);
@@ -130,7 +126,7 @@ api.interceptors.response.use(
   },
   async (error) => {
     if (error?.response?.status === 401) {
-      console.warn("API 401: a munkamenet lejárt vagy a token hiányzik.");
+      console.warn("API 401: a HttpOnly cookie munkamenet lejárt vagy hiányzik.");
     }
 
     // Olvasási kérésnél átmeneti hálózati/edge hiba után kontrolláltan újrapróbálunk.

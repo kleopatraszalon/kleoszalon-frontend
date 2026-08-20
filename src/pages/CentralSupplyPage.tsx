@@ -6,7 +6,7 @@ import"./inventory/ProcurementPanel.css";
 
 type Location={id:string;name?:string;title?:string};
 const arr=<T,>(v:any):T[]=>Array.isArray(v)?v:Array.isArray(v?.items)?v.items:[];
-const roleList=(raw:any)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||''));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[\[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
+const roleList=(raw:any)=>{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());try{const p=JSON.parse(String(raw||''));if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return String(raw||'').split(',').map(x=>x.replace(/[[\]"]/g,'').trim().toLowerCase()).filter(Boolean)};
 const ADMIN=["admin","administrator","rendszergazda","superadmin","super_admin"];
 
 export default function CentralSupplyPage(){

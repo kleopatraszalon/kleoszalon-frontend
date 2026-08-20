@@ -83,7 +83,7 @@ function roleList(raw: unknown): string[] {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) return parsed.map(String).map(v => v.toLowerCase());
   } catch {}
-  return text.split(",").map(v => v.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return text.split(",").map(v => v.replace(/[[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
 }
 
 function isAdminRole(raw: unknown) {

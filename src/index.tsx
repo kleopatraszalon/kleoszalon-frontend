@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import { LanguageProvider } from "./i18n/LanguageProvider";
 import VirCustomizationRuntime from"./components/VirCustomizationRuntime";
+import CopyrightNotice from "./components/CopyrightNotice";
 
 // Globális stílusok visszakötése
 import "./styles/kleo-theme.css";
@@ -20,6 +21,7 @@ root.render(
     <LanguageProvider>
       <VirCustomizationRuntime/>
       <App />
+      <CopyrightNotice />
     </LanguageProvider>
   </React.StrictMode>
 );
