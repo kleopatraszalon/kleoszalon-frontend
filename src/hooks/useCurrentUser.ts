@@ -1,7 +1,7 @@
 // src/hooks/useCurrentUser.ts
 import { useCallback, useEffect, useState } from "react";
 import withBase from "../utils/apiBase";
-import { clearAuthenticatedSession, markAuthenticatedSession } from "../utils/authSession";
+import { clearLocalAuthenticatedSession, markAuthenticatedSession } from "../utils/authSession";
 
 type CurrentUser = {
   id?: string | number | null;
@@ -29,6 +29,17 @@ class UnauthenticatedError extends Error {
 
 let cachedUser: CurrentUser | null | undefined;
 let userRequest: Promise<CurrentUser | null> | null = null;
+let cacheGeneration = 0;
+
+/**
+ * A successful login starts a new browser session. Any cached /api/me result or
+ * in-flight reference from the previous session must not be reused afterwards.
+ */
+export function invalidateCurrentUserCache(): void {
+  cacheGeneration += 1;
+  cachedUser = undefined;
+  userRequest = null;
+}
 
 function syncUiSessionMetadata(user: CurrentUser): void {
   if (typeof window === "undefined") return;
@@ -51,14 +62,18 @@ function syncUiSessionMetadata(user: CurrentUser): void {
 async function requestCurrentUser(): Promise<CurrentUser | null> {
   if (cachedUser !== undefined) return cachedUser;
   if (userRequest) return userRequest;
-  userRequest = (async () => {
+
+  const generation = cacheGeneration;
+  const request = (async () => {
     const res = await fetch(withBase("me"), {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
       cache: "no-store",
     });
-    if (res.status === 401 || res.status === 403) throw new UnauthenticatedError();
+    // Only 401 means the browser has no valid authentication session. A 403 is
+    // an authorization/policy response and must never trigger a logout loop.
+    if (res.status === 401) throw new UnauthenticatedError();
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const json = await res.json().catch(() => ({} as any));
     const payload = json?.user ?? json?.data ?? json;
@@ -74,11 +89,14 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
     syncUiSessionMetadata(current);
     return current;
   })();
+
+  userRequest = request;
   try {
-    cachedUser = await userRequest;
-    return cachedUser;
+    const found = await request;
+    if (generation === cacheGeneration) cachedUser = found;
+    return found;
   } finally {
-    userRequest = null;
+    if (userRequest === request) userRequest = null;
   }
 }
 
@@ -108,7 +126,9 @@ export function useCurrentUser(): HookResult {
       setUser(null);
       if (e instanceof UnauthenticatedError) {
         cachedUser = null;
-        clearAuthenticatedSession();
+        // Never POST /logout here. The server already told us this request is
+        // unauthenticated; a delayed logout response could destroy a fresh login.
+        clearLocalAuthenticatedSession();
         setAuthError("A munkamenet lejárt. Jelentkezzen be újra.");
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
           window.location.replace("/login");
@@ -130,6 +150,6 @@ export function useCurrentUser(): HookResult {
     loading,
     authError,
     error: authError,
-    refresh: async () => { cachedUser = undefined; await fetchUser(); },
+    refresh: async () => { invalidateCurrentUserCache(); await fetchUser(); },
   };
 }
