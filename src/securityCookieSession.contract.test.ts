@@ -11,6 +11,14 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/localStorage\.setItem\(\s*["'](?:token|kleo_token)["']\s*,\s*body\./);
   });
 
+  test("login verifies the newly issued cookie before authenticated navigation", () => {
+    const source = read("pages/Login.tsx");
+    expect(source).toContain('api.get<LoginResponse>("/me"');
+    expect(source).toContain("credentialsAccepted = true");
+    expect(source).toContain("invalidateCurrentUserCache()");
+    expect(source.indexOf('api.get<LoginResponse>("/me"')).toBeLessThan(source.indexOf("persistAuthAndGoHome({"));
+  });
+
   test("canonical axios client authenticates only with cookies", () => {
     const source = read("api/api.ts");
     expect(source).toMatch(/withCredentials:\s*true/);
@@ -31,6 +39,18 @@ describe("browser cookie-session security contract", () => {
     expect(source).toContain("markAuthenticatedSession()");
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
+  });
+
+  test("authentication failure cannot send a delayed server logout", () => {
+    const currentUser = read("hooks/useCurrentUser.ts");
+    const session = read("utils/authSession.ts");
+    expect(currentUser).toContain("clearLocalAuthenticatedSession()");
+    expect(currentUser).not.toContain("clearAuthenticatedSession()");
+    expect(currentUser).toContain("if (res.status === 401)");
+    expect(currentUser).not.toMatch(/res\.status\s*===\s*401\s*\|\|\s*res\.status\s*===\s*403/);
+    expect(session).toContain("export function clearLocalAuthenticatedSession()");
+    expect(session).toContain("export function clearAuthenticatedSession()");
+    expect(session).toContain("clearLocalAuthenticatedSession();");
   });
 
   test("session marker is isolated from every legacy bearer token key", () => {
