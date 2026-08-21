@@ -240,6 +240,8 @@ const WebshopAdmin: React.FC = () => {
     setRefreshing(false);
   };
 
+  // Az első admin-adatbetöltés egyszer fusson le; a kézi újratöltést a refreshAll gomb végzi.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { void refreshAll(); }, []);
 
   const stats = useMemo(() => {
