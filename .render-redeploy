@@ -1,5 +1,6 @@
 Render redeploy trigger
-2026-08-21T20:05:30+02:00
-Deploy exact latest main abba70f1d97ec1667bc9cba51a0582e488bb17f9.
-Reason: sequential production rollout requested now. Deploy VIR frontend second, after backend/API trigger.
+2026-08-21T20:22:00+02:00
+Redeploy current VIR frontend main after API stage completed.
+Base application main before this trigger: 30bf47be489402df6ad27aa6085a06e8539be13a.
+Reason: explicit deploy-all request. Deploy VIR frontend second in the ordered production rollout.
 Expected service: kleoszalon-frontend.onrender.com
