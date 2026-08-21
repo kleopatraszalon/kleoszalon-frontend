@@ -1,6 +1,8 @@
-/* Szándékosan üres.
-   A projekt globális kinézetét most ezek adják:
+@import "./layouts/MobileDrawerFix.css";
+
+/* A projekt globális kinézetét ezek adják:
    - src/styles/kleo-theme.css
    - src/pages/Home.css
    - src/App.css
+   - src/layouts/MobileDrawerFix.css
 */
