@@ -1,90 +1,49 @@
-// src/pages/WebshopAdmin.tsx
 import React, { useEffect, useMemo, useState } from "react";
-
-/* =================================================================== */
-/*                      API ALAP + SEGÉDFÜGGVÉNYEK                     */
-/* =================================================================== */
+import "./WebshopAdmin.css";
 
 const rawBase =
-  (process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE || "")
-    .replace(/\/$/, "") ||
+  (process.env.REACT_APP_API_URL || process.env.REACT_APP_API_BASE || "").replace(/\/$/, "") ||
   (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:5000/api"
     : "https://kleoszalon-api-1.onrender.com/api");
 
-// Gondoskodunk róla, hogy mindig /api végződés legyen
 const API_BASE = rawBase.endsWith("/api") ? rawBase : `${rawBase}/api`;
-
-// statikus fájlok (képek) alap URL-je
 const API_ROOT = API_BASE.replace(/\/api$/, "");
+const STOREFRONT_URL = "https://weblap-o3g6.onrender.com/webshop";
 
-const buildImageUrl = (imageUrl?: string | null): string | undefined => {
+const getToken = () => localStorage.getItem("kleo_token") || localStorage.getItem("token") || "";
+
+const buildImageUrl = (imageUrl?: string | null) => {
   if (!imageUrl) return undefined;
   if (/^https?:\/\//i.test(imageUrl)) return imageUrl;
-  const cleaned = imageUrl.replace(/^\/+/, "");
-  return `${API_ROOT}/${cleaned}`;
+  return `${API_ROOT}/${imageUrl.replace(/^\/+/, "")}`;
 };
 
-const getToken = () =>
-  localStorage.getItem("kleo_token") ||
-  localStorage.getItem("token") ||
-  "";
-
-// Egységes admin fetch a /api/admin/webshop/... endpointokra
-async function adminFetch<T = any>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
-  const url = `${API_BASE}/admin/webshop/${path.replace(/^\/+/, "")}`;
+async function adminFetch<T = unknown>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const isFormData = options.body instanceof FormData;
-
-  const baseHeaders: Record<string, string> = {};
-
-  // FormData esetén NEM állítunk Content-Type-ot (a böngésző megteszi)
-  if (!isFormData) {
-    baseHeaders["Content-Type"] = "application/json";
-  }
-  if (token) {
-    baseHeaders["Authorization"] = `Bearer ${token}`;
-  }
-
-  const mergedHeaders: Record<string, string> = {
-    ...baseHeaders,
+  const headers: Record<string, string> = {
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...(options.headers as Record<string, string> | undefined),
   };
 
-  const res = await fetch(url, {
+  const response = await fetch(`${API_BASE}/admin/webshop/${path.replace(/^\/+/, "")}`, {
     ...options,
-    headers: mergedHeaders,
+    headers,
     credentials: "include",
   });
 
-  const text = await res.text().catch(() => "");
-  let data: any = null;
-
+  const text = await response.text().catch(() => "");
+  let data: any = undefined;
   if (text) {
-    try {
-      data = JSON.parse(text);
-    } catch {
-      // nem JSON – ilyenkor is visszaadjuk a nyers szöveget data helyett
-      data = text;
-    }
+    try { data = JSON.parse(text); } catch { data = text; }
   }
-
-  if (!res.ok) {
-    const msg =
-      (data && (data.error || data.message)) ||
-      `Admin API hiba: ${res.status} ${res.statusText}`;
-    throw new Error(msg);
+  if (!response.ok) {
+    throw new Error(data?.error || data?.message || (typeof data === "string" && data) || `Admin API hiba: ${response.status}`);
   }
-
-  return (data ?? undefined) as T;
+  return data as T;
 }
-
-/* =================================================================== */
-/*                                 TÍPUSOK                              */
-/* =================================================================== */
 
 type Product = {
   id: string;
@@ -95,7 +54,10 @@ type Product = {
   is_retail: boolean;
   web_sort_order: number | null;
   web_description: string | null;
-  image_url: string | null; // state-ben már teljes URL-t tárolunk
+  image_url: string | null;
+  main_category?: string | null;
+  sub_category?: string | null;
+  service_category?: string | null;
 };
 
 type NewProductForm = {
@@ -139,96 +101,110 @@ type CouponForm = {
 type WebshopOrder = {
   id: string;
   created_at: string;
-  status: string; // pl. 'new' | 'processing' | 'completed' | 'cancelled'
-  payment_status: string; // pl. 'unpaid' | 'paid'
+  status: string;
+  payment_status: string;
   customer_name: string;
   customer_email: string;
   customer_phone: string | null;
   total_gross: number;
 };
 
-/* =================================================================== */
-/*                           KOMPONENS – OLDAL                         */
-/* =================================================================== */
+type TabKey = "overview" | "products" | "coupons" | "orders";
+type ProductFilter = "all" | "visible" | "hidden" | "sale";
+type OrderFilter = "all" | "new" | "processing" | "completed" | "cancelled";
+
+const emptyProduct: NewProductForm = {
+  name: "",
+  retail_price_gross: "",
+  sale_price: "",
+  web_is_visible: true,
+  is_retail: true,
+  web_sort_order: "",
+  web_description: "",
+};
+
+const emptyCoupon: CouponForm = {
+  code: "",
+  description: "",
+  discount_type: "percent",
+  discount_value: "",
+  min_order_total: "",
+  max_discount_value: "",
+  valid_from: "",
+  valid_until: "",
+  usage_limit: "",
+  is_active: true,
+};
+
+const money = (value: number | null | undefined) => `${Math.round(Number(value || 0)).toLocaleString("hu-HU")} Ft`;
+const numberFromInput = (value: string) => value.trim() ? Number(value.replace(",", ".")) : null;
+const dateLabel = (value: string | null) => value ? new Date(value).toLocaleDateString("hu-HU") : "Nincs korlátozva";
+
+const couponState = (coupon: Coupon) => {
+  if (!coupon.is_active) return { label: "Kikapcsolva", tone: "muted" };
+  const now = new Date();
+  if (coupon.valid_from && new Date(coupon.valid_from) > now) return { label: "Ütemezett", tone: "info" };
+  if (coupon.valid_until) {
+    const end = new Date(coupon.valid_until);
+    end.setHours(23, 59, 59, 999);
+    if (end < now) return { label: "Lejárt", tone: "danger" };
+  }
+  if (coupon.usage_limit != null && coupon.used_count >= coupon.usage_limit) return { label: "Limit elérve", tone: "warning" };
+  return { label: "Aktív", tone: "success" };
+};
+
+const orderStatusLabel: Record<string, string> = {
+  new: "Új",
+  processing: "Feldolgozás",
+  completed: "Teljesítve",
+  cancelled: "Lemondva",
+};
 
 const WebshopAdmin: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<
-    "products" | "coupons" | "orders"
-  >("products");
-
-  // TERMÉKEK
+  const [activeTab, setActiveTab] = useState<TabKey>("overview");
   const [products, setProducts] = useState<Product[]>([]);
-  const [productsLoading, setProductsLoading] = useState(false);
-  const [productsError, setProductsError] = useState<string | null>(null);
-  const [savingProductId, setSavingProductId] = useState<string | null>(null);
-  const [uploadingProductId, setUploadingProductId] = useState<string | null>(
-    null
-  );
-
-  // Szűrés / keresés
-  const [productSearch, setProductSearch] = useState("");
-  const [filterVisibleOnly, setFilterVisibleOnly] = useState(false);
-  const [filterRetailOnly, setFilterRetailOnly] = useState(false);
-
-  // ÚJ TERMÉK ŰRLAP
-  const [newProduct, setNewProduct] = useState<NewProductForm>({
-    name: "",
-    retail_price_gross: "",
-    sale_price: "",
-    web_is_visible: true,
-    is_retail: true,
-    web_sort_order: "",
-    web_description: "",
-  });
-  const [newProductImage, setNewProductImage] = useState<File | null>(null);
-  const [newProductError, setNewProductError] = useState<string | null>(null);
-  const [createProductLoading, setCreateProductLoading] = useState(false);
-  const [createProductMessage, setCreateProductMessage] = useState<
-    string | null
-  >(null);
-
-  // KUPONOK
   const [coupons, setCoupons] = useState<Coupon[]>([]);
-  const [couponsLoading, setCouponsLoading] = useState(false);
-  const [couponsError, setCouponsError] = useState<string | null>(null);
-  const [couponForm, setCouponForm] = useState<CouponForm>({
-    code: "",
-    description: "",
-    discount_type: "percent",
-    discount_value: "",
-    min_order_total: "",
-    max_discount_value: "",
-    valid_from: "",
-    valid_until: "",
-    usage_limit: "",
-    is_active: true,
-  });
-  const [couponSaving, setCouponSaving] = useState(false);
-  const [couponMessage, setCouponMessage] = useState<string | null>(null);
-  const [couponError, setCouponError] = useState<string | null>(null);
-
-  // RENDELÉSEK
   const [orders, setOrders] = useState<WebshopOrder[]>([]);
-  const [ordersLoading, setOrdersLoading] = useState(false);
-  const [ordersError, setOrdersError] = useState<string | null>(null);
+  const [productsLoading, setProductsLoading] = useState(true);
+  const [couponsLoading, setCouponsLoading] = useState(true);
+  const [ordersLoading, setOrdersLoading] = useState(true);
+  const [productsError, setProductsError] = useState("");
+  const [couponsError, setCouponsError] = useState("");
+  const [ordersError, setOrdersError] = useState("");
+  const [notice, setNotice] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  /* --------------------------- Betöltések --------------------------- */
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilter, setProductFilter] = useState<ProductFilter>("all");
+  const [savingProductId, setSavingProductId] = useState<string | null>(null);
+  const [uploadingProductId, setUploadingProductId] = useState<string | null>(null);
+  const [newProduct, setNewProduct] = useState<NewProductForm>(emptyProduct);
+  const [newProductImage, setNewProductImage] = useState<File | null>(null);
+  const [createProductLoading, setCreateProductLoading] = useState(false);
+
+  const [couponForm, setCouponForm] = useState<CouponForm>(emptyCoupon);
+  const [couponSearch, setCouponSearch] = useState("");
+  const [couponSaving, setCouponSaving] = useState(false);
+
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
+  const [paymentFilter, setPaymentFilter] = useState<"all" | "paid" | "unpaid">("all");
+  const [savingOrderId, setSavingOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = window.setTimeout(() => setNotice(null), 3500);
+    return () => window.clearTimeout(timer);
+  }, [notice]);
 
   const loadProducts = async () => {
     setProductsLoading(true);
-    setProductsError(null);
+    setProductsError("");
     try {
       const data = await adminFetch<Product[]>("products");
-      const normalized = (data || []).map((p) => ({
-        ...p,
-        image_url: p.image_url ? buildImageUrl(p.image_url) || p.image_url : null,
-      }));
-      setProducts(normalized);
-    } catch (err: any) {
-      console.error("Termékek betöltési hiba:", err);
-      setProductsError(
-        err?.message || "Nem sikerült betölteni a termékeket."
-      );
+      setProducts((data || []).map((product) => ({ ...product, image_url: buildImageUrl(product.image_url) || null })));
+    } catch (error: any) {
+      setProductsError(error?.message || "Nem sikerült betölteni a termékeket.");
     } finally {
       setProductsLoading(false);
     }
@@ -236,13 +212,11 @@ const WebshopAdmin: React.FC = () => {
 
   const loadCoupons = async () => {
     setCouponsLoading(true);
-    setCouponsError(null);
+    setCouponsError("");
     try {
-      const data = await adminFetch<Coupon[]>("coupons");
-      setCoupons(data || []);
-    } catch (err: any) {
-      console.error("Kuponok betöltési hiba:", err);
-      setCouponsError(err?.message || "Nem sikerült betölteni a kuponokat.");
+      setCoupons((await adminFetch<Coupon[]>("coupons")) || []);
+    } catch (error: any) {
+      setCouponsError(error?.message || "Nem sikerült betölteni a kuponokat.");
     } finally {
       setCouponsLoading(false);
     }
@@ -250,58 +224,77 @@ const WebshopAdmin: React.FC = () => {
 
   const loadOrders = async () => {
     setOrdersLoading(true);
-    setOrdersError(null);
+    setOrdersError("");
     try {
-      const data = await adminFetch<WebshopOrder[]>("orders");
-      setOrders(data || []);
-    } catch (err: any) {
-      console.error("Rendelések betöltési hiba:", err);
-      setOrdersError(
-        err?.message || "Nem sikerült betölteni a rendeléseket."
-      );
+      setOrders((await adminFetch<WebshopOrder[]>("orders")) || []);
+    } catch (error: any) {
+      setOrdersError(error?.message || "Nem sikerült betölteni a rendeléseket.");
     } finally {
       setOrdersLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadProducts();
-    loadCoupons();
-    loadOrders();
-  }, []);
-
-  /* --------------------------- Szűrt lista -------------------------- */
-
-  const filteredProducts = useMemo(() => {
-    const q = productSearch.trim().toLowerCase();
-    return products.filter((p) => {
-      if (filterVisibleOnly && !p.web_is_visible) return false;
-      if (filterRetailOnly && !p.is_retail) return false;
-
-      if (q) {
-        const haystack = `${p.name} ${p.web_description || ""}`.toLowerCase();
-        if (!haystack.includes(q)) return false;
-      }
-      return true;
-    });
-  }, [products, productSearch, filterVisibleOnly, filterRetailOnly]);
-
-  /* ---------------------- Termék szerkesztés ------------------------ */
-
-  const handleProductFieldChange = <K extends keyof Product>(
-    productId: string,
-    field: K,
-    value: Product[K]
-  ) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === productId ? { ...p, [field]: value } : p))
-    );
+  const refreshAll = async () => {
+    setRefreshing(true);
+    await Promise.allSettled([loadProducts(), loadCoupons(), loadOrders()]);
+    setRefreshing(false);
   };
 
-  const handleSaveProduct = async (product: Product) => {
+  useEffect(() => { void refreshAll(); }, []);
+
+  const stats = useMemo(() => {
+    const today = new Date().toDateString();
+    const activeCoupons = coupons.filter((coupon) => couponState(coupon).label === "Aktív").length;
+    const openOrders = orders.filter((order) => ["new", "processing"].includes(order.status)).length;
+    const todayOrders = orders.filter((order) => new Date(order.created_at).toDateString() === today).length;
+    const orderValue = orders.filter((order) => order.status !== "cancelled").reduce((sum, order) => sum + Number(order.total_gross || 0), 0);
+    const paidValue = orders.filter((order) => order.status !== "cancelled" && order.payment_status === "paid").reduce((sum, order) => sum + Number(order.total_gross || 0), 0);
+    return {
+      products: products.length,
+      visible: products.filter((product) => product.web_is_visible).length,
+      sale: products.filter((product) => Number(product.sale_price || 0) > 0 && Number(product.sale_price || 0) < Number(product.retail_price_gross || 0)).length,
+      activeCoupons,
+      openOrders,
+      todayOrders,
+      orderValue,
+      paidValue,
+    };
+  }, [products, coupons, orders]);
+
+  const filteredProducts = useMemo(() => {
+    const query = productSearch.trim().toLowerCase();
+    return products.filter((product) => {
+      const isSale = Number(product.sale_price || 0) > 0 && Number(product.sale_price || 0) < Number(product.retail_price_gross || 0);
+      if (productFilter === "visible" && !product.web_is_visible) return false;
+      if (productFilter === "hidden" && product.web_is_visible) return false;
+      if (productFilter === "sale" && !isSale) return false;
+      return !query || `${product.name} ${product.web_description || ""}`.toLowerCase().includes(query);
+    });
+  }, [products, productSearch, productFilter]);
+
+  const filteredCoupons = useMemo(() => {
+    const query = couponSearch.trim().toLowerCase();
+    return coupons.filter((coupon) => !query || `${coupon.code} ${coupon.description || ""}`.toLowerCase().includes(query));
+  }, [coupons, couponSearch]);
+
+  const filteredOrders = useMemo(() => {
+    const query = orderSearch.trim().toLowerCase();
+    return orders.filter((order) => {
+      if (orderFilter !== "all" && order.status !== orderFilter) return false;
+      if (paymentFilter !== "all" && order.payment_status !== paymentFilter) return false;
+      const haystack = `${order.customer_name} ${order.customer_email} ${order.customer_phone || ""} ${order.id}`.toLowerCase();
+      return !query || haystack.includes(query);
+    });
+  }, [orders, orderSearch, orderFilter, paymentFilter]);
+
+  const updateProductField = <K extends keyof Product>(id: string, field: K, value: Product[K]) => {
+    setProducts((previous) => previous.map((product) => product.id === id ? { ...product, [field]: value } : product));
+  };
+
+  const saveProduct = async (product: Product) => {
     setSavingProductId(product.id);
     try {
-      await adminFetch<void>(`products/${product.id}`, {
+      await adminFetch(`products/${product.id}`, {
         method: "PUT",
         body: JSON.stringify({
           name: product.name,
@@ -311,967 +304,365 @@ const WebshopAdmin: React.FC = () => {
           is_retail: product.is_retail,
           web_sort_order: product.web_sort_order,
           web_description: product.web_description,
+          main_category: product.main_category || null,
+          sub_category: product.sub_category || null,
+          service_category: product.service_category || null,
         }),
       });
+      setNotice({ type: "success", text: `Mentve: ${product.name}` });
       await loadProducts();
-    } catch (err) {
-      console.error("Termék mentési hiba:", err);
-      alert("Nem sikerült elmenteni a terméket.");
+    } catch (error: any) {
+      setNotice({ type: "error", text: error?.message || "A termék mentése sikertelen." });
     } finally {
       setSavingProductId(null);
     }
   };
 
-  /* ----------------------- Új termék + kép -------------------------- */
-
-  const handleNewProductChange = <K extends keyof NewProductForm>(
-    field: K,
-    value: NewProductForm[K]
-  ) => {
-    setNewProduct((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  const handleCreateProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setNewProductError(null);
-    setCreateProductMessage(null);
-
-    if (!newProduct.name.trim()) {
-      setNewProductError("A terméknév kötelező.");
-      return;
-    }
-
-    const payload = {
-      name: newProduct.name.trim(),
-      retail_price_gross: newProduct.retail_price_gross
-        ? parseFloat(newProduct.retail_price_gross.replace(",", "."))
-        : null,
-      sale_price: newProduct.sale_price
-        ? parseFloat(newProduct.sale_price.replace(",", "."))
-        : null,
-      web_is_visible: newProduct.web_is_visible,
-      is_retail: newProduct.is_retail,
-      web_sort_order: newProduct.web_sort_order
-        ? parseInt(newProduct.web_sort_order, 10)
-        : null,
-      web_description: newProduct.web_description || null,
-    };
-
-    setCreateProductLoading(true);
-
-    try {
-      const created = await adminFetch<Product>("products", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
-
-      // ha azonnal képet is akarunk, feltöltjük
-      if (newProductImage && created?.id) {
-        await handleUploadImage(created.id, newProductImage);
-      }
-
-      setNewProduct({
-        name: "",
-        retail_price_gross: "",
-        sale_price: "",
-        web_is_visible: true,
-        is_retail: true,
-        web_sort_order: "",
-        web_description: "",
-      });
-      setNewProductImage(null);
-      setCreateProductMessage("Új termék sikeresen létrehozva.");
-      await loadProducts();
-    } catch (err: any) {
-      console.error("Új termék létrehozási hiba:", err);
-      setNewProductError(
-        err?.message || "Nem sikerült létrehozni az új terméket."
-      );
-    } finally {
-      setCreateProductLoading(false);
-    }
-  };
-
-  const handleUploadImage = async (productId: string, file: File | null) => {
+  const uploadImage = async (productId: string, file: File | null) => {
     if (!file) return;
     setUploadingProductId(productId);
-
     try {
       const formData = new FormData();
-      // BACKEND: upload.single("file") → itt is "file" legyen a mezőnév
       formData.append("file", file);
-
-      const data = await adminFetch<{ image_url?: string | null }>(
-        `products/${productId}/image`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      const fullUrl = buildImageUrl(data?.image_url) || null;
-
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id === productId ? { ...p, image_url: fullUrl } : p
-        )
-      );
-    } catch (err) {
-      console.error("Képfeltöltés hiba:", err);
-      alert("Nem sikerült feltölteni a képet.");
+      const data = await adminFetch<{ image_url?: string | null }>(`products/${productId}/image`, { method: "POST", body: formData });
+      const imageUrl = buildImageUrl(data?.image_url) || null;
+      setProducts((previous) => previous.map((product) => product.id === productId ? { ...product, image_url: imageUrl } : product));
+      setNotice({ type: "success", text: "Termékkép frissítve." });
+    } catch (error: any) {
+      setNotice({ type: "error", text: error?.message || "A képfeltöltés sikertelen." });
     } finally {
       setUploadingProductId(null);
     }
   };
 
-  /* --------------------------- Kuponkezelés ------------------------ */
-
-  const handleCouponFormChange = <K extends keyof CouponForm>(
-    field: K,
-    value: CouponForm[K]
-  ) => {
-    setCouponForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+  const createProduct = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!newProduct.name.trim()) return setNotice({ type: "error", text: "A terméknév kötelező." });
+    setCreateProductLoading(true);
+    try {
+      const created = await adminFetch<Product>("products", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newProduct.name.trim(),
+          retail_price_gross: numberFromInput(newProduct.retail_price_gross),
+          sale_price: numberFromInput(newProduct.sale_price),
+          web_is_visible: newProduct.web_is_visible,
+          is_retail: newProduct.is_retail,
+          web_sort_order: newProduct.web_sort_order.trim() ? Number.parseInt(newProduct.web_sort_order, 10) : null,
+          web_description: newProduct.web_description.trim() || null,
+        }),
+      });
+      if (newProductImage && created?.id) await uploadImage(created.id, newProductImage);
+      setNewProduct(emptyProduct);
+      setNewProductImage(null);
+      setNotice({ type: "success", text: "Az új termék elkészült." });
+      await loadProducts();
+    } catch (error: any) {
+      setNotice({ type: "error", text: error?.message || "Nem sikerült létrehozni a terméket." });
+    } finally {
+      setCreateProductLoading(false);
+    }
   };
 
-  const handleCreateCoupon = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setCouponError(null);
-    setCouponMessage(null);
-
-    if (!couponForm.code.trim()) {
-      setCouponError("A kuponkód kötelező.");
-      return;
-    }
-
-    const payload = {
-      code: couponForm.code.trim(),
-      description: couponForm.description || null,
-      discount_type: couponForm.discount_type,
-      discount_value: couponForm.discount_value
-        ? parseFloat(couponForm.discount_value.replace(",", "."))
-        : 0,
-      min_order_total: couponForm.min_order_total
-        ? parseFloat(couponForm.min_order_total.replace(",", "."))
-        : null,
-      max_discount_value: couponForm.max_discount_value
-        ? parseFloat(couponForm.max_discount_value.replace(",", "."))
-        : null,
-      valid_from: couponForm.valid_from || null,
-      valid_until: couponForm.valid_until || null,
-      usage_limit: couponForm.usage_limit
-        ? parseInt(couponForm.usage_limit, 10)
-        : null,
-      is_active: couponForm.is_active,
-    };
+  const createCoupon = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const code = couponForm.code.trim().toUpperCase();
+    if (!code) return setNotice({ type: "error", text: "A kuponkód kötelező." });
+    const discountValue = numberFromInput(couponForm.discount_value);
+    if (discountValue == null || discountValue <= 0) return setNotice({ type: "error", text: "Adj meg 0-nál nagyobb kedvezményértéket." });
+    if (couponForm.discount_type === "percent" && discountValue > 100) return setNotice({ type: "error", text: "A százalékos kedvezmény nem lehet 100%-nál nagyobb." });
 
     setCouponSaving(true);
-
     try {
       await adminFetch<Coupon>("coupons", {
         method: "POST",
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          code,
+          description: couponForm.description.trim() || null,
+          discount_type: couponForm.discount_type,
+          discount_value: discountValue,
+          min_order_total: numberFromInput(couponForm.min_order_total),
+          max_discount_value: numberFromInput(couponForm.max_discount_value),
+          valid_from: couponForm.valid_from || null,
+          valid_until: couponForm.valid_until || null,
+          usage_limit: couponForm.usage_limit.trim() ? Number.parseInt(couponForm.usage_limit, 10) : null,
+          is_active: couponForm.is_active,
+        }),
       });
-      setCouponMessage("Kupon sikeresen elmentve.");
-      setCouponForm({
-        code: "",
-        description: "",
-        discount_type: "percent",
-        discount_value: "",
-        min_order_total: "",
-        max_discount_value: "",
-        valid_from: "",
-        valid_until: "",
-        usage_limit: "",
-        is_active: true,
-      });
+      setCouponForm(emptyCoupon);
+      setNotice({ type: "success", text: `Kupon létrehozva: ${code}` });
       await loadCoupons();
-    } catch (err: any) {
-      console.error("Kupon mentési hiba:", err);
-      setCouponError(
-        err?.message ||
-          "Nem sikerült elmenteni a kupont. (400-as hiba esetén a backend validáció szól bele.)"
-      );
+    } catch (error: any) {
+      setNotice({ type: "error", text: error?.message || "A kupon mentése sikertelen." });
     } finally {
       setCouponSaving(false);
     }
   };
 
-  /* --------------------------- Rendeléskezelés --------------------- */
-
-  const handleUpdateOrder = async (
-    orderId: string,
-    updates: Partial<Pick<WebshopOrder, "status" | "payment_status">>
-  ) => {
+  const updateOrder = async (id: string, patch: Partial<Pick<WebshopOrder, "status" | "payment_status">>) => {
+    setSavingOrderId(id);
     try {
-      const updated = await adminFetch<WebshopOrder>(`orders/${orderId}`, {
-        method: "PATCH",
-        body: JSON.stringify(updates),
-      });
-
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? updated : o))
-      );
-    } catch (err: any) {
-      console.error("Rendelés frissítési hiba:", err);
-      alert("Nem sikerült frissíteni a rendelést.");
+      const updated = await adminFetch<WebshopOrder>(`orders/${id}`, { method: "PATCH", body: JSON.stringify(patch) });
+      setOrders((previous) => previous.map((order) => order.id === id ? updated : order));
+      setNotice({ type: "success", text: "Rendelés frissítve." });
+    } catch (error: any) {
+      setNotice({ type: "error", text: error?.message || "A rendelés frissítése sikertelen." });
+    } finally {
+      setSavingOrderId(null);
     }
   };
 
-  /* =================================================================== */
-  /*                                  JSX                                */
-  /* =================================================================== */
+  const renderOverview = () => (
+    <div className="ws-admin__overview-grid">
+      <section className="ws-admin__panel ws-admin__overview-wide">
+        <div className="ws-admin__panel-head">
+          <div><span>ÉRTÉKESÍTÉSI PULZUS</span><h2>Webshop állapot</h2></div>
+          <button type="button" onClick={() => setActiveTab("orders")}>Rendelések megnyitása →</button>
+        </div>
+        <div className="ws-admin__pulse-grid">
+          <div><small>Mai rendelések</small><strong>{stats.todayOrders}</strong><span>db</span></div>
+          <div><small>Nyitott rendelések</small><strong>{stats.openOrders}</strong><span>db</span></div>
+          <div><small>Rendelési érték</small><strong>{money(stats.orderValue)}</strong><span>lemondott nélkül</span></div>
+          <div><small>Fizetett érték</small><strong>{money(stats.paidValue)}</strong><span>rögzített fizetések</span></div>
+        </div>
+      </section>
+
+      <section className="ws-admin__panel">
+        <div className="ws-admin__panel-head"><div><span>KÍNÁLAT</span><h2>Termékállapot</h2></div></div>
+        <div className="ws-admin__mini-metrics">
+          <div><b>{stats.visible}</b><span>Látható termék</span></div>
+          <div><b>{products.length - stats.visible}</b><span>Rejtett termék</span></div>
+          <div><b>{stats.sale}</b><span>Akciós termék</span></div>
+        </div>
+        <button className="ws-admin__panel-cta" type="button" onClick={() => setActiveTab("products")}>Termékkezelés →</button>
+      </section>
+
+      <section className="ws-admin__panel">
+        <div className="ws-admin__panel-head"><div><span>PROMÓCIÓ</span><h2>Kuponok</h2></div></div>
+        <div className="ws-admin__coupon-overview">
+          <strong>{stats.activeCoupons}</strong><span>aktív kupon jelenleg</span>
+          <p>{coupons.filter((coupon) => couponState(coupon).label === "Ütemezett").length} ütemezett · {coupons.filter((coupon) => couponState(coupon).label === "Lejárt").length} lejárt</p>
+        </div>
+        <button className="ws-admin__panel-cta" type="button" onClick={() => setActiveTab("coupons")}>Kuponkezelés →</button>
+      </section>
+
+      <section className="ws-admin__panel ws-admin__overview-wide">
+        <div className="ws-admin__panel-head"><div><span>LEGUTÓBBI AKTIVITÁS</span><h2>Friss rendelések</h2></div></div>
+        {ordersLoading ? <div className="ws-admin__loading">Betöltés…</div> : orders.slice(0, 6).length === 0 ? <div className="ws-admin__empty">Még nincs rendelés.</div> : (
+          <div className="ws-admin__recent-orders">
+            {orders.slice(0, 6).map((order) => (
+              <button type="button" key={order.id} onClick={() => { setOrderSearch(order.id); setActiveTab("orders"); }}>
+                <div><strong>{order.customer_name}</strong><small>{new Date(order.created_at).toLocaleString("hu-HU")}</small></div>
+                <span className={`ws-admin__status ws-admin__status--${order.status}`}>{orderStatusLabel[order.status] || order.status}</span>
+                <b>{money(order.total_gross)}</b>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+
+  const renderProducts = () => (
+    <div className="ws-admin__stack">
+      <section className="ws-admin__panel">
+        <div className="ws-admin__panel-head ws-admin__panel-head--wrap">
+          <div><span>TERMÉKTÖRZS</span><h2>{filteredProducts.length} webshop termék</h2></div>
+          <div className="ws-admin__filter-chips">
+            {(["all", "visible", "hidden", "sale"] as ProductFilter[]).map((value) => (
+              <button key={value} type="button" className={productFilter === value ? "is-active" : ""} onClick={() => setProductFilter(value)}>
+                {value === "all" ? "Összes" : value === "visible" ? "Látható" : value === "hidden" ? "Rejtett" : "Akciós"}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="ws-admin__searchbar"><span>⌕</span><input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Keresés név vagy leírás alapján…" /></div>
+
+        {productsLoading ? <div className="ws-admin__loading">Termékek betöltése…</div> : productsError ? <div className="ws-admin__error">{productsError}</div> : filteredProducts.length === 0 ? <div className="ws-admin__empty">Nincs a szűrésnek megfelelő termék.</div> : (
+          <div className="ws-admin__product-table-wrap">
+            <table className="ws-admin__table ws-admin__product-table">
+              <thead><tr><th>Termék</th><th>Normál ár</th><th>Akciós ár</th><th>Web</th><th>Sorrend</th><th>Leírás</th><th>Kép</th><th></th></tr></thead>
+              <tbody>
+                {filteredProducts.map((product) => (
+                  <tr key={product.id}>
+                    <td className="ws-admin__product-name-cell">
+                      <div className="ws-admin__thumb">{product.image_url ? <img src={product.image_url} alt="" /> : <span>K</span>}</div>
+                      <input value={product.name} onChange={(event) => updateProductField(product.id, "name", event.target.value)} />
+                    </td>
+                    <td><div className="ws-admin__money-input"><input type="number" min="0" value={product.retail_price_gross ?? ""} onChange={(event) => updateProductField(product.id, "retail_price_gross", event.target.value === "" ? null : Number(event.target.value))} /><span>Ft</span></div></td>
+                    <td><div className="ws-admin__money-input"><input type="number" min="0" value={product.sale_price ?? ""} onChange={(event) => updateProductField(product.id, "sale_price", event.target.value === "" ? null : Number(event.target.value))} /><span>Ft</span></div></td>
+                    <td><label className="ws-admin__switch"><input type="checkbox" checked={product.web_is_visible} onChange={(event) => updateProductField(product.id, "web_is_visible", event.target.checked)} /><span /></label></td>
+                    <td><input className="ws-admin__order-input" type="number" value={product.web_sort_order ?? ""} onChange={(event) => updateProductField(product.id, "web_sort_order", event.target.value === "" ? null : Number(event.target.value))} /></td>
+                    <td><textarea rows={2} value={product.web_description || ""} onChange={(event) => updateProductField(product.id, "web_description", event.target.value)} /></td>
+                    <td>
+                      <label className="ws-admin__upload">
+                        <input type="file" accept="image/*" disabled={uploadingProductId === product.id} onChange={(event) => void uploadImage(product.id, event.target.files?.[0] || null)} />
+                        <span>{uploadingProductId === product.id ? "Feltöltés…" : "Kép csere"}</span>
+                      </label>
+                    </td>
+                    <td><button className="ws-admin__save" type="button" disabled={savingProductId === product.id} onClick={() => void saveProduct(product)}>{savingProductId === product.id ? "…" : "Mentés"}</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
+      <details className="ws-admin__panel ws-admin__create-panel" open>
+        <summary><div><span>＋ ÚJ TERMÉK</span><strong>Új webshop tétel létrehozása</strong></div><b>Űrlap</b></summary>
+        <form className="ws-admin__form" onSubmit={createProduct}>
+          <div className="ws-admin__form-grid ws-admin__form-grid--3">
+            <label><span>Terméknév *</span><input value={newProduct.name} onChange={(event) => setNewProduct((previous) => ({ ...previous, name: event.target.value }))} required /></label>
+            <label><span>Bruttó ár</span><input inputMode="decimal" value={newProduct.retail_price_gross} onChange={(event) => setNewProduct((previous) => ({ ...previous, retail_price_gross: event.target.value }))} placeholder="0" /></label>
+            <label><span>Akciós ár</span><input inputMode="decimal" value={newProduct.sale_price} onChange={(event) => setNewProduct((previous) => ({ ...previous, sale_price: event.target.value }))} placeholder="opcionális" /></label>
+          </div>
+          <div className="ws-admin__form-grid ws-admin__form-grid--2">
+            <label><span>Rövid leírás</span><textarea rows={3} value={newProduct.web_description} onChange={(event) => setNewProduct((previous) => ({ ...previous, web_description: event.target.value }))} /></label>
+            <label><span>Termékkép</span><input type="file" accept="image/*" onChange={(event) => setNewProductImage(event.target.files?.[0] || null)} /></label>
+          </div>
+          <div className="ws-admin__form-actions">
+            <label className="ws-admin__check"><input type="checkbox" checked={newProduct.web_is_visible} onChange={(event) => setNewProduct((previous) => ({ ...previous, web_is_visible: event.target.checked }))} /><span>Webshopban látható</span></label>
+            <label className="ws-admin__check"><input type="checkbox" checked={newProduct.is_retail} onChange={(event) => setNewProduct((previous) => ({ ...previous, is_retail: event.target.checked }))} /><span>Lakossági értékesítés</span></label>
+            <label className="ws-admin__inline-field"><span>Sorrend</span><input type="number" value={newProduct.web_sort_order} onChange={(event) => setNewProduct((previous) => ({ ...previous, web_sort_order: event.target.value }))} /></label>
+            <button className="ws-admin__primary" type="submit" disabled={createProductLoading}>{createProductLoading ? "Létrehozás…" : "Termék létrehozása"}</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  );
+
+  const renderCoupons = () => (
+    <div className="ws-admin__coupon-layout">
+      <section className="ws-admin__panel ws-admin__coupon-form-panel">
+        <div className="ws-admin__panel-head"><div><span>PROMÓCIÓ</span><h2>Új kupon</h2></div></div>
+        <form className="ws-admin__form" onSubmit={createCoupon}>
+          <label><span>Kuponkód *</span><input className="ws-admin__coupon-code-input" value={couponForm.code} onChange={(event) => setCouponForm((previous) => ({ ...previous, code: event.target.value.toUpperCase().replace(/\s+/g, "") }))} placeholder="KLEO10" required /></label>
+          <label><span>Leírás</span><textarea rows={2} value={couponForm.description} onChange={(event) => setCouponForm((previous) => ({ ...previous, description: event.target.value }))} placeholder="Belső megjegyzés / kampány neve" /></label>
+          <div className="ws-admin__form-grid ws-admin__form-grid--2">
+            <label><span>Kedvezmény típusa</span><select value={couponForm.discount_type} onChange={(event) => setCouponForm((previous) => ({ ...previous, discount_type: event.target.value as CouponForm["discount_type"] }))}><option value="percent">Százalékos (%)</option><option value="fixed">Fix összeg (Ft)</option></select></label>
+            <label><span>Kedvezmény értéke *</span><input inputMode="decimal" value={couponForm.discount_value} onChange={(event) => setCouponForm((previous) => ({ ...previous, discount_value: event.target.value }))} required /></label>
+          </div>
+          <div className="ws-admin__form-grid ws-admin__form-grid--2">
+            <label><span>Minimum rendelés</span><input inputMode="decimal" value={couponForm.min_order_total} onChange={(event) => setCouponForm((previous) => ({ ...previous, min_order_total: event.target.value }))} placeholder="nincs minimum" /></label>
+            <label><span>Max. kedvezmény</span><input inputMode="decimal" value={couponForm.max_discount_value} onChange={(event) => setCouponForm((previous) => ({ ...previous, max_discount_value: event.target.value }))} placeholder="nincs maximum" /></label>
+          </div>
+          <div className="ws-admin__form-grid ws-admin__form-grid--2">
+            <label><span>Érvényes ettől</span><input type="date" value={couponForm.valid_from} onChange={(event) => setCouponForm((previous) => ({ ...previous, valid_from: event.target.value }))} /></label>
+            <label><span>Érvényes eddig</span><input type="date" value={couponForm.valid_until} onChange={(event) => setCouponForm((previous) => ({ ...previous, valid_until: event.target.value }))} /></label>
+          </div>
+          <label><span>Felhasználási limit</span><input type="number" min="1" value={couponForm.usage_limit} onChange={(event) => setCouponForm((previous) => ({ ...previous, usage_limit: event.target.value }))} placeholder="korlátlan" /></label>
+          <label className="ws-admin__check"><input type="checkbox" checked={couponForm.is_active} onChange={(event) => setCouponForm((previous) => ({ ...previous, is_active: event.target.checked }))} /><span>Létrehozás után azonnal aktív</span></label>
+          <button className="ws-admin__primary" type="submit" disabled={couponSaving}>{couponSaving ? "Mentés…" : "Kupon létrehozása"}</button>
+        </form>
+      </section>
+
+      <section className="ws-admin__panel ws-admin__coupon-list-panel">
+        <div className="ws-admin__panel-head"><div><span>KUPONKÖNYVTÁR</span><h2>{filteredCoupons.length} kupon</h2></div></div>
+        <div className="ws-admin__searchbar"><span>⌕</span><input value={couponSearch} onChange={(event) => setCouponSearch(event.target.value)} placeholder="Kuponkód vagy leírás keresése…" /></div>
+        {couponsLoading ? <div className="ws-admin__loading">Kuponok betöltése…</div> : couponsError ? <div className="ws-admin__error">{couponsError}</div> : filteredCoupons.length === 0 ? <div className="ws-admin__empty">Nincs megjeleníthető kupon.</div> : (
+          <div className="ws-admin__coupon-cards">
+            {filteredCoupons.map((coupon) => {
+              const state = couponState(coupon);
+              const usage = coupon.usage_limit ? Math.min(100, (coupon.used_count / coupon.usage_limit) * 100) : 0;
+              return (
+                <article key={coupon.id} className="ws-admin__coupon-card">
+                  <div className="ws-admin__coupon-card-top">
+                    <code>{coupon.code}</code>
+                    <span className={`ws-admin__pill ws-admin__pill--${state.tone}`}>{state.label}</span>
+                  </div>
+                  <strong>{coupon.discount_value.toLocaleString("hu-HU")}{coupon.discount_type === "percent" ? "%" : " Ft"} kedvezmény</strong>
+                  <p>{coupon.description || "Nincs megjegyzés."}</p>
+                  <dl>
+                    <div><dt>Minimum</dt><dd>{coupon.min_order_total == null ? "—" : money(coupon.min_order_total)}</dd></div>
+                    <div><dt>Max. kedvezmény</dt><dd>{coupon.max_discount_value == null ? "—" : money(coupon.max_discount_value)}</dd></div>
+                    <div><dt>Érvényesség</dt><dd>{dateLabel(coupon.valid_from)} – {dateLabel(coupon.valid_until)}</dd></div>
+                  </dl>
+                  <div className="ws-admin__coupon-usage"><span><b>{coupon.used_count}</b> felhasználás {coupon.usage_limit ? `/ ${coupon.usage_limit}` : ""}</span>{coupon.usage_limit && <div><i style={{ width: `${usage}%` }} /></div>}</div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+
+  const renderOrders = () => (
+    <section className="ws-admin__panel">
+      <div className="ws-admin__panel-head ws-admin__panel-head--wrap">
+        <div><span>RENDELÉSEK</span><h2>{filteredOrders.length} találat</h2></div>
+        <div className="ws-admin__order-filters">
+          <select value={orderFilter} onChange={(event) => setOrderFilter(event.target.value as OrderFilter)}>
+            <option value="all">Minden státusz</option><option value="new">Új</option><option value="processing">Feldolgozás</option><option value="completed">Teljesítve</option><option value="cancelled">Lemondva</option>
+          </select>
+          <select value={paymentFilter} onChange={(event) => setPaymentFilter(event.target.value as "all" | "paid" | "unpaid")}>
+            <option value="all">Minden fizetés</option><option value="paid">Fizetve</option><option value="unpaid">Nincs fizetve</option>
+          </select>
+        </div>
+      </div>
+      <div className="ws-admin__searchbar"><span>⌕</span><input value={orderSearch} onChange={(event) => setOrderSearch(event.target.value)} placeholder="Vevő, e-mail, telefon vagy rendelésazonosító…" /></div>
+      {ordersLoading ? <div className="ws-admin__loading">Rendelések betöltése…</div> : ordersError ? <div className="ws-admin__error">{ordersError}</div> : filteredOrders.length === 0 ? <div className="ws-admin__empty">Nincs a szűrésnek megfelelő rendelés.</div> : (
+        <div className="ws-admin__order-cards">
+          {filteredOrders.map((order) => (
+            <article key={order.id} className="ws-admin__order-card">
+              <div className="ws-admin__order-main">
+                <div className="ws-admin__order-id"><span>#{order.id.slice(0, 8).toUpperCase()}</span><small>{new Date(order.created_at).toLocaleString("hu-HU")}</small></div>
+                <div className="ws-admin__customer"><strong>{order.customer_name}</strong><a href={`mailto:${order.customer_email}`}>{order.customer_email}</a><small>{order.customer_phone || "Nincs telefonszám"}</small></div>
+                <strong className="ws-admin__order-total">{money(order.total_gross)}</strong>
+              </div>
+              <div className="ws-admin__order-controls">
+                <label><span>Rendelés státusza</span><select disabled={savingOrderId === order.id} value={order.status} onChange={(event) => void updateOrder(order.id, { status: event.target.value })}><option value="new">Új</option><option value="processing">Feldolgozás alatt</option><option value="completed">Teljesítve</option><option value="cancelled">Lemondva</option></select></label>
+                <label><span>Fizetési státusz</span><select disabled={savingOrderId === order.id} value={order.payment_status} onChange={(event) => void updateOrder(order.id, { payment_status: event.target.value })}><option value="unpaid">Nincs fizetve</option><option value="paid">Fizetve</option></select></label>
+                <span className={`ws-admin__status ws-admin__status--${order.status}`}>{savingOrderId === order.id ? "Mentés…" : orderStatusLabel[order.status] || order.status}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  );
 
   return (
-    <div className="home-container app-shell app-shell--collapsed">
-      <main className="calendar-container">
-        {/* 95% szélesség */}
-        <div className="page" style={{ maxWidth: "95vw" }}>
-          <div className="page-header">
-            <div>
-              <h1 className="page-title">Webshop admin</h1>
-              <p className="page-subtitle">
-                Termékek, kuponok és online rendelések kezelése.
-              </p>
-            </div>
-          </div>
-
-          <div className="tabs tabs-outline mb-4">
-            <button
-              className={
-                "tab" + (activeTab === "products" ? " tab--active" : "")
-              }
-              onClick={() => setActiveTab("products")}
-            >
-              Termékek
-            </button>
-            <button
-              className={
-                "tab" + (activeTab === "coupons" ? " tab--active" : "")
-              }
-              onClick={() => setActiveTab("coupons")}
-            >
-              Kuponok
-            </button>
-            <button
-              className={
-                "tab" + (activeTab === "orders" ? " tab--active" : "")
-              }
-              onClick={() => setActiveTab("orders")}
-            >
-              Rendelések
-            </button>
-          </div>
-
-          {/* --------------------- TERMÉKEK TAB ------------------------ */}
-          {activeTab === "products" && (
-            <>
-              {/* SZŰRŐ + KERESŐ */}
-              <section className="card mb-4">
-                <div className="card-header">
-                  <h2>Webshop termékek szűrése</h2>
-                  <p className="card-subtitle">
-                    Keresés név és leírás alapján, láthatóság és lakossági
-                    termék szűrése.
-                  </p>
-                </div>
-                <div className="card-body">
-                  <div className="form-row">
-                    <label style={{ flex: 2 }}>
-                      Keresés
-                      <input
-                        type="text"
-                        className="input"
-                        placeholder="Terméknév vagy leírás..."
-                        value={productSearch}
-                        onChange={(e) => setProductSearch(e.target.value)}
-                      />
-                    </label>
-                    <label className="checkbox-label" style={{ flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={filterVisibleOnly}
-                        onChange={(e) =>
-                          setFilterVisibleOnly(e.target.checked)
-                        }
-                      />
-                      Csak webshopban látható
-                    </label>
-                    <label className="checkbox-label" style={{ flex: 1 }}>
-                      <input
-                        type="checkbox"
-                        checked={filterRetailOnly}
-                        onChange={(e) => setFilterRetailOnly(e.target.checked)}
-                      />
-                      Csak lakossági termékek
-                    </label>
-                  </div>
-                </div>
-              </section>
-
-              {/* ÚJ TERMÉK FELVITELE */}
-              <section className="card mb-4">
-                <div className="card-header">
-                  <h2>Új termék felvitele a webshopba</h2>
-                </div>
-                <div className="card-body">
-                  {newProductError && (
-                    <p className="error-text">{newProductError}</p>
-                  )}
-                  {createProductMessage && (
-                    <p className="success-text">{createProductMessage}</p>
-                  )}
-
-                  <form className="form-grid" onSubmit={handleCreateProduct}>
-                    <div className="form-row">
-                      <label>
-                        Terméknév*
-                        <input
-                          type="text"
-                          className="input"
-                          value={newProduct.name}
-                          onChange={(e) =>
-                            handleNewProductChange("name", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        Ár (bruttó Ft)
-                        <input
-                          type="text"
-                          className="input"
-                          value={newProduct.retail_price_gross}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "retail_price_gross",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Akciós ár (Ft)
-                        <input
-                          type="text"
-                          className="input"
-                          value={newProduct.sale_price}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "sale_price",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-row">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={newProduct.web_is_visible}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "web_is_visible",
-                              e.target.checked
-                            )
-                          }
-                        />
-                        Webshopban látható
-                      </label>
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={newProduct.is_retail}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "is_retail",
-                              e.target.checked
-                            )
-                          }
-                        />
-                        Lakossági értékesítésre
-                      </label>
-                      <label>
-                        Webes sorrend
-                        <input
-                          type="text"
-                          className="input"
-                          value={newProduct.web_sort_order}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "web_sort_order",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-row">
-                      <label style={{ flex: 2 }}>
-                        Rövid leírás
-                        <textarea
-                          className="input"
-                          rows={2}
-                          value={newProduct.web_description}
-                          onChange={(e) =>
-                            handleNewProductChange(
-                              "web_description",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                      <label style={{ flex: 1 }}>
-                        Termékkép (opcionális)
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            setNewProductImage(
-                              e.target.files && e.target.files[0]
-                                ? e.target.files[0]
-                                : null
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-actions">
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={createProductLoading}
-                      >
-                        {createProductLoading
-                          ? "Mentés…"
-                          : "Új termék létrehozása"}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </section>
-
-              {/* TERMÉKLISTA */}
-              <section className="card">
-                <div className="card-header">
-                  <h2>Webshop termékek</h2>
-                </div>
-                <div className="card-body">
-                  {productsLoading ? (
-                    <p>Betöltés…</p>
-                  ) : productsError ? (
-                    <p className="error-text">{productsError}</p>
-                  ) : filteredProducts.length === 0 ? (
-                    <p>Nincs a szűrésnek megfelelő termék.</p>
-                  ) : (
-                    <div className="table-wrapper">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Termék</th>
-                            <th>Ár (bruttó Ft)</th>
-                            <th>Akciós ár</th>
-                            <th>Látható</th>
-                            <th>Lakossági</th>
-                            <th>Web sorrend</th>
-                            <th>Leírás</th>
-                            <th>Kép</th>
-                            <th>Művelet</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredProducts.map((p) => (
-                            <tr key={p.id}>
-                              <td>
-                                <input
-                                  className="input"
-                                  value={p.name}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "name",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  className="input"
-                                  value={
-                                    p.retail_price_gross ?? ""
-                                  }
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "retail_price_gross",
-                                      e.target.value === ""
-                                        ? null
-                                        : Number(e.target.value)
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  className="input"
-                                  value={p.sale_price ?? ""}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "sale_price",
-                                      e.target.value === ""
-                                        ? null
-                                        : Number(e.target.value)
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={p.web_is_visible}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "web_is_visible",
-                                      e.target.checked
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="checkbox"
-                                  checked={p.is_retail}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "is_retail",
-                                      e.target.checked
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <input
-                                  type="number"
-                                  className="input"
-                                  value={p.web_sort_order ?? ""}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "web_sort_order",
-                                      e.target.value === ""
-                                        ? null
-                                        : Number(e.target.value)
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <textarea
-                                  className="input"
-                                  rows={2}
-                                  value={p.web_description || ""}
-                                  onChange={(e) =>
-                                    handleProductFieldChange(
-                                      p.id,
-                                      "web_description",
-                                      e.target.value
-                                    )
-                                  }
-                                />
-                              </td>
-                              <td>
-                                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                                  {p.image_url && (
-                                    <img
-                                      src={p.image_url}
-                                      alt={p.name}
-                                      style={{
-                                        width: 48,
-                                        height: 48,
-                                        objectFit: "cover",
-                                        borderRadius: 8,
-                                      }}
-                                    />
-                                  )}
-                                  <input
-                                    type="file"
-                                    accept="image/*"
-                                    disabled={uploadingProductId === p.id}
-                                    onChange={(e) =>
-                                      handleUploadImage(
-                                        p.id,
-                                        e.target.files && e.target.files[0]
-                                          ? e.target.files[0]
-                                          : null
-                                      )
-                                    }
-                                  />
-                                  {uploadingProductId === p.id && (
-                                    <span style={{ fontSize: 12 }}>
-                                      Kép feltöltése…
-                                    </span>
-                                  )}
-                                </div>
-                              </td>
-                              <td>
-                                <button
-                                  className="btn btn-sm"
-                                  disabled={savingProductId === p.id}
-                                  onClick={() => handleSaveProduct(p)}
-                                >
-                                  {savingProductId === p.id
-                                    ? "Mentés…"
-                                    : "Mentés"}
-                                </button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
-
-          {/* ---------------------- KUPONOK TAB ----------------------- */}
-          {activeTab === "coupons" && (
-            <>
-              <section className="card mb-4">
-                <div className="card-header">
-                  <h2>Új kupon létrehozása</h2>
-                </div>
-                <div className="card-body">
-                  {couponError && (
-                    <p className="error-text">{couponError}</p>
-                  )}
-                  {couponMessage && (
-                    <p className="success-text">{couponMessage}</p>
-                  )}
-
-                  <form className="form-grid" onSubmit={handleCreateCoupon}>
-                    <div className="form-row two-cols">
-                      <label>
-                        Kuponkód*
-                        <input
-                          type="text"
-                          className="input"
-                          value={couponForm.code}
-                          onChange={(e) =>
-                            handleCouponFormChange("code", e.target.value)
-                          }
-                        />
-                      </label>
-                      <label>
-                        Típus
-                        <select
-                          className="input"
-                          value={couponForm.discount_type}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "discount_type",
-                              e.target.value as CouponForm["discount_type"]
-                            )
-                          }
-                        >
-                          <option value="percent">Százalékos (%)</option>
-                          <option value="fixed">Fix összeg (Ft)</option>
-                        </select>
-                      </label>
-                    </div>
-
-                    <div className="form-row two-cols">
-                      <label>
-                        Kedvezmény értéke
-                        <input
-                          type="text"
-                          className="input"
-                          value={couponForm.discount_value}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "discount_value",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Minimum rendelési összeg (Ft)
-                        <input
-                          type="text"
-                          className="input"
-                          value={couponForm.min_order_total}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "min_order_total",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-row two-cols">
-                      <label>
-                        Max. kedvezmény (Ft)
-                        <input
-                          type="text"
-                          className="input"
-                          value={couponForm.max_discount_value}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "max_discount_value",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Felhasználási limit (db)
-                        <input
-                          type="text"
-                          className="input"
-                          value={couponForm.usage_limit}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "usage_limit",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-row two-cols">
-                      <label>
-                        Érvényesség kezdete
-                        <input
-                          type="date"
-                          className="input"
-                          value={couponForm.valid_from}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "valid_from",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                      <label>
-                        Érvényesség vége
-                        <input
-                          type="date"
-                          className="input"
-                          value={couponForm.valid_until}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "valid_until",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </label>
-                    </div>
-
-                    <div className="form-row">
-                      <label className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={couponForm.is_active}
-                          onChange={(e) =>
-                            handleCouponFormChange(
-                              "is_active",
-                              e.target.checked
-                            )
-                          }
-                        />
-                        Aktív kupon
-                      </label>
-                    </div>
-
-                    <div className="form-actions">
-                      <button
-                        type="submit"
-                        className="btn btn-primary"
-                        disabled={couponSaving}
-                      >
-                        {couponSaving ? "Mentés…" : "Kupon mentése"}
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </section>
-
-              <section className="card">
-                <div className="card-header">
-                  <h2>Mentett kuponok</h2>
-                </div>
-                <div className="card-body">
-                  {couponsLoading ? (
-                    <p>Betöltés…</p>
-                  ) : couponsError ? (
-                    <p className="error-text">{couponsError}</p>
-                  ) : coupons.length === 0 ? (
-                    <p>Még nincs mentett kupon.</p>
-                  ) : (
-                    <div className="table-wrapper">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Kód</th>
-                            <th>Leírás</th>
-                            <th>Típus</th>
-                            <th>Érték</th>
-                            <th>Min. összeg</th>
-                            <th>Max. kedvezmény</th>
-                            <th>Érvényesség</th>
-                            <th>Felhasználás</th>
-                            <th>Aktív</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {coupons.map((c) => (
-                            <tr key={c.id}>
-                              <td>{c.code}</td>
-                              <td>{c.description}</td>
-                              <td>
-                                {c.discount_type === "percent"
-                                  ? "Százalékos"
-                                  : "Fix összeg"}
-                              </td>
-                              <td>
-                                {c.discount_value}
-                                {c.discount_type === "percent" ? " %" : " Ft"}
-                              </td>
-                              <td>{c.min_order_total ?? "-"}</td>
-                              <td>{c.max_discount_value ?? "-"}</td>
-                              <td>
-                                {c.valid_from || "-"} –{" "}
-                                {c.valid_until || "-"}
-                              </td>
-                              <td>
-                                {c.used_count} /{" "}
-                                {c.usage_limit ?? "∞"}
-                              </td>
-                              <td>{c.is_active ? "Igen" : "Nem"}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </section>
-            </>
-          )}
-
-          {/* ---------------------- RENDELÉSEK TAB --------------------- */}
-          {activeTab === "orders" && (
-            <section className="card">
-              <div className="card-header">
-                <h2>Online rendelések</h2>
-              </div>
-              <div className="card-body">
-                {ordersLoading ? (
-                  <p>Betöltés…</p>
-                ) : ordersError ? (
-                  <p className="error-text">{ordersError}</p>
-                ) : orders.length === 0 ? (
-                  <p>Jelenleg nincs rendelés.</p>
-                ) : (
-                  <div className="table-wrapper">
-                    <table className="data-table">
-                      <thead>
-                        <tr>
-                          <th>Dátum</th>
-                          <th>Vevő</th>
-                          <th>Email</th>
-                          <th>Telefon</th>
-                          <th>Végösszeg (Ft)</th>
-                          <th>Státusz</th>
-                          <th>Fizetés</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {orders.map((o) => (
-                          <tr key={o.id}>
-                            <td>
-                              {new Date(o.created_at).toLocaleString(
-                                "hu-HU"
-                              )}
-                            </td>
-                            <td>{o.customer_name}</td>
-                            <td>{o.customer_email}</td>
-                            <td>{o.customer_phone || "-"}</td>
-                            <td>{o.total_gross}</td>
-                            <td>
-                              <select
-                                className="input"
-                                value={o.status}
-                                onChange={(e) =>
-                                  handleUpdateOrder(o.id, {
-                                    status: e.target.value,
-                                  })
-                                }
-                              >
-                                <option value="new">
-                                  Új
-                                </option>
-                                <option value="processing">
-                                  Feldolgozás alatt
-                                </option>
-                                <option value="completed">
-                                  Teljesítve
-                                </option>
-                                <option value="cancelled">
-                                  Lemondva
-                                </option>
-                              </select>
-                            </td>
-                            <td>
-                              <select
-                                className="input"
-                                value={o.payment_status}
-                                onChange={(e) =>
-                                  handleUpdateOrder(o.id, {
-                                    payment_status: e.target.value,
-                                  })
-                                }
-                              >
-                                <option value="unpaid">
-                                  Nincs fizetve
-                                </option>
-                                <option value="paid">
-                                  Fizetve
-                                </option>
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </div>
-            </section>
-          )}
+    <div className="ws-admin">
+      <header className="ws-admin__hero">
+        <div>
+          <span className="ws-admin__eyebrow">KLEOPÁTRA · COMMERCE CONTROL CENTER</span>
+          <h1>Webshop admin</h1>
+          <p>Termékek, árak, képek, kuponkampányok és rendelések egy korszerű kezelőfelületen.</p>
         </div>
+        <div className="ws-admin__hero-actions">
+          <button type="button" className="ws-admin__refresh" onClick={() => void refreshAll()} disabled={refreshing}>{refreshing ? "Frissítés…" : "↻ Adatok frissítése"}</button>
+          <a className="ws-admin__storefront" href={STOREFRONT_URL} target="_blank" rel="noreferrer">Webshop megnyitása ↗</a>
+        </div>
+      </header>
+
+      <section className="ws-admin__kpis" aria-label="Webshop fő mutatók">
+        <button type="button" onClick={() => setActiveTab("products")}><span>TERMÉKEK</span><strong>{stats.products}</strong><small>{stats.visible} publikus</small></button>
+        <button type="button" onClick={() => setActiveTab("coupons")}><span>AKTÍV KUPON</span><strong>{stats.activeCoupons}</strong><small>{coupons.length} összesen</small></button>
+        <button type="button" onClick={() => setActiveTab("orders")}><span>NYITOTT RENDELÉS</span><strong>{stats.openOrders}</strong><small>{stats.todayOrders} érkezett ma</small></button>
+        <button type="button" onClick={() => setActiveTab("orders")}><span>FIZETETT ÉRTÉK</span><strong className="ws-admin__kpi-money">{money(stats.paidValue)}</strong><small>lemondott nélkül</small></button>
+      </section>
+
+      <nav className="ws-admin__tabs" aria-label="Webshop admin nézetek">
+        {([
+          ["overview", "Áttekintés", "⌁"],
+          ["products", "Termékek", String(products.length)],
+          ["coupons", "Kuponok", String(coupons.length)],
+          ["orders", "Rendelések", String(orders.length)],
+        ] as [TabKey, string, string][]).map(([key, label, badge]) => (
+          <button key={key} type="button" className={activeTab === key ? "is-active" : ""} onClick={() => setActiveTab(key)}><span>{label}</span><b>{badge}</b></button>
+        ))}
+      </nav>
+
+      <main className="ws-admin__content">
+        {activeTab === "overview" && renderOverview()}
+        {activeTab === "products" && renderProducts()}
+        {activeTab === "coupons" && renderCoupons()}
+        {activeTab === "orders" && renderOrders()}
       </main>
+
+      {notice && <div className={`ws-admin__toast ws-admin__toast--${notice.type}`} role="status">{notice.type === "success" ? "✓" : "!"} {notice.text}</div>}
     </div>
   );
 };
