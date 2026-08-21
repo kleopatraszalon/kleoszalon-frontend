@@ -1,0 +1,307 @@
+.ws-admin {
+  --ws-ink: #171217;
+  --ws-muted: #706871;
+  --ws-soft: #f7f5f7;
+  --ws-panel: #ffffff;
+  --ws-line: rgba(34, 22, 31, 0.1);
+  --ws-magenta: #d50b78;
+  --ws-magenta-dark: #a90760;
+  --ws-green: #087c50;
+  --ws-orange: #a86500;
+  --ws-red: #b3261e;
+  min-height: calc(100vh - 70px);
+  padding: 28px clamp(18px, 3vw, 42px) 64px;
+  color: var(--ws-ink);
+  background:
+    radial-gradient(circle at 96% 0, rgba(213, 11, 120, 0.08), transparent 24%),
+    linear-gradient(180deg, #fbfafb 0, #f6f4f6 100%);
+}
+
+.ws-admin *, .ws-admin *::before, .ws-admin *::after { box-sizing: border-box; }
+.ws-admin button, .ws-admin input, .ws-admin textarea, .ws-admin select { font: inherit; }
+
+.ws-admin__hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 28px;
+  max-width: 1650px;
+  margin: 0 auto 22px;
+}
+.ws-admin__eyebrow { color: var(--ws-magenta); font-size: 10px; font-weight: 900; letter-spacing: .16em; }
+.ws-admin__hero h1 { margin: 7px 0 0; font-size: clamp(34px, 4vw, 54px); line-height: 1; letter-spacing: -.045em; }
+.ws-admin__hero p { max-width: 720px; margin: 11px 0 0; color: var(--ws-muted); line-height: 1.55; }
+.ws-admin__hero-actions { display: flex; flex-wrap: wrap; gap: 9px; }
+.ws-admin__hero-actions button, .ws-admin__hero-actions a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 17px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+}
+.ws-admin__refresh { border: 1px solid var(--ws-line); color: var(--ws-ink); background: rgba(255,255,255,.84); }
+.ws-admin__refresh:disabled { opacity: .5; cursor: wait; }
+.ws-admin__storefront { border: 0; color: #fff; background: linear-gradient(135deg, var(--ws-magenta), var(--ws-magenta-dark)); box-shadow: 0 12px 28px rgba(213,11,120,.16); }
+
+.ws-admin__kpis {
+  max-width: 1650px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 auto 14px;
+}
+.ws-admin__kpis button {
+  min-width: 0;
+  min-height: 112px;
+  display: grid;
+  align-content: center;
+  gap: 3px;
+  padding: 18px;
+  border: 1px solid var(--ws-line);
+  border-radius: 18px;
+  text-align: left;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 8px 26px rgba(35, 20, 31, .035);
+  cursor: pointer;
+  transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease;
+}
+.ws-admin__kpis button:hover { transform: translateY(-2px); border-color: rgba(213,11,120,.24); box-shadow: 0 14px 34px rgba(35,20,31,.07); }
+.ws-admin__kpis span { color: var(--ws-muted); font-size: 9px; font-weight: 900; letter-spacing: .13em; }
+.ws-admin__kpis strong { overflow: hidden; text-overflow: ellipsis; font-size: 30px; line-height: 1; letter-spacing: -.04em; }
+.ws-admin__kpis small { color: var(--ws-muted); font-size: 10px; }
+.ws-admin__kpis .ws-admin__kpi-money { font-size: clamp(20px, 2vw, 30px); }
+
+.ws-admin__tabs {
+  max-width: 1650px;
+  display: flex;
+  gap: 5px;
+  margin: 0 auto 15px;
+  padding: 5px;
+  overflow-x: auto;
+  border: 1px solid var(--ws-line);
+  border-radius: 15px;
+  background: rgba(255,255,255,.78);
+  scrollbar-width: none;
+}
+.ws-admin__tabs::-webkit-scrollbar { display: none; }
+.ws-admin__tabs button {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 15px;
+  border: 0;
+  border-radius: 10px;
+  color: #5e565e;
+  background: transparent;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+}
+.ws-admin__tabs button b { min-width: 22px; height: 22px; display: grid; place-items: center; padding: 0 6px; border-radius: 999px; background: #f0edf0; font-size: 9px; }
+.ws-admin__tabs button.is-active { color: #fff; background: var(--ws-ink); }
+.ws-admin__tabs button.is-active b { color: #fff; background: rgba(255,255,255,.13); }
+
+.ws-admin__content { max-width: 1650px; margin: 0 auto; }
+.ws-admin__stack { display: grid; gap: 14px; }
+.ws-admin__panel {
+  min-width: 0;
+  border: 1px solid var(--ws-line);
+  border-radius: 20px;
+  background: var(--ws-panel);
+  box-shadow: 0 10px 34px rgba(35,20,31,.045);
+}
+.ws-admin__panel-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 19px 20px 14px; }
+.ws-admin__panel-head--wrap { flex-wrap: wrap; }
+.ws-admin__panel-head span { color: var(--ws-magenta); font-size: 9px; font-weight: 900; letter-spacing: .13em; }
+.ws-admin__panel-head h2 { margin: 5px 0 0; font-size: 20px; letter-spacing: -.025em; }
+.ws-admin__panel-head > button { border: 0; color: var(--ws-magenta); background: transparent; font-size: 11px; font-weight: 850; cursor: pointer; }
+
+.ws-admin__overview-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.ws-admin__overview-wide { grid-column: 1 / -1; }
+.ws-admin__pulse-grid { display: grid; grid-template-columns: repeat(4,1fr); border-top: 1px solid var(--ws-line); }
+.ws-admin__pulse-grid > div { min-width: 0; display: grid; gap: 4px; padding: 23px 20px; border-right: 1px solid var(--ws-line); }
+.ws-admin__pulse-grid > div:last-child { border-right: 0; }
+.ws-admin__pulse-grid small { color: var(--ws-muted); font-size: 10px; font-weight: 750; }
+.ws-admin__pulse-grid strong { overflow: hidden; text-overflow: ellipsis; font-size: clamp(22px,2.6vw,36px); letter-spacing: -.04em; }
+.ws-admin__pulse-grid span { color: var(--ws-muted); font-size: 9px; }
+.ws-admin__mini-metrics { display: grid; grid-template-columns: repeat(3,1fr); padding: 0 20px 20px; gap: 8px; }
+.ws-admin__mini-metrics div { padding: 17px; border-radius: 14px; background: var(--ws-soft); }
+.ws-admin__mini-metrics b { display: block; font-size: 24px; }
+.ws-admin__mini-metrics span { display: block; margin-top: 4px; color: var(--ws-muted); font-size: 10px; }
+.ws-admin__panel-cta { margin: 0 20px 19px; border: 0; color: var(--ws-magenta); background: transparent; font-size: 11px; font-weight: 850; cursor: pointer; }
+.ws-admin__coupon-overview { padding: 0 20px 18px; }
+.ws-admin__coupon-overview strong { display: block; font-size: 38px; letter-spacing: -.04em; }
+.ws-admin__coupon-overview > span { color: var(--ws-muted); font-size: 11px; }
+.ws-admin__coupon-overview p { margin: 12px 0 0; padding-top: 12px; border-top: 1px solid var(--ws-line); color: var(--ws-muted); font-size: 10px; }
+.ws-admin__recent-orders { border-top: 1px solid var(--ws-line); }
+.ws-admin__recent-orders button { width: 100%; display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 14px; align-items: center; padding: 13px 20px; border: 0; border-bottom: 1px solid var(--ws-line); text-align: left; background: #fff; cursor: pointer; }
+.ws-admin__recent-orders button:last-child { border-bottom: 0; border-radius: 0 0 20px 20px; }
+.ws-admin__recent-orders button:hover { background: #fcfafb; }
+.ws-admin__recent-orders button > div { min-width: 0; }
+.ws-admin__recent-orders strong, .ws-admin__recent-orders small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-admin__recent-orders strong { font-size: 12px; }
+.ws-admin__recent-orders small { margin-top: 3px; color: var(--ws-muted); font-size: 9px; }
+.ws-admin__recent-orders button > b { font-size: 12px; }
+
+.ws-admin__filter-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+.ws-admin__filter-chips button { min-height: 30px; padding: 0 10px; border: 1px solid var(--ws-line); border-radius: 999px; color: var(--ws-muted); background: #fff; font-size: 9px; font-weight: 850; cursor: pointer; }
+.ws-admin__filter-chips button.is-active { color: #fff; border-color: var(--ws-ink); background: var(--ws-ink); }
+.ws-admin__searchbar { min-height: 44px; display: flex; align-items: center; gap: 9px; margin: 0 20px 14px; padding: 0 12px; border: 1px solid var(--ws-line); border-radius: 12px; background: #fcfbfc; }
+.ws-admin__searchbar span { color: var(--ws-magenta); font-size: 20px; }
+.ws-admin__searchbar input { width: 100%; border: 0; outline: 0; background: transparent; font-size: 12px; }
+.ws-admin__product-table-wrap { overflow: auto; border-top: 1px solid var(--ws-line); }
+.ws-admin__table { width: 100%; min-width: 1180px; border-collapse: collapse; }
+.ws-admin__table th { padding: 10px 11px; border-bottom: 1px solid var(--ws-line); color: var(--ws-muted); text-align: left; font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; background: #faf8fa; }
+.ws-admin__table td { padding: 9px 11px; border-bottom: 1px solid var(--ws-line); vertical-align: middle; font-size: 11px; }
+.ws-admin__table tr:last-child td { border-bottom: 0; }
+.ws-admin__table tbody tr:hover { background: #fdfbfd; }
+.ws-admin__table input:not([type="checkbox"]), .ws-admin__table textarea { width: 100%; min-height: 36px; border: 1px solid var(--ws-line); border-radius: 9px; padding: 7px 8px; outline: 0; background: #fff; font-size: 11px; }
+.ws-admin__table textarea { min-width: 180px; resize: vertical; }
+.ws-admin__product-name-cell { display: grid; grid-template-columns: 42px minmax(150px,1fr); gap: 8px; align-items: center; min-width: 235px; }
+.ws-admin__thumb { width: 42px; height: 42px; display: grid; place-items: center; overflow: hidden; border-radius: 10px; color: var(--ws-magenta); background: #f7edf3; font-weight: 900; }
+.ws-admin__thumb img { width: 100%; height: 100%; object-fit: contain; padding: 3px; }
+.ws-admin__money-input { min-width: 112px; position: relative; }
+.ws-admin__money-input input { padding-right: 26px !important; }
+.ws-admin__money-input span { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--ws-muted); font-size: 9px; }
+.ws-admin__order-input { width: 68px !important; }
+.ws-admin__switch { display: inline-flex; cursor: pointer; }
+.ws-admin__switch input { position: absolute; opacity: 0; pointer-events: none; }
+.ws-admin__switch span { width: 34px; height: 20px; position: relative; display: block; border-radius: 999px; background: #ddd7dc; transition: .18s; }
+.ws-admin__switch span::after { content: ""; width: 14px; height: 14px; position: absolute; top: 3px; left: 3px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.2); transition: .18s; }
+.ws-admin__switch input:checked + span { background: var(--ws-magenta); }
+.ws-admin__switch input:checked + span::after { transform: translateX(14px); }
+.ws-admin__upload input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.ws-admin__upload span { min-height: 32px; display: inline-flex; align-items: center; justify-content: center; padding: 0 9px; border: 1px dashed rgba(213,11,120,.35); border-radius: 9px; color: var(--ws-magenta); background: #fff8fb; font-size: 9px; font-weight: 850; cursor: pointer; white-space: nowrap; }
+.ws-admin__save { min-height: 34px; padding: 0 11px; border: 0; border-radius: 9px; color: #fff; background: var(--ws-ink); font-size: 9px; font-weight: 900; cursor: pointer; }
+.ws-admin__save:disabled { opacity: .5; cursor: wait; }
+
+.ws-admin__create-panel { overflow: hidden; }
+.ws-admin__create-panel summary { min-height: 58px; display: flex; justify-content: space-between; align-items: center; gap: 15px; padding: 0 20px; cursor: pointer; list-style: none; }
+.ws-admin__create-panel summary::-webkit-details-marker { display: none; }
+.ws-admin__create-panel summary div { display: grid; gap: 3px; }
+.ws-admin__create-panel summary span { color: var(--ws-magenta); font-size: 9px; font-weight: 900; letter-spacing: .1em; }
+.ws-admin__create-panel summary strong { font-size: 14px; }
+.ws-admin__create-panel summary > b { color: var(--ws-muted); font-size: 9px; }
+.ws-admin__create-panel[open] summary { border-bottom: 1px solid var(--ws-line); }
+.ws-admin__form { display: grid; gap: 13px; padding: 19px 20px 21px; }
+.ws-admin__form-grid { display: grid; gap: 12px; }
+.ws-admin__form-grid--2 { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.ws-admin__form-grid--3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.ws-admin__form label:not(.ws-admin__check):not(.ws-admin__inline-field) { display: grid; gap: 6px; }
+.ws-admin__form label > span { color: #4e474e; font-size: 10px; font-weight: 800; }
+.ws-admin__form input:not([type="checkbox"]), .ws-admin__form textarea, .ws-admin__form select, .ws-admin__order-filters select, .ws-admin__order-controls select { width: 100%; min-height: 42px; border: 1px solid var(--ws-line); border-radius: 10px; padding: 8px 10px; outline: 0; background: #fff; font-size: 11px; }
+.ws-admin__form input:focus, .ws-admin__form textarea:focus, .ws-admin__form select:focus { border-color: rgba(213,11,120,.45); box-shadow: 0 0 0 3px rgba(213,11,120,.07); }
+.ws-admin__form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.ws-admin__check { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; }
+.ws-admin__check input { accent-color: var(--ws-magenta); }
+.ws-admin__check span { color: #4e474e; font-size: 10px; font-weight: 700; }
+.ws-admin__inline-field { display: inline-flex; align-items: center; gap: 7px; }
+.ws-admin__inline-field input { width: 75px !important; }
+.ws-admin__primary { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; border: 0; border-radius: 11px; color: #fff; background: linear-gradient(135deg,var(--ws-magenta),var(--ws-magenta-dark)); box-shadow: 0 9px 22px rgba(213,11,120,.15); font-size: 10px; font-weight: 900; cursor: pointer; }
+.ws-admin__primary:disabled { opacity: .5; cursor: wait; }
+
+.ws-admin__coupon-layout { display: grid; grid-template-columns: 390px minmax(0,1fr); gap: 14px; align-items: start; }
+.ws-admin__coupon-form-panel { position: sticky; top: 82px; }
+.ws-admin__coupon-code-input { font-family: ui-monospace,SFMono-Regular,Menlo,monospace !important; font-size: 15px !important; font-weight: 900 !important; letter-spacing: .08em; }
+.ws-admin__coupon-cards { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; padding: 0 20px 20px; }
+.ws-admin__coupon-card { min-width: 0; padding: 17px; border: 1px solid var(--ws-line); border-radius: 15px; background: linear-gradient(145deg,#fff,#fdfafd); }
+.ws-admin__coupon-card-top { display: flex; justify-content: space-between; gap: 12px; align-items: center; }
+.ws-admin__coupon-card code { overflow: hidden; text-overflow: ellipsis; font-size: 15px; font-weight: 900; color: var(--ws-magenta); }
+.ws-admin__coupon-card > strong { display: block; margin-top: 12px; font-size: 19px; letter-spacing: -.025em; }
+.ws-admin__coupon-card > p { min-height: 32px; margin: 6px 0 12px; color: var(--ws-muted); font-size: 10px; line-height: 1.5; }
+.ws-admin__coupon-card dl { display: grid; gap: 5px; margin: 0; }
+.ws-admin__coupon-card dl div { display: flex; justify-content: space-between; gap: 12px; font-size: 9px; }
+.ws-admin__coupon-card dt { color: var(--ws-muted); }
+.ws-admin__coupon-card dd { margin: 0; text-align: right; font-weight: 800; }
+.ws-admin__pill { flex: 0 0 auto; min-height: 22px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 8px; font-weight: 900; }
+.ws-admin__pill--success { color: #086b45; background: #e8f7ef; }
+.ws-admin__pill--danger { color: #9f261f; background: #ffefee; }
+.ws-admin__pill--warning { color: #835500; background: #fff3da; }
+.ws-admin__pill--info { color: #315d91; background: #edf5ff; }
+.ws-admin__pill--muted { color: #665f66; background: #efedef; }
+.ws-admin__coupon-usage { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--ws-line); }
+.ws-admin__coupon-usage > span { color: var(--ws-muted); font-size: 9px; }
+.ws-admin__coupon-usage > div { height: 4px; margin-top: 7px; overflow: hidden; border-radius: 999px; background: #eee9ed; }
+.ws-admin__coupon-usage i { height: 100%; display: block; border-radius: inherit; background: var(--ws-magenta); }
+
+.ws-admin__order-filters { display: flex; flex-wrap: wrap; gap: 7px; }
+.ws-admin__order-filters select { width: auto; min-width: 150px; }
+.ws-admin__order-cards { display: grid; gap: 8px; padding: 0 20px 20px; }
+.ws-admin__order-card { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; padding: 15px; border: 1px solid var(--ws-line); border-radius: 14px; background: #fff; }
+.ws-admin__order-main { min-width: 0; display: grid; grid-template-columns: 145px minmax(180px,1fr) auto; gap: 16px; align-items: center; }
+.ws-admin__order-id span { display: block; font-family: ui-monospace,SFMono-Regular,Menlo,monospace; font-size: 11px; font-weight: 900; }
+.ws-admin__order-id small { display: block; margin-top: 4px; color: var(--ws-muted); font-size: 9px; }
+.ws-admin__customer { min-width: 0; display: grid; gap: 2px; }
+.ws-admin__customer strong, .ws-admin__customer a, .ws-admin__customer small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ws-admin__customer strong { font-size: 12px; }
+.ws-admin__customer a { color: var(--ws-magenta); font-size: 9px; text-decoration: none; }
+.ws-admin__customer small { color: var(--ws-muted); font-size: 9px; }
+.ws-admin__order-total { font-size: 15px; }
+.ws-admin__order-controls { display: flex; align-items: center; gap: 8px; }
+.ws-admin__order-controls label { display: grid; gap: 4px; }
+.ws-admin__order-controls label > span { color: var(--ws-muted); font-size: 8px; font-weight: 800; }
+.ws-admin__order-controls select { min-width: 145px; min-height: 34px; padding-block: 4px; }
+.ws-admin__status { min-height: 24px; display: inline-flex; align-items: center; padding: 0 8px; border-radius: 999px; font-size: 8px; font-weight: 900; white-space: nowrap; }
+.ws-admin__status--new { color: #315d91; background: #eaf3ff; }
+.ws-admin__status--processing { color: #835500; background: #fff3da; }
+.ws-admin__status--completed { color: #086b45; background: #e8f7ef; }
+.ws-admin__status--cancelled { color: #9f261f; background: #ffefee; }
+
+.ws-admin__loading, .ws-admin__empty, .ws-admin__error { padding: 28px 20px; border-top: 1px solid var(--ws-line); color: var(--ws-muted); text-align: center; font-size: 11px; }
+.ws-admin__error { color: var(--ws-red); background: #fffafa; }
+.ws-admin__toast { position: fixed; right: 22px; bottom: 22px; z-index: 1500; max-width: min(380px,calc(100vw - 44px)); padding: 13px 16px; border-radius: 12px; color: #fff; box-shadow: 0 16px 44px rgba(0,0,0,.18); font-size: 11px; font-weight: 850; }
+.ws-admin__toast--success { background: #126a4a; }
+.ws-admin__toast--error { background: #a92c25; }
+
+@media (max-width: 1280px) {
+  .ws-admin__coupon-layout { grid-template-columns: 340px minmax(0,1fr); }
+  .ws-admin__order-card { grid-template-columns: 1fr; }
+  .ws-admin__order-controls { justify-content: flex-end; }
+}
+
+@media (max-width: 1000px) {
+  .ws-admin__kpis { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ws-admin__pulse-grid { grid-template-columns: repeat(2,1fr); }
+  .ws-admin__pulse-grid > div:nth-child(2) { border-right: 0; }
+  .ws-admin__pulse-grid > div:nth-child(-n+2) { border-bottom: 1px solid var(--ws-line); }
+  .ws-admin__form-grid--3 { grid-template-columns: 1fr; }
+  .ws-admin__coupon-layout { grid-template-columns: 1fr; }
+  .ws-admin__coupon-form-panel { position: static; }
+  .ws-admin__order-main { grid-template-columns: 130px minmax(0,1fr) auto; }
+}
+
+@media (max-width: 720px) {
+  .ws-admin { padding: 18px 12px 70px; }
+  .ws-admin__hero { align-items: stretch; flex-direction: column; }
+  .ws-admin__hero-actions { display: grid; grid-template-columns: repeat(2,1fr); }
+  .ws-admin__kpis { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+  .ws-admin__kpis button { min-height: 95px; padding: 13px; }
+  .ws-admin__kpis strong { font-size: 24px; }
+  .ws-admin__overview-grid { grid-template-columns: 1fr; }
+  .ws-admin__overview-wide { grid-column: auto; }
+  .ws-admin__pulse-grid { grid-template-columns: 1fr; }
+  .ws-admin__pulse-grid > div { border-right: 0; border-bottom: 1px solid var(--ws-line); }
+  .ws-admin__pulse-grid > div:last-child { border-bottom: 0; }
+  .ws-admin__mini-metrics { grid-template-columns: 1fr; }
+  .ws-admin__form-grid--2 { grid-template-columns: 1fr; }
+  .ws-admin__coupon-cards { grid-template-columns: 1fr; padding-inline: 12px; }
+  .ws-admin__searchbar { margin-inline: 12px; }
+  .ws-admin__panel-head { padding-inline: 12px; }
+  .ws-admin__form { padding-inline: 12px; }
+  .ws-admin__order-cards { padding-inline: 12px; }
+  .ws-admin__order-main { grid-template-columns: 1fr auto; }
+  .ws-admin__customer { grid-column: 1 / -1; grid-row: 2; }
+  .ws-admin__order-total { grid-column: 2; grid-row: 1; }
+  .ws-admin__order-controls { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .ws-admin__order-controls .ws-admin__status { grid-column: 1 / -1; justify-self: start; }
+  .ws-admin__order-controls select { min-width: 0; width: 100%; }
+  .ws-admin__recent-orders button { grid-template-columns: 1fr auto; }
+  .ws-admin__recent-orders .ws-admin__status { display: none; }
+}
