@@ -1,8 +1,10 @@
 @import "./layouts/MobileDrawerFix.css";
+@import "./layouts/MobileDrawerFinal.css";
 
 /* A projekt globális kinézetét ezek adják:
    - src/styles/kleo-theme.css
    - src/pages/Home.css
    - src/App.css
    - src/layouts/MobileDrawerFix.css
+   - src/layouts/MobileDrawerFinal.css
 */
