@@ -1,0 +1,69 @@
+name: SOS employees cookie auth hotfix
+
+on:
+  push:
+    branches:
+      - hotfix/employees-cookie-auth-20260821
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[sos-patched]') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/employees-cookie-auth-20260821
+          fetch-depth: 0
+      - name: Patch EmployeesList cookie authentication
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('src/pages/EmployeesList.tsx')
+          s = p.read_text(encoding='utf-8')
+          old = '''  const token = localStorage.getItem("kleo_token") || localStorage.getItem("token") || "";
+  const headers = useMemo(() => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }), [token]);
+
+  const api = useCallback(async (path: string, init?: RequestInit) => {
+    const response = await fetch(withBase(path), { ...init, headers: { ...headers, ...(init?.headers || {}) } });
+    const text = await response.text();
+    let data: any = null;
+    try { data = text ? JSON.parse(text) : null; } catch { throw new Error(language === "en" ? `Invalid server response (HTTP ${response.status}).` : `A szerver hibás választ adott (HTTP ${response.status}).`); }
+    if (!response.ok) throw new Error(data?.error || (language === "en" ? "The operation failed." : "A művelet nem sikerült."));
+    return data;
+  }, [headers, language]);
+'''
+          new = '''  const api = useCallback(async (path: string, init?: RequestInit) => {
+    // Browser authentication is HttpOnly-cookie based. This page used to send an
+    // empty legacy Bearer header and omitted cross-origin credentials, which made
+    // every employees/HR request return 401 immediately after a valid login.
+    const response = await fetch(withBase(path), {
+      ...init,
+      credentials: "include",
+      headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    });
+    const text = await response.text();
+    let data: any = null;
+    try { data = text ? JSON.parse(text) : null; } catch { throw new Error(language === "en" ? `Invalid server response (HTTP ${response.status}).` : `A szerver hibás választ adott (HTTP ${response.status}).`); }
+    if (!response.ok) throw new Error(data?.error || (language === "en" ? "The operation failed." : "A művelet nem sikerült."));
+    return data;
+  }, [language]);
+'''
+          if old not in s:
+              raise SystemExit('Expected legacy EmployeesList auth block not found; refusing unsafe patch')
+          p.write_text(s.replace(old, new, 1), encoding='utf-8')
+      - name: Remove one-shot workflow
+        run: rm .github/workflows/sos-employees-cookie-auth-hotfix.yml
+      - name: Verify no legacy EmployeesList bearer remains
+        run: |
+          ! grep -q 'Authorization: `Bearer' src/pages/EmployeesList.tsx
+          grep -q 'credentials: "include"' src/pages/EmployeesList.tsx
+      - name: Commit hotfix
+        run: |
+          git config user.name "kleo-sos-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add src/pages/EmployeesList.tsx .github/workflows/sos-employees-cookie-auth-hotfix.yml
+          git commit -m "[sos-patched] fix: use cookie auth on employees page"
+          git push origin HEAD:hotfix/employees-cookie-auth-20260821
