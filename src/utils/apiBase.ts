@@ -12,10 +12,14 @@ const API_ORIGIN = isLocal ? "http://localhost:5000" : "https://kleoszalon-api-1
 const API_BASE = `${API_ORIGIN}/api`;
 const FETCH_PATCH_KEY = "__kleoCookieFetchPatched";
 
+function isRequestObject(input: unknown): input is Request {
+  return typeof Request !== "undefined" && input instanceof Request;
+}
+
 function requestUrl(input: RequestInfo | URL): string {
   if (typeof input === "string") return input;
   if (typeof URL !== "undefined" && input instanceof URL) return input.toString();
-  return input instanceof Request ? input.url : String(input);
+  return isRequestObject(input) ? input.url : String(input);
 }
 
 function isKleoApiRequest(input: RequestInfo | URL): boolean {
@@ -37,7 +41,7 @@ function installLegacyCookieFetchCompatibility(): void {
   window.fetch = ((input: RequestInfo | URL, init?: RequestInit) => {
     if (!isKleoApiRequest(input)) return nativeFetch(input, init);
 
-    const inheritedHeaders = input instanceof Request ? input.headers : undefined;
+    const inheritedHeaders = isRequestObject(input) ? input.headers : undefined;
     const headers = new Headers(init?.headers ?? inheritedHeaders);
     const authorization = headers.get("Authorization");
 
