@@ -1,0 +1,11 @@
+{
+  "name": "Kleopátra VIR",
+  "short_name": "VIR",
+  "description": "Kleopátra vállalatirányítási rendszer",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f4f5f9",
+  "theme_color": "#6d51d0",
+  "orientation": "any"
+}
