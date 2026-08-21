@@ -1,4 +1,5 @@
 Render redeploy trigger
-2026-08-20T12:23:00+02:00
-Deploy latest main including the Kleopátra2003 Kft. copyright notice on the VIR login page and under the authenticated sidebar, with the clickable Szerzői jogi és tulajdonosi tájékoztató modal.
-Reason: explicit production deploy requested by user after copyright ownership notice was merged to main.
+2026-08-21T20:05:30+02:00
+Deploy exact latest main abba70f1d97ec1667bc9cba51a0582e488bb17f9.
+Reason: sequential production rollout requested now. Deploy VIR frontend second, after backend/API trigger.
+Expected service: kleoszalon-frontend.onrender.com
