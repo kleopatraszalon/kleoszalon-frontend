@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, Check, ChevronRight, Clock3, MapPin, Plus, Search, Trash2, UserRound, X } from "lucide-react";
+import { CalendarDays, Check, ChevronRight, Clock3, MapPin, Plus, Search, Trash2, UserPlus, UserRound, X } from "lucide-react";
 import { fetchArray, fetchJSON, apiFetch } from "../utils/fetch";
 import ClientBookingInsights from "./booking/ClientBookingInsights";
 import "./AppointmentNewModal.css";
 import "./ModernAppointmentNewModal.css";
+import "./AppointmentNewClient.css";
 
 type PickerItem = {
   id: string; name?: string | null; full_name?: string | null; title?: string | null;
@@ -46,6 +47,9 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
   const [startHM, setStartHM] = useState(initialTime);
   const [note, setNote] = useState("");
   const [clientQuery, setClientQuery] = useState("");
+  const [newClientOpen, setNewClientOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", birth_date: "", notes: "" });
+  const [clientSaving, setClientSaving] = useState(false);
   const [serviceQuery, setServiceQuery] = useState("");
   const [serviceCategory, setServiceCategory] = useState("all");
   const [serviceToAdd, setServiceToAdd] = useState("");
@@ -104,6 +108,21 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
 
   const addService = (service: PickerItem) => { setSelectedServiceIds((current) => [...current, service.id]); setServiceToAdd(""); setError(null); };
   const removeService = (id: string) => setSelectedServiceIds((current) => current.filter((serviceId) => serviceId !== id));
+  const createClient = async () => {
+    const name = newClient.name.trim(), phone = newClient.phone.trim(), email = newClient.email.trim();
+    if (!name) { setError("Az új vendég neve kötelező."); return; }
+    if (!phone && !email) { setError("Az új vendéghez telefonszám vagy e-mail-cím szükséges."); return; }
+    if (!locationId) { setError("Az új vendég felvétele előtt válasszon telephelyet."); return; }
+    setClientSaving(true); setError(null);
+    try {
+      const result = await apiFetch<{ id: string }>("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newClient, name, full_name: name, phone: phone || null, email: email || null, birth_date: newClient.birth_date || null, location_id: locationId, source: "appointment" }) });
+      const created: PickerItem = { id: String(result.id), name, full_name: name, phone: phone || null, email: email || null, location_id: locationId };
+      setClients((current) => [created, ...current.filter((client) => client.id !== created.id)]);
+      setClientId(created.id); setClientQuery(name); setNewClientOpen(false);
+      setNewClient({ name: "", phone: "", email: "", birth_date: "", notes: "" });
+    } catch (reason: any) { setError(reason?.message || "Az új vendég létrehozása sikertelen."); }
+    finally { setClientSaving(false); }
+  };
   const canSubmit = Boolean(locationId && employeeId && clientId && selectedServiceIds.length && date && startHM && !conflicts.length && !checking && !saving);
 
   const submit = async () => {
@@ -127,7 +146,9 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
         <div className="booking-modal-form">
           {error && <div className="booking-error">{error}</div>}
           <div className="booking-section"><div className="booking-section-title"><MapPin size={17}/><div><h3>Hely és munkatárs</h3><p>Hol és kinél történjen a szolgáltatás?</p></div></div><div className="booking-two-columns"><label>Telephely<select value={locationId} onChange={(event) => setLocationId(event.target.value)}><option value="">Válasszon telephelyet</option>{locations.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label><label>Munkatárs<select value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Válasszon munkatársat</option>{filteredEmployees.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}</select></label></div></div>
-          <div className="booking-section"><div className="booking-section-title"><UserRound size={17}/><div><h3>Vendég</h3><p>Keresés név vagy telefonszám alapján</p></div></div><label className="booking-search"><Search size={16}/><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Vendég keresése..."/></label><div className="booking-picker-list">{visibleClients.map((client) => <button key={client.id} className={clientId === client.id ? "selected" : ""} onClick={() => setClientId(client.id)}><span className="booking-avatar">{displayName(client).charAt(0)}</span><span><b>{displayName(client)}</b><small>{client.phone || "Nincs telefonszám"}</small></span>{clientId === client.id && <Check size={17}/>}</button>)}</div><ClientBookingInsights client={selectedClient}/></div>
+          <div className="booking-section"><div className="booking-section-title booking-client-title"><UserRound size={17}/><div><h3>Vendég</h3><p>Keresés név vagy telefonszám alapján</p></div><button type="button" className="booking-new-client-trigger" onClick={()=>setNewClientOpen((open)=>!open)}><UserPlus size={15}/>{newClientOpen?"Űrlap bezárása":"Új vendég"}</button></div>
+            {newClientOpen&&<div className="booking-new-client"><div><b>Új vendég felvétele</b><small>Mentés után automatikusan ez a vendég lesz kiválasztva a foglaláshoz.</small></div><div className="booking-new-client-grid"><label>Teljes név *<input autoFocus value={newClient.name} onChange={e=>setNewClient(v=>({...v,name:e.target.value}))} placeholder="Vendég neve"/></label><label>Telefonszám<input value={newClient.phone} onChange={e=>setNewClient(v=>({...v,phone:e.target.value}))} placeholder="+36..."/></label><label>E-mail<input type="email" value={newClient.email} onChange={e=>setNewClient(v=>({...v,email:e.target.value}))} placeholder="nev@email.hu"/></label><label>Születési dátum<input type="date" value={newClient.birth_date} onChange={e=>setNewClient(v=>({...v,birth_date:e.target.value}))}/></label><label className="booking-new-client-note">Megjegyzés<input value={newClient.notes} onChange={e=>setNewClient(v=>({...v,notes:e.target.value}))} placeholder="Opcionális belső megjegyzés"/></label></div><div className="booking-new-client-actions"><button type="button" onClick={()=>setNewClientOpen(false)} disabled={clientSaving}>Mégse</button><button type="button" className="primary" onClick={()=>void createClient()} disabled={clientSaving}>{clientSaving?"Vendég mentése…":"Vendég mentése és kiválasztása"}</button></div></div>}
+            <label className="booking-search"><Search size={16}/><input value={clientQuery} onChange={(event) => setClientQuery(event.target.value)} placeholder="Vendég keresése..."/></label><div className="booking-picker-list">{visibleClients.map((client) => <button type="button" key={client.id} className={clientId === client.id ? "selected" : ""} onClick={() => setClientId(client.id)}><span className="booking-avatar">{displayName(client).charAt(0)}</span><span><b>{displayName(client)}</b><small>{client.phone || client.email || "Nincs elérhetőség"}</small></span>{clientId === client.id && <Check size={17}/>}</button>)}</div><ClientBookingInsights client={selectedClient}/></div>
           <div className="booking-section booking-services-section"><div className="booking-section-title"><Plus size={17}/><div><h3>Szolgáltatások</h3><p>Kategória szerint csoportosítva, több szolgáltatás is hozzáadható.</p></div></div>
             {selectedServices.length > 0 && <div className="selected-services">{selectedServices.map((service, index) => <article key={service.id}><span>{index + 1}</span><div><b>{displayName(service)}</b><small>{serviceGroup(service)} · {serviceDuration(service)} perc · {servicePrice(service).toLocaleString("hu-HU")} Ft</small></div><button onClick={() => removeService(service.id)} aria-label="Szolgáltatás eltávolítása"><Trash2 size={16}/></button></article>)}</div>}
             <div className="service-select-panel">
