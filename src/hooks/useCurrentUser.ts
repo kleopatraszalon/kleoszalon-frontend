@@ -1,7 +1,11 @@
 // src/hooks/useCurrentUser.ts
 import { useCallback, useEffect, useState } from "react";
 import withBase from "../utils/apiBase";
-import { clearLocalAuthenticatedSession, markAuthenticatedSession } from "../utils/authSession";
+import {
+  clearLocalAuthenticatedSession,
+  getSessionBearerToken,
+  markAuthenticatedSession,
+} from "../utils/authSession";
 
 type CurrentUser = {
   id?: string | number | null;
@@ -31,10 +35,6 @@ let cachedUser: CurrentUser | null | undefined;
 let userRequest: Promise<CurrentUser | null> | null = null;
 let cacheGeneration = 0;
 
-/**
- * A successful login starts a new browser session. Any cached /api/me result or
- * in-flight reference from the previous session must not be reused afterwards.
- */
 export function invalidateCurrentUserCache(): void {
   cacheGeneration += 1;
   cachedUser = undefined;
@@ -65,14 +65,19 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
 
   const generation = cacheGeneration;
   const request = (async () => {
+    const bearer = getSessionBearerToken();
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
+
     const res = await fetch(withBase("me"), {
       method: "GET",
-      headers: { "Content-Type": "application/json" },
+      headers,
       credentials: "include",
       cache: "no-store",
     });
-    // Only 401 means the browser has no valid authentication session. A 403 is
-    // an authorization/policy response and must never trigger a logout loop.
+    // Safari can reject the cross-site Render cookie. In that case the session-only
+    // Bearer token issued by /login authenticates /me without weakening persistence:
+    // it is never stored in localStorage and disappears when the tab is closed.
     if (res.status === 401) throw new UnauthenticatedError();
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const json = await res.json().catch(() => ({} as any));
@@ -101,8 +106,8 @@ async function requestCurrentUser(): Promise<CurrentUser | null> {
 }
 
 /**
- * Cookie-only browser authentication bootstrap. /api/me is authoritative;
- * localStorage contains only non-secret UI metadata/routing hints.
+ * Browser authentication bootstrap. Cookies remain preferred; Safari/WebKit can
+ * use the current-tab session Bearer fallback when ITP blocks the cross-site cookie.
  */
 export function useCurrentUser(): HookResult {
   const [user, setUser] = useState<CurrentUser | null>(() => cachedUser ?? null);
@@ -126,8 +131,6 @@ export function useCurrentUser(): HookResult {
       setUser(null);
       if (e instanceof UnauthenticatedError) {
         cachedUser = null;
-        // Never POST /logout here. The server already told us this request is
-        // unauthenticated; a delayed logout response could destroy a fresh login.
         clearLocalAuthenticatedSession();
         setAuthError("A munkamenet lejárt. Jelentkezzen be újra.");
         if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
