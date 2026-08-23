@@ -18,7 +18,7 @@ describe('SaaS / Franchise admin wiring', () => {
     expect(sidebar).toContain('axios.get(');
     expect(sidebar).toContain('/menus');
     expect(sidebar).toContain('tree=buildTree');
-    expect(sidebar).toContain('if(isCustomer||isAccounting||isLocationScoped||isStaff)return');
+    expect(sidebar).toContain('if(isCustomer||isAccounting||isLocationScoped||isStaff||isHr||isManager)return');
     expect(sidebar).toContain('const RECEIPT_COMPLIANCE');
     expect(sidebar).toContain('const FITNESS_GYONGYOS');
     expect(sidebar).toContain('...(fitnessAllowed?[FITNESS_GYONGYOS]:[])');

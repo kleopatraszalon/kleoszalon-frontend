@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useRef,useState}from'react';
+import React,{useCallback,useEffect,useMemo,useRef,useState}from'react';
 import{CreditCard,Radio,ScanLine,Settings2,UserCheck,UserMinus,Wifi,WifiOff}from'lucide-react';
 import api from'../api/api';
 
@@ -14,9 +14,9 @@ export default function ReceptionDeviceControlPanel(){
  const[terminalMessage,setTerminalMessage]=useState('');const[terminalBusy,setTerminalBusy]=useState(false);const[form,setForm]=useState({name:'Recepciós bankkártya terminál',adapter_type:'SIMULATOR',terminal_reference:'',bridge_url:'',secret_env_key:'',currency:'HUF',is_default:true});
  const scanRef=useRef<HTMLInputElement|null>(null);
  useEffect(()=>{void(async()=>{try{const r=await api.get('/transactions/workorder-editor/options');const ls=Array.isArray(r.data?.locations)?r.data.locations:[];setLocations(ls);setLocationId(String(r.data?.location?.id||r.data?.scope?.location_id||ls[0]?.id||''))}catch{}})()},[]);
- async function reload(){if(!locationId)return;try{const[p,t]=await Promise.all([api.get('/vir/device-control/rfid/presence',{params:{location_id:locationId}}),api.get('/vir/device-control/payment-terminals',{params:{location_id:locationId}})]);setPresence(Array.isArray(p.data)?p.data:[]);setTerminals(Array.isArray(t.data)?t.data:[])}catch(e:any){setMessage(e?.response?.data?.message||'Az eszközadatok nem tölthetők be.')}}
- useEffect(()=>{void reload()},[locationId]);
- useEffect(()=>{const id=window.setInterval(()=>{if(!document.hidden)void reload()},30000);return()=>window.clearInterval(id)},[locationId]);
+ const reload=useCallback(async()=>{if(!locationId)return;try{const[p,t]=await Promise.all([api.get('/vir/device-control/rfid/presence',{params:{location_id:locationId}}),api.get('/vir/device-control/payment-terminals',{params:{location_id:locationId}})]);setPresence(Array.isArray(p.data)?p.data:[]);setTerminals(Array.isArray(t.data)?t.data:[])}catch(e:any){setMessage(e?.response?.data?.message||'Az eszközadatok nem tölthetők be.')}},[locationId]);
+ useEffect(()=>{void reload()},[reload]);
+ useEffect(()=>{const id=window.setInterval(()=>{if(!document.hidden)void reload()},30000);return()=>window.clearInterval(id)},[reload]);
  const presentCount=useMemo(()=>presence.filter(x=>x.present).length,[presence]);
  async function processScan(){const uid=scan.trim();if(!uid||!locationId)return;setBusy(true);setMessage('RFID feldolgozás…');try{if(scanMode==='assign'){if(!assignEmployee)throw new Error('Válassza ki, melyik munkatárshoz rendeli a kártyát.');const r=await api.post('/vir/device-control/rfid/cards',{location_id:locationId,employee_id:assignEmployee,uid,label:'Recepciós RFID'});setMessage(`${r.data?.full_name||'Munkatárs'} RFID-kártyája hozzárendelve.`);setScanMode('attendance')}else{const r=await api.post('/vir/device-control/rfid/scan',{location_id:locationId,uid});const action=r.data?.event_type==='CHECK_IN'?'beléptetve':r.data?.event_type==='CHECK_OUT'?'kiléptetve':'azonosítva';setMessage(`${r.data?.employee?.full_name||'Munkatárs'} ${action}.`)}setScan('');await reload()}catch(e:any){setMessage(e?.response?.data?.message||e?.message||'Az RFID művelet nem sikerült.')}finally{setBusy(false);window.setTimeout(()=>scanRef.current?.focus(),50)}}
  async function saveTerminal(){if(!locationId)return;setTerminalBusy(true);setTerminalMessage('Terminálbeállítás mentése…');try{const r=await api.post('/vir/device-control/payment-terminals',{...form,location_id:locationId});setTerminalMessage(`${r.data?.name||'Terminál'} beállítva (${r.data?.adapter_type}).`);await reload()}catch(e:any){setTerminalMessage(e?.response?.data?.message||e?.message||'A terminál nem állítható be.')}finally{setTerminalBusy(false)}}

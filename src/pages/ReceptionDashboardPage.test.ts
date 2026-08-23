@@ -9,7 +9,7 @@ const calendarCss = fs.readFileSync(path.join(__dirname, "OperationalCalendarBoa
 test("receptionist dashboard is calendar-first when calendar visibility is enabled", () => {
   expect(reception).toContain('AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}');
   expect(reception).toContain("showCalendar&&<AppointmentsCalendarCore");
-  expect(reception).not.toContain("DashboardDailyOperations");
+  expect(reception).toContain("DashboardDailyOperations");
   expect(reception).toContain("Recepciós irányítópult");
   expect(reception).toContain("Napi munka");
 });
@@ -34,7 +34,7 @@ test("embedded receptionist day view uses one full visible width per day and hor
 });
 
 test("receptionist does not inherit the generic work-order dashboard wrapper", () => {
-  expect(roleDashboard).toContain("if(receptionist)return <ReceptionDashboardPage/>");
+  expect(roleDashboard).toContain("if(receptionist||locationOperator)return <ReceptionDashboardPage/>");
   expect(roleDashboard).not.toContain("<WithWorkOrders><ReceptionDashboardPage");
 });
 
