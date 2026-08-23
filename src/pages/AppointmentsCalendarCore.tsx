@@ -307,7 +307,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   const serviceColors = useMemo(() => {
     const keys = DEPARTMENTS;
     return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]]));
-  }, [appointments]);
+  }, []);
 
   const normalizedSearch = search.trim().toLocaleLowerCase("hu-HU");
   const visibleEmployees = useMemo(() => {
