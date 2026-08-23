@@ -129,32 +129,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const verifySession = async (body: LoginResponse): Promise<LoginResponse> => {
-    try {
-      const sessionCheck = await api.get<LoginResponse>("/me");
-      const verified = sessionCheck.data || {};
-      if (verified.ok === false || !verified.user) throw new Error("SESSION_VERIFICATION_FAILED");
-      return verified;
-    } catch (cookieError) {
-      // Safari/ITP and hardened browsers can reject the auth cookie because the
-      // frontend and API use different Render origins. The API already returns
-      // the same short-lived JWT and accepts Authorization: Bearer. Keep that JWT
-      // in sessionStorage only, then verify /me again through the bearer channel.
-      const token = String(body.token || "").trim();
-      if (!token) throw cookieError;
-      setSessionBearerToken(token);
-      try {
-        const fallbackCheck = await api.get<LoginResponse>("/me");
-        const verified = fallbackCheck.data || {};
-        if (verified.ok === false || !verified.user) throw new Error("BEARER_SESSION_VERIFICATION_FAILED");
-        return verified;
-      } catch (fallbackError) {
-        setSessionBearerToken("");
-        throw fallbackError;
-      }
-    }
-  };
-
   const handleLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
@@ -164,7 +138,6 @@ const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
-    let credentialsAccepted = false;
     setSessionBearerToken("");
     try {
       const response = await api.post<LoginResponse>("/login", {
@@ -176,39 +149,52 @@ const LoginPage: React.FC = () => {
         setError(body.error || t("login.unexpected"));
         return;
       }
-      credentialsAccepted = true;
 
-      const verified = await verifySession(body);
-      const verifiedUser = verified.user!;
-      persistAuthAndGoHome({
-        ...body,
-        user: { ...(body.user || {}), ...verifiedUser },
-        role: verifiedUser.role ?? body.role,
-        location_id: verifiedUser.location_id ?? body.location_id,
-        location_name: verifiedUser.location_name ?? body.location_name,
-        full_name: verifiedUser.full_name ?? body.full_name,
-        email: verifiedUser.email ?? body.email,
-      });
+      // The login endpoint has already validated the credentials and signs the
+      // returned JWT server-side. Keep it only for the current tab. This makes
+      // authentication independent of Safari ITP blocking the cross-site cookie
+      // between the two Render hosts.
+      const token = String(body.token || "").trim();
+      if (token) setSessionBearerToken(token);
+
+      // Enrich the login response when /me is available. If Safari blocks the
+      // cookie path or a preflight/readback is delayed, do not reject an already
+      // authenticated login: subsequent API requests use the signed Bearer JWT.
+      let merged: LoginResponse = body;
+      try {
+        const sessionCheck = await api.get<LoginResponse>("/me");
+        const verified = sessionCheck.data || {};
+        if (verified.user) {
+          const verifiedUser = verified.user;
+          merged = {
+            ...body,
+            user: { ...(body.user || {}), ...verifiedUser },
+            role: verifiedUser.role ?? body.role,
+            location_id: verifiedUser.location_id ?? body.location_id,
+            location_name: verifiedUser.location_name ?? body.location_name,
+            full_name: verifiedUser.full_name ?? body.full_name,
+            email: verifiedUser.email ?? body.email,
+          };
+        }
+      } catch (sessionError) {
+        if (!token) throw sessionError;
+        console.warn("Safari/session readback unavailable; continuing with signed Bearer session.");
+      }
+
+      persistAuthAndGoHome(merged);
     } catch (err: any) {
       console.error("Login error:", err);
       const status = err?.response?.status;
       const body = err?.response?.data as LoginResponse | undefined;
-      if (credentialsAccepted) {
-        setError(
-          language === "en"
-            ? "Sign-in was accepted, but the browser session could not be established. Please try again."
-            : "A belépési adatok helyesek, de a böngészős munkamenet nem hozható létre. Kérjük, próbáld újra.",
-        );
-      } else {
-        setError(
-          body?.error ||
-            (status
-              ? language === "en"
-                ? `Sign-in failed (HTTP ${status}).`
-                : `Sikertelen belépés (HTTP ${status}).`
-              : t("login.unexpected")),
-        );
-      }
+      setSessionBearerToken("");
+      setError(
+        body?.error ||
+          (status
+            ? language === "en"
+              ? `Sign-in failed (HTTP ${status}).`
+              : `Sikertelen belépés (HTTP ${status}).`
+            : t("login.unexpected")),
+      );
     } finally {
       setLoading(false);
     }
