@@ -1,11 +1,8 @@
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
-
-// Browser authentication is cookie-only. This dedicated storage marker is only
-// a synchronous UI routing hint and deliberately lives outside the legacy token
-// keys so old components can never mistake it for a Bearer credential.
 export const COOKIE_SESSION_KEY = "kleo_cookie_session";
 export const COOKIE_SESSION_MARKER = "active";
+export const SESSION_BEARER_KEY = "kleo_session_bearer";
 
 const LOCAL_AUTH_KEYS = [
   "token",
@@ -24,6 +21,7 @@ const LOCAL_AUTH_KEYS = [
 const SESSION_AUTH_KEYS = [
   "token",
   "kleo_token",
+  SESSION_BEARER_KEY,
   COOKIE_SESSION_KEY,
   "kleo_role",
   "kleo_location_id",
@@ -43,27 +41,38 @@ function logoutEndpoint(): string {
   return `${window.location.origin.replace(/\/$/, "")}/api/logout`;
 }
 
+export function setSessionBearerToken(token: string): void {
+  try {
+    const value = String(token || "").trim();
+    if (value) sessionStorage.setItem(SESSION_BEARER_KEY, value);
+    else sessionStorage.removeItem(SESSION_BEARER_KEY);
+  } catch {}
+}
+
+export function getSessionBearerToken(): string {
+  try {
+    return String(sessionStorage.getItem(SESSION_BEARER_KEY) || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 export function markAuthenticatedSession(): void {
   try {
-    // /api/me and the HttpOnly cookie are authoritative. Remove every legacy
-    // browser-readable token key, then retain only the isolated non-token marker.
     localStorage.removeItem("token");
     localStorage.removeItem("kleo_token");
     localStorage.setItem(COOKIE_SESSION_KEY, COOKIE_SESSION_MARKER);
     sessionStorage.removeItem("token");
     sessionStorage.removeItem("kleo_token");
     sessionStorage.removeItem(COOKIE_SESSION_KEY);
-  } catch {
-    // Storage is optional. Cookie authentication remains authoritative.
-  }
+  } catch {}
 }
 
 export function hasStoredAuthToken(): boolean {
   try {
-    // The dedicated marker is the normal path. Legacy JWT keys are accepted only
-    // as a temporary routing hint so /api/me can migrate an older live session.
     return Boolean(
       localStorage.getItem(COOKIE_SESSION_KEY) ||
+      getSessionBearerToken() ||
       localStorage.getItem("kleo_token") ||
       localStorage.getItem("token") ||
       sessionStorage.getItem("kleo_token") ||
@@ -77,10 +86,7 @@ export function hasStoredAuthToken(): boolean {
 export function markSessionActivity(at = Date.now()): number {
   try {
     localStorage.setItem(LAST_ACTIVITY_KEY, String(at));
-  } catch {
-    // Storage can be unavailable in restricted browser contexts; the caller's
-    // in-memory timer still protects the active tab.
-  }
+  } catch {}
   return at;
 }
 
@@ -95,41 +101,28 @@ export function getLastActivityAt(): number | null {
   }
 }
 
-/**
- * Clears only browser-readable routing/UI session state.
- *
- * IMPORTANT: authentication failures from /api/me must use this function rather
- * than POST /logout. A delayed keepalive logout from a failed/stale session can
- * otherwise arrive after a new successful login and delete the fresh HttpOnly
- * cookie, producing a rapid login -> dashboard -> login flicker loop.
- */
 export function clearLocalAuthenticatedSession(): void {
   try {
     LOCAL_AUTH_KEYS.forEach((key) => localStorage.removeItem(key));
-  } catch {
-    // Ignore storage failures; the server-side cookie remains authoritative.
-  }
+  } catch {}
   try {
     SESSION_AUTH_KEYS.forEach((key) => sessionStorage.removeItem(key));
-  } catch {
-    // Do not clear unrelated session state owned by other application features.
-  }
+  } catch {}
 }
 
-/**
- * Explicit user/idle logout. This is intentionally separate from local cleanup:
- * only an actual logout action is allowed to invalidate the HttpOnly cookie.
- */
 export function clearAuthenticatedSession(): void {
+  const bearer = getSessionBearerToken();
   clearLocalAuthenticatedSession();
 
   if (typeof fetch === "function") {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     void fetch(logoutEndpoint(), {
       method: "POST",
       credentials: "include",
       cache: "no-store",
       keepalive: true,
-      headers: { "Content-Type": "application/json" },
+      headers,
     }).catch(() => undefined);
   }
 }
