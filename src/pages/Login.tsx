@@ -9,11 +9,12 @@ import CopyrightNotice from "../components/CopyrightNotice";
 import { useLanguage } from "../i18n/LanguageProvider";
 import api from "../api/api";
 import { invalidateCurrentUserCache } from "../hooks/useCurrentUser";
-import { markAuthenticatedSession } from "../utils/authSession";
+import { markAuthenticatedSession, setSessionBearerToken } from "../utils/authSession";
 
 type LoginResponse = {
   success?: boolean;
   ok?: boolean;
+  token?: string;
   role?: any;
   account_type?: "customer" | "staff" | "admin" | string;
   location_id?: string | number | null;
@@ -97,9 +98,6 @@ const LoginPage: React.FC = () => {
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
-      // /api/me has already verified the freshly issued HttpOnly cookie at this
-      // point. Invalidate every previous-session user cache before exposing the
-      // routing marker and navigating to the authenticated application shell.
       invalidateCurrentUserCache();
       markAuthenticatedSession();
       const user = body.user || {};
@@ -131,6 +129,32 @@ const LoginPage: React.FC = () => {
     }
   };
 
+  const verifySession = async (body: LoginResponse): Promise<LoginResponse> => {
+    try {
+      const sessionCheck = await api.get<LoginResponse>("/me");
+      const verified = sessionCheck.data || {};
+      if (verified.ok === false || !verified.user) throw new Error("SESSION_VERIFICATION_FAILED");
+      return verified;
+    } catch (cookieError) {
+      // Safari/ITP and hardened browsers can reject the auth cookie because the
+      // frontend and API use different Render origins. The API already returns
+      // the same short-lived JWT and accepts Authorization: Bearer. Keep that JWT
+      // in sessionStorage only, then verify /me again through the bearer channel.
+      const token = String(body.token || "").trim();
+      if (!token) throw cookieError;
+      setSessionBearerToken(token);
+      try {
+        const fallbackCheck = await api.get<LoginResponse>("/me");
+        const verified = fallbackCheck.data || {};
+        if (verified.ok === false || !verified.user) throw new Error("BEARER_SESSION_VERIFICATION_FAILED");
+        return verified;
+      } catch (fallbackError) {
+        setSessionBearerToken("");
+        throw fallbackError;
+      }
+    }
+  };
+
   const handleLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
@@ -141,6 +165,7 @@ const LoginPage: React.FC = () => {
 
     setLoading(true);
     let credentialsAccepted = false;
+    setSessionBearerToken("");
     try {
       const response = await api.post<LoginResponse>("/login", {
         identifier: identifier.trim(),
@@ -153,16 +178,8 @@ const LoginPage: React.FC = () => {
       }
       credentialsAccepted = true;
 
-      // Keep the protected readback a simple credentialed GET. Adding custom
-      // request headers here triggers a CORS preflight and can block sign-in
-      // before /api/me is even sent by the browser.
-      const sessionCheck = await api.get<LoginResponse>("/me");
-      const verified = sessionCheck.data || {};
-      if (verified.ok === false || !verified.user) {
-        throw new Error("SESSION_VERIFICATION_FAILED");
-      }
-
-      const verifiedUser = verified.user;
+      const verified = await verifySession(body);
+      const verifiedUser = verified.user!;
       persistAuthAndGoHome({
         ...body,
         user: { ...(body.user || {}), ...verifiedUser },
@@ -179,8 +196,8 @@ const LoginPage: React.FC = () => {
       if (credentialsAccepted) {
         setError(
           language === "en"
-            ? "Sign-in was accepted, but the secure browser session could not be verified. Please try again."
-            : "A belépési adatok helyesek, de a biztonságos böngészős munkamenet nem ellenőrizhető. Kérjük, próbáld újra.",
+            ? "Sign-in was accepted, but the browser session could not be established. Please try again."
+            : "A belépési adatok helyesek, de a böngészős munkamenet nem hozható létre. Kérjük, próbáld újra.",
         );
       } else {
         setError(
