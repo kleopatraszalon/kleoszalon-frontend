@@ -115,7 +115,7 @@ export function AppointmentNewModal({ onSaved, onClose, initialEmployeeId, initi
     if (!locationId) { setError("Az új vendég felvétele előtt válasszon telephelyet."); return; }
     setClientSaving(true); setError(null);
     try {
-      const result = await apiFetch<{ id: string }>("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newClient, name, full_name: name, phone: phone || null, email: email || null, birth_date: newClient.birth_date || null, location_id: locationId, source: "appointment" }) });
+      const result = await fetchJSON<{ id: string }>("/api/clients", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...newClient, name, full_name: name, phone: phone || null, email: email || null, birth_date: newClient.birth_date || null, location_id: locationId, source: "appointment" }) });
       const created: PickerItem = { id: String(result.id), name, full_name: name, phone: phone || null, email: email || null, location_id: locationId };
       setClients((current) => [created, ...current.filter((client) => client.id !== created.id)]);
       setClientId(created.id); setClientQuery(name); setNewClientOpen(false);
