@@ -3,13 +3,14 @@ import path from "path";
 
 const read = (p: string) => fs.readFileSync(path.join(process.cwd(), p), "utf8");
 
-test("all legacy frontend API imports converge on the canonical cookie-auth client", () => {
+test("all legacy frontend API imports converge on the canonical session-aware client", () => {
   const legacy = read("src/api.ts");
   const canonical = read("src/api/api.ts");
   expect(legacy).toMatch(/export \{ default \} from "\.\/api\/api"/);
   expect(canonical).toMatch(/const baseURL = apiOrigin \? `\$\{apiOrigin\}\/api` : "\/api"/);
   expect(canonical).toMatch(/withCredentials:\s*true/);
-  expect(canonical).not.toMatch(/Authorization\s*=\s*`Bearer/);
+  expect(canonical).toContain("getSessionBearerToken");
+  expect(canonical).toMatch(/Authorization\s*=\s*`Bearer/);
   expect(canonical).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
 });
 
