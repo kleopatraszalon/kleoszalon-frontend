@@ -35,12 +35,13 @@ describe("browser session security contract", () => {
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
-  test("current user bootstrap remains cookie-authoritative", () => {
+  test("current user bootstrap prefers cookies and supports Safari session-only bearer fallback", () => {
     const source = read("hooks/useCurrentUser.ts");
     expect(source).toMatch(/credentials:\s*["']include["']/);
     expect(source).toContain("markAuthenticatedSession()");
+    expect(source).toContain("getSessionBearerToken");
+    expect(source).toContain("headers.Authorization = `Bearer ${bearer}`");
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
-    expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
   test("management dashboard never gates a session on legacy bearer keys", () => {
