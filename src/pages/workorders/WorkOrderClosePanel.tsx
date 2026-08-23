@@ -34,11 +34,12 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
   return res.json();
  };
  const downloadPdf=async()=>{
-  if(!effectiveLocked)return setDocumentError('A PDF a munkalap végleges lezárása és archiválása után tölthető le.');
+  if(!effectiveLocked&&!canFinalize)return setDocumentError('A PDF csak teljesen kifizetett, lezárásra kész munkalapból készíthető el.');
   const id=workOrderIdFromPath();if(!id)return setDocumentError('A munkalap azonosítója nem állapítható meg.');
   setDocumentBusy(true);setDocumentNotice('');setDocumentError('');
   try{
    await ensureArchive(id);
+   if(!effectiveLocked)setLocalLocked(true);
    const res=await fetch(withBase(`/api/transactions/workorder-finalization/workorders/${encodeURIComponent(id)}/pdf`),{credentials:'include',headers:authHeaders()});
    if(!res.ok)throw new Error(await errorMessage(res));
    const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${workOrderNumber||'lezart-munkalap'}.pdf`;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setDocumentNotice('A lezárt munkalap PDF elkészült és letöltésre került.');
@@ -82,7 +83,7 @@ export default function WorkOrderClosePanel({ready,saving,workOrderNumber,financ
   {documentError&&<div className="wo-close__warning"><span><b>Dokumentumküldés:</b> {documentError}</span></div>}
   <div className="wo-close__actions">
    {!effectiveLocked&&<button type="button" disabled={!canFinalize||saving||documentBusy} onClick={handleFinalize}>{saving||documentBusy?'Lezárás folyamatban…':action}</button>}
-   <button type="button" disabled={!effectiveLocked||documentBusy} title={effectiveLocked?'Lezárt munkalap PDF letöltése':'Végleges lezárás után érhető el'} onClick={()=>void downloadPdf()}><Download size={16}/>{documentBusy&&effectiveLocked?'Feldolgozás…':'PDF letöltése'}</button>
+   <button type="button" disabled={(!effectiveLocked&&!canFinalize)||documentBusy} title={effectiveLocked?'Lezárt munkalap PDF letöltése':'Lezárás, archiválás és PDF letöltése'} onClick={()=>void downloadPdf()}><Download size={16}/>{documentBusy?'Feldolgozás…':'PDF letöltése'}</button>
    <button type="button" disabled={!effectiveLocked||documentBusy} title={effectiveLocked?'Lezárt munkalap PDF újraküldése e-mailben':'Végleges lezárás után érhető el'} onClick={()=>void resendEmail()}><Mail size={16}/>PDF újraküldése e-mailben</button>
   </div>
  </section>
