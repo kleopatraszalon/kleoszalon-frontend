@@ -7,6 +7,7 @@ const EmployeeDashboardPage=lazy(()=>import("./EmployeeDashboardPage"));
 const CustomerDashboardPage=lazy(()=>import("./CustomerDashboardPage"));
 const ReceptionDashboardPage=lazy(()=>import("./ReceptionDashboardPage"));
 const AccountingDashboardPage=lazy(()=>import("./AccountingDashboardPage"));
+const HrDashboardPage=lazy(()=>import("./HrDashboardPage"));
 const DashboardDailyOperations=lazy(()=>import("./dashboard/DashboardDailyOperations"));
 const WorkOrderDashboardPanel=lazy(()=>import("./dashboard/WorkOrderDashboardPanel"));
 const HrPayrollReadinessPanel=lazy(()=>import("./dashboard/HrPayrollReadinessPanel"));
@@ -24,12 +25,15 @@ export default function RoleDashboardPage(){
  const accounting=r.some(x=>["accounting","bookkeeper","konyveles","könyvelés"].includes(x));
  const customer=r.some(x=>["customer","client","guest","ugyfel","ügyfél","vendeg","vendég"].includes(x));
  const receptionist=r.some(x=>["receptionist","reception","recepciós","recepcios"].includes(x));
+ const hr=r.some(x=>["hr","hr_manager","human_resources","személyügy","szemelyugy"].includes(x));
+ const locationOperator=r.some(x=>["location_manager","üzletvezető","uzletvezeto","store_manager","branch_manager","szalonvezető","szalonvezeto","salon_manager"].includes(x));
  const payrollEligible=r.some(x=>["admin","administrator","rendszergazda","superadmin","super_admin","location_manager","üzletvezető","uzletvezeto","store_manager","branch_manager"].includes(x));
  const elevated=r.some(x=>["admin","administrator","rendszergazda","superadmin","super_admin","manager","vezető","vezeto","location_manager","üzletvezető","uzletvezeto","store_manager","branch_manager","szalonvezető","szalonvezeto","salon_manager"].includes(x));
  const staff=!elevated&&!customer&&!receptionist&&!accounting&&r.some(x=>["employee","staff","munkatárs","munkatars","professional","specialist"].includes(x));
  if(accounting)return <Suspense fallback={<Fallback/>}><AccountingDashboardPage/></Suspense>;
+ if(hr)return <Suspense fallback={<Fallback/>}><HrDashboardPage/></Suspense>;
  if(customer)return <WithWorkOrders><Suspense fallback={<Fallback/>}><CustomerDashboardPage/></Suspense></WithWorkOrders>;
- if(receptionist)return <ReceptionDashboardPage/>;
+ if(receptionist||locationOperator)return <ReceptionDashboardPage/>;
  if(staff)return <WithWorkOrders><Suspense fallback={<Fallback/>}><EmployeeDashboardPage/></Suspense></WithWorkOrders>;
  return <>
    {admin&&<Suspense fallback={null}><AdminProductSaleQuickAction/></Suspense>}

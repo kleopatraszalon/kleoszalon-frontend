@@ -47,6 +47,7 @@ export default function BookingConflictPanel({ employees, appointments, onOpenAp
     const conflicts: Conflict[] = [];
     let overtimeEmployees = 0;
     let shortTurnarounds = 0;
+    let optimizableGaps = 0;
 
     grouped.forEach((items) => {
       const sorted = [...items].sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
@@ -89,12 +90,21 @@ export default function BookingConflictPanel({ employees, appointments, onOpenAp
             detail: `Csak ${gap} perc marad a két vendég között.`,
             severity: "warning",
           });
+        } else if (gap >= 30 && gap <= 180) {
+          optimizableGaps += 1;
+          conflicts.push({
+            appointmentId: next.id,
+            employeeName,
+            label: "Optimalizálható üres idő",
+            detail: `${gap} perc üres idő van ${time(current.end_time)} és ${time(next.start_time)} között; az időpontok összerendezésével értékesíthető kapacitás szabadítható fel.`,
+            severity: "warning",
+          });
         }
       }
     });
 
     const criticalCount = conflicts.filter((item) => item.severity === "critical").length;
-    return { conflicts, criticalCount, overtimeEmployees, shortTurnarounds };
+    return { conflicts, criticalCount, overtimeEmployees, shortTurnarounds, optimizableGaps };
   }, [appointments, employees]);
 
   return (
@@ -102,8 +112,8 @@ export default function BookingConflictPanel({ employees, appointments, onOpenAp
       <header>
         <div>
           <span><AlertOctagon size={14}/> AUTOMATIKUS ÜTKÖZÉSVIZSGÁLAT</span>
-          <h2>Foglalási és munkaidő-kockázatok</h2>
-          <p>A rendszer átfedéseket, túlórát és túl rövid vendégváltási időt keres.</p>
+          <h2>Indokolatlan üres idő / optimalizálható időpontok</h2>
+          <p>A rendszer az átfedések mellett a foglalások összerendezésével felszabadítható, értékesíthető időt is keresi.</p>
         </div>
         <div className={analysis.criticalCount ? "booking-conflicts__score is-danger" : "booking-conflicts__score is-ok"}>
           {analysis.criticalCount ? <ClockAlert/> : <CheckCircle2/>}
@@ -115,7 +125,7 @@ export default function BookingConflictPanel({ employees, appointments, onOpenAp
       <div className="booking-conflicts__metrics">
         <article><AlertOctagon/><div><strong>{analysis.conflicts.length}</strong><span>összes jelzés</span></div></article>
         <article><Users/><div><strong>{analysis.overtimeEmployees}</strong><span>túlterhelt munkatárs</span></div></article>
-        <article><CalendarClock/><div><strong>{analysis.shortTurnarounds}</strong><span>rövid átállás</span></div></article>
+        <article><CalendarClock/><div><strong>{analysis.optimizableGaps}</strong><span>optimalizálható üres idő</span></div></article>
       </div>
 
       <div className="booking-conflicts__list">

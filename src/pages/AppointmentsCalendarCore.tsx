@@ -126,6 +126,15 @@ function appointmentServiceKey(item: Appointment) {
   return item.service_names?.find((name) => name?.trim())?.trim() || item.title?.trim() || "Általános szolgáltatás";
 }
 
+const DEPARTMENTS = ["Fodrászat", "Kéz- és lábápolás", "Kozmetika", "Masszázs"];
+function appointmentDepartment(item: Appointment) {
+  const value = [item.title, ...(item.service_names || [])].join(" ").toLocaleLowerCase("hu-HU");
+  if (/massz|massage/.test(value)) return "Masszázs";
+  if (/köröm|manik|pedik|kéz|láb|nail/.test(value)) return "Kéz- és lábápolás";
+  if (/kozmet|arc|szempilla|szemöldök|smink|wax|gyanta/.test(value)) return "Kozmetika";
+  return "Fodrászat";
+}
+
 function parseMode(raw: string | null | undefined): CalendarMode | null {
   if (raw === "days" || raw === "staff" || raw === "services") return raw;
   return null;
@@ -296,7 +305,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   );
 
   const serviceColors = useMemo(() => {
-    const keys = Array.from(new Set(appointments.map(appointmentServiceKey))).sort((a, b) => a.localeCompare(b, "hu"));
+    const keys = DEPARTMENTS;
     return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]]));
   }, [appointments]);
 
@@ -347,7 +356,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
     return serviceKeys.map((serviceKey) => ({
       id: serviceKey,
       title: serviceKey,
-      subtitle: "Szolgáltatás",
+      subtitle: "Részleg",
       date: anchorDate,
       serviceKey,
     }));
@@ -359,7 +368,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
       const itemDate = isoDate(new Date(item.start_time));
       if (itemDate !== column.date) return false;
       if (mode === "staff") return String(item.employee_id || "") === String(column.employeeId || "");
-      if (mode === "services") return appointmentServiceKey(item) === column.serviceKey;
+      if (mode === "services") return appointmentDepartment(item) === column.serviceKey;
       return true;
     });
   }, [appointments, displayedAppointments, mode]);
@@ -419,8 +428,8 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
       setError("Lezárt munkalaphoz tartozó időpont nem helyezhető át.");
       return;
     }
-    if (mode === "services" && appointmentServiceKey(item) !== column.serviceKey) {
-      setError("Szolgáltatás-oszlopok között húzással nem módosítható a szolgáltatás. Nyisd meg az időpontot vagy a munkalapot a szolgáltatás cseréjéhez.");
+    if (mode === "services" && appointmentDepartment(item) !== column.serviceKey) {
+      setError("Részlegek között húzással nem módosítható a szolgáltatás. Nyisd meg az időpontot vagy a munkalapot a szolgáltatás cseréjéhez.");
       return;
     }
 
@@ -510,7 +519,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
           <div className="modern-calendar-heading">
             <span className="modern-calendar-kicker"><Sparkles size={14}/> Naptár és digitális beosztás</span>
             <h1>Időpontnaptár</h1>
-            <p>Napok, munkatársak vagy szolgáltatások szerint rendezhető, licencfüggetlen operatív naptár.</p>
+            <p>Napok, munkatársak vagy részlegek szerint rendezhető operatív naptár.</p>
           </div>
           <button className="modern-primary-button" onClick={() => openNewAppointment()}>
             <Plus size={18}/> Új időpont
@@ -573,7 +582,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
               <Users size={15}/> Dolgozók szerint
             </button>
             <button className={mode === "services" ? "active" : ""} onClick={() => changeMode("services")}>
-              <LayoutGrid size={15}/> Szolgáltatások szerint
+              <LayoutGrid size={15}/> Részlegek szerint
             </button>
             {!embedded && (
               <button onClick={() => navigate("/modules/appointments/list")}>
@@ -638,7 +647,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                       const clippedStart = Math.max(START_MINUTES, startMinutes);
                       const clippedEnd = Math.min(END_MINUTES, endMinutes);
                       const serviceLabel = appointmentServiceKey(item);
-                      const palette = serviceColors.get(serviceLabel) || SERVICE_PALETTE[0];
+                      const palette = serviceColors.get(appointmentDepartment(item)) || SERVICE_PALETTE[0];
                       const left = (lane / lanes) * 100;
                       const width = 100 / lanes;
                       const employee = item.employee_id ? employeeById.get(String(item.employee_id)) : "";
