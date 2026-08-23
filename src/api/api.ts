@@ -1,5 +1,6 @@
 import axios from "axios";
 import { idempotencyKeyFor } from "../utils/financialIdempotency";
+import { getSessionBearerToken } from "../utils/authSession";
 
 function norm(v?: string) {
   return (v ?? "")
@@ -78,20 +79,27 @@ function sleep(ms:number){return new Promise(resolve=>setTimeout(resolve,ms));}
 
 const api = axios.create({
   baseURL,
-  // Browser authentication is cookie-only. HttpOnly cookies are attached by
-  // the browser and are never readable by application JavaScript.
   withCredentials: true,
   headers: { "Content-Type": "application/json" },
 });
 
 api.interceptors.request.use((config) => {
-  // A canonical kliens baseURL-je már /api-ra végződik. Több régi komponens még
-  // /api/... alakú útvonalat ad át; ezt itt központilag normalizáljuk, hogy soha
-  // ne keletkezzen /api/api/... 404. Abszolút URL-hez nem nyúlunk.
   const requestUrl=String(config.url||"");
   const configuredBase=String(config.baseURL||"");
   if(!/^https?:\/\//i.test(requestUrl)&&/\/api\/?$/i.test(configuredBase)&&/^\/api(?:\/|$)/i.test(requestUrl)){
     config.url=requestUrl.replace(/^\/api(?=\/|$)/i,"")||"/";
+  }
+
+  // Safari/ITP and other privacy modes may block the cross-site Render cookie.
+  // In that case Login stores the freshly issued JWT only in sessionStorage.
+  // Attach it as Bearer for this tab; never persist it in localStorage.
+  const normalizedUrl=String(config.url||"");
+  if(!/\/login(?:\?|$)/i.test(normalizedUrl)){
+    const bearer=getSessionBearerToken();
+    if(bearer&&!config.headers?.Authorization){
+      config.headers=config.headers||{};
+      config.headers.Authorization=`Bearer ${bearer}`;
+    }
   }
 
   const idempotencyKey=idempotencyKeyFor(`${String(config.baseURL||"")}${String(config.url||"")}`,config.method);
@@ -100,9 +108,6 @@ api.interceptors.request.use((config) => {
     config.headers["Idempotency-Key"]=idempotencyKey;
   }
 
-  // A Voice Booking eredete akkor sem veszhet el, ha a vendég a felismerés után
-  // kézzel korrigál szalont, szolgáltatást, szakembert vagy időpontot.
-  // Csak a publikus foglalóoldal következő végső book/waitlist műveletéhez kötjük.
   const url=urlOf(config);
   if(isPublicBookingPage()&&isFinalPublicBookingUrl(url)){
     const origin=readVoiceOrigin();
@@ -126,12 +131,9 @@ api.interceptors.response.use(
   },
   async (error) => {
     if (error?.response?.status === 401) {
-      console.warn("API 401: a HttpOnly cookie munkamenet lejárt vagy hiányzik.");
+      console.warn("API 401: a böngészős munkamenet lejárt vagy hiányzik.");
     }
 
-    // Olvasási kérésnél átmeneti hálózati/edge hiba után kontrolláltan újrapróbálunk.
-    // Írási műveletet itt szándékosan nem ismétlünk: azoknál az Idempotency-Key a
-    // szerveroldali biztonsági garancia, a felhasználó pedig explicit folytathatja.
     if(isRetryableReadFailure(error)&&error?.config){
       const config=error.config as typeof error.config&RetryableConfig;
       const now=Date.now();
