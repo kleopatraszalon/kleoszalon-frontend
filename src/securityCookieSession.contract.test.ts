@@ -1,40 +1,41 @@
 import fs from "fs";
 import path from "path";
 
-describe("browser cookie-session security contract", () => {
+describe("browser session security contract", () => {
   const read = (relative: string) => fs.readFileSync(path.join(__dirname, relative), "utf8");
 
-  test("login never persists response JWT credentials", () => {
+  test("login keeps fallback JWT out of localStorage", () => {
     const source = read("pages/Login.tsx");
     expect(source).toContain("markAuthenticatedSession()");
-    expect(source).not.toMatch(/body\.(?:token|refresh_token)/);
-    expect(source).not.toMatch(/localStorage\.setItem\(\s*["'](?:token|kleo_token)["']\s*,\s*body\./);
+    expect(source).toContain("setSessionBearerToken");
+    expect(source).not.toMatch(/localStorage\.setItem\(\s*["'](?:token|kleo_token)["']/);
   });
 
-  test("login verifies the newly issued cookie before authenticated navigation", () => {
+  test("login attempts /me readback and can continue with signed session token on Safari", () => {
     const source = read("pages/Login.tsx");
     expect(source).toContain('api.get<LoginResponse>("/me")');
-    expect(source).toContain("credentialsAccepted = true");
     expect(source).toContain("invalidateCurrentUserCache()");
-    expect(source.indexOf('api.get<LoginResponse>("/me")')).toBeLessThan(source.indexOf("persistAuthAndGoHome({"));
+    expect(source).toContain("setSessionBearerToken(token)");
+    expect(source).toContain("persistAuthAndGoHome(merged)");
     expect(source).not.toMatch(/api\.get<LoginResponse>\(\s*["']\/me["']\s*,\s*\{[^}]*Cache-Control/s);
   });
 
-  test("canonical axios client authenticates only with cookies", () => {
+  test("canonical axios client prefers cookies and supports session-only bearer fallback", () => {
     const source = read("api/api.ts");
     expect(source).toMatch(/withCredentials:\s*true/);
+    expect(source).toContain("getSessionBearerToken");
+    expect(source).toMatch(/Authorization\s*=\s*`Bearer/);
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
-    expect(source).not.toMatch(/Authorization\s*=\s*`Bearer/);
   });
 
-  test("canonical fetch client always includes cookies and emits no bearer header", () => {
+  test("canonical fetch client always includes cookies and emits no legacy bearer header", () => {
     const source = read("utils/fetch.ts");
     expect(source).toMatch(/credentials:\s*["']include["']/);
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
-  test("current user bootstrap is cookie-authoritative", () => {
+  test("current user bootstrap remains cookie-authoritative", () => {
     const source = read("hooks/useCurrentUser.ts");
     expect(source).toMatch(/credentials:\s*["']include["']/);
     expect(source).toContain("markAuthenticatedSession()");
@@ -42,7 +43,7 @@ describe("browser cookie-session security contract", () => {
     expect(source).not.toMatch(/Authorization\s*:\s*`Bearer/);
   });
 
-  test("management dashboard never gates a cookie session on legacy bearer keys", () => {
+  test("management dashboard never gates a session on legacy bearer keys", () => {
     const source = read("pages/Home.tsx");
     expect(source).toContain('import { clearLocalAuthenticatedSession } from "../utils/authSession"');
     expect(source).toContain("clearLocalAuthenticatedSession()");
@@ -62,19 +63,22 @@ describe("browser cookie-session security contract", () => {
     expect(session).toContain("clearLocalAuthenticatedSession();");
   });
 
-  test("session marker is isolated from every legacy bearer token key", () => {
+  test("session markers and Safari fallback are isolated from legacy bearer token keys", () => {
     const source = read("utils/authSession.ts");
     expect(source).toContain('COOKIE_SESSION_KEY = "kleo_cookie_session"');
     expect(source).toContain('COOKIE_SESSION_MARKER = "active"');
+    expect(source).toContain('SESSION_BEARER_KEY = "kleo_session_bearer"');
     expect(source).toContain('localStorage.removeItem("token")');
     expect(source).toContain('localStorage.removeItem("kleo_token")');
+    expect(source).toContain("sessionStorage.setItem(SESSION_BEARER_KEY, value)");
     expect(source).toContain("localStorage.setItem(COOKIE_SESSION_KEY, COOKIE_SESSION_MARKER)");
     expect(source).not.toMatch(/localStorage\.setItem\(\s*["']kleo_token["']/);
+    expect(source).not.toMatch(/localStorage\.setItem\(\s*SESSION_BEARER_KEY/);
     expect(source).not.toContain('COOKIE_SESSION_MARKER = "cookie-session"');
     expect(source).toMatch(/credentials:\s*["']include["']/);
   });
 
-  test("application router guards use the cookie-session routing helper", () => {
+  test("application router guards use the shared session routing helper", () => {
     const source = read("App.tsx");
     expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
@@ -82,7 +86,7 @@ describe("browser cookie-session security contract", () => {
     expect((source.match(/hasStoredAuthToken\(\)/g) || []).length).toBeGreaterThanOrEqual(4);
   });
 
-  test("private route uses the cookie-session routing helper", () => {
+  test("private route uses the shared session routing helper", () => {
     const source = read("PrivateRoute.tsx");
     expect(source).toContain("hasStoredAuthToken");
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["']kleo_token["']/);
