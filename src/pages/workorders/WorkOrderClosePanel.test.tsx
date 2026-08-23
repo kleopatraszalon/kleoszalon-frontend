@@ -18,6 +18,12 @@ test('PDF and email actions become enabled after archive lock',()=>{
   expect(screen.getByRole('button',{name:/PDF újraküldése e-mailben/i})).toBeEnabled();
 });
 
+test('a lezárásra kész munkalap PDF gombja automatikus lezárással használható',()=>{
+  render(<WorkOrderClosePanel ready={true} onFinalize={()=>undefined}/>);
+  expect(screen.getByRole('button',{name:/PDF letöltése/i})).toBeEnabled();
+  expect(screen.getByRole('button',{name:/PDF újraküldése e-mailben/i})).toBeDisabled();
+});
+
 test('document actions self-heal the archive through idempotent finalization',()=>{
   const source=require('fs').readFileSync(require('path').join(__dirname,'WorkOrderClosePanel.tsx'),'utf8');
   expect(source).toMatch(/await ensureArchive\(id\);[\s\S]*\/pdf/);
