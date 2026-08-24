@@ -36,6 +36,7 @@ type Appointment = {
   status?: string | null;
   operational_status?: string | null;
   service_names?: string[] | null;
+  created_at?: string | null;
 };
 
 type CalendarMode = "days" | "staff" | "services";
@@ -101,6 +102,15 @@ function isoDate(value: Date) {
   const m = String(value.getMonth() + 1).padStart(2, "0");
   const d = String(value.getDate()).padStart(2, "0");
   return `${y}-${m}-${d}`;
+}
+
+function formatCreatedAt(value?: string | null) {
+  if (!value) return "Felvétel ideje nem elérhető";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Felvétel ideje nem elérhető";
+  return `Felvéve: ${new Intl.DateTimeFormat("hu-HU", {
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit",
+  }).format(date)}`;
 }
 
 function validIsoDate(value?: string | null) {
@@ -696,6 +706,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                             <small>{serviceLabel}</small>
                             {mode !== "staff" && employee && <small>{employee}</small>}
                           </div>
+                          <small className="operational-event-created">{formatCreatedAt(item.created_at)}</small>
                         </button>
                       );
                     })}
