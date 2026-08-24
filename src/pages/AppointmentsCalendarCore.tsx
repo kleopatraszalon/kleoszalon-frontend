@@ -346,7 +346,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
 
   const serviceKeys = useMemo(() => {
     const found = new Set(appointments.map(appointmentDepartment));
-    const keys = [...DEPARTMENTS.filter((key) => found.has(key)), ...Array.from(found).filter((key) => !DEPARTMENTS.includes(key))];
+    const keys = [...DEPARTMENTS.filter((key) => found.has(key)), ...Array.from(found).filter((key) => !(DEPARTMENTS as readonly string[]).includes(key))];
     if (mode !== "services" || !normalizedSearch) return keys;
     return keys.filter((key) => key.toLocaleLowerCase("hu-HU").includes(normalizedSearch));
   }, [appointments, mode, normalizedSearch]);
