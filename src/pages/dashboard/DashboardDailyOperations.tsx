@@ -11,7 +11,8 @@ function today(){const d=new Date();return `${d.getFullYear()}-${String(d.getMon
 export default function DashboardDailyOperations(){
  const{user}=useCurrentUser() as any;
  const[appointments,setAppointments]=useState<BookingOperationAppointment[]>([]);
- const[employeeCount,setEmployeeCount]=useState(0);\n const[scheduledMinutes,setScheduledMinutes]=useState<number|null>(null);
+ const[employeeCount,setEmployeeCount]=useState(0);
+ const[scheduledMinutes,setScheduledMinutes]=useState<number|null>(null);
  const[loading,setLoading]=useState(true);
  const[error,setError]=useState("");
  const[dailyTarget,setDailyTarget]=useState<number|null>(null);
