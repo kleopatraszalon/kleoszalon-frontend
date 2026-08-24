@@ -51,6 +51,9 @@ function IdleAiHelpChat({pageTitle}:{pageTitle:string}){
 
 const pageNames: Record<string, string> = {
   "/": "Irányítópult", "/employees": "Munkatársak", "/appointments": "Időpontok",
+  "/appointments/calendar": "Naptár", "/appointments/new": "Új időpont", "/appointments/list": "Időpontok listája",
+  "/modules/appointments/list": "Időpontok listája", "/modules/customers/clients": "Vendégek", "/workorders": "Munkalap / elszámolás",
+  "/finance/product-sale": "Új értékesítés", "/finance/cashier": "Pénztár",
   "/finance": "Pénzügy", "/warehouse": "Raktár és készlet", "/services": "Szolgáltatások",
   "/warehouse/lots": "Sarzs és lejárat (FEFO)",
   "/masterdata/services": "Szolgáltatási törzs", "/masterdata/products": "Termékek", "/products": "Termékek", "/warehouse/products": "Termékek",
