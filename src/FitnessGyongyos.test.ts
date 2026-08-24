@@ -15,10 +15,10 @@ describe('Gyöngyös Fitness wiring',()=>{
     expect(sidebar).toContain('/vir/fitness/access');
   });
 
-  test('reception shortcut is shown only after the Fitness access endpoint allows it',()=>{
-    expect(reception).toContain("fetch(withBase('vir/fitness/access')");
-    expect(reception).toContain('fitnessAllowed&&');
-    expect(reception).toContain("navigate('/finance/fitness')");
+  test('reception dashboard stays focused on the daily workflow',()=>{
+    expect(reception).not.toContain("fetch(withBase('vir/fitness/access')");
+    expect(reception).not.toContain('fitnessAllowed&&');
+    expect(reception).not.toContain("navigate('/finance/fitness')");
   });
 
   test('finance route hosts the isolated Fitness workspace',()=>{
