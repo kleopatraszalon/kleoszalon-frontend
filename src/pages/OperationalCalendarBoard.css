@@ -224,6 +224,7 @@
   display: flex;
   min-width: 0;
   max-width: min(520px, calc(100% - 8px));
+  container-type: inline-size;
   flex-direction: column;
   align-items: stretch;
   gap: 3px;
@@ -317,6 +318,13 @@
   content: "•";
   margin-right: 7px;
   opacity: .55;
+}
+
+@container (max-width: 190px) {
+  .operational-status-badge { display: none; }
+  .operational-calendar-event strong { font-size: 11px; }
+  .operational-event-details small + small { display: none; }
+  .operational-calendar-event .operational-event-created { font-size: 7px; }
 }
 
 .operational-status-badge {
