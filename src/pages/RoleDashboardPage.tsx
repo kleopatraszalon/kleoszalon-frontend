@@ -8,6 +8,7 @@ const CustomerDashboardPage=lazy(()=>import("./CustomerDashboardPage"));
 const ReceptionDashboardPage=lazy(()=>import("./ReceptionDashboardPage"));
 const AccountingDashboardPage=lazy(()=>import("./AccountingDashboardPage"));
 const HrDashboardPage=lazy(()=>import("./HrDashboardPage"));
+const OperationalRoleDashboardPage=lazy(()=>import("./OperationalRoleDashboardPage"));
 const ManagerDashboardPage=lazy(()=>import("./ManagerDashboardPage"));
 const DashboardDailyOperations=lazy(()=>import("./dashboard/DashboardDailyOperations"));
 const WorkOrderDashboardPanel=lazy(()=>import("./dashboard/WorkOrderDashboardPanel"));
@@ -36,8 +37,10 @@ export default function RoleDashboardPage(){
  if(hr)return <Suspense fallback={<Fallback/>}><HrDashboardPage/></Suspense>;
  if(manager)return <Suspense fallback={<Fallback/>}><ManagerDashboardPage/></Suspense>;
  if(customer)return <WithWorkOrders><Suspense fallback={<Fallback/>}><CustomerDashboardPage/></Suspense></WithWorkOrders>;
- if(receptionist||locationOperator)return <ReceptionDashboardPage/>;
+ if(receptionist)return <ReceptionDashboardPage/>;
+ if(locationOperator)return <Suspense fallback={<Fallback/>}><OperationalRoleDashboardPage kind="salon"/></Suspense>;
  if(staff)return <WithWorkOrders><Suspense fallback={<Fallback/>}><EmployeeDashboardPage/></Suspense></WithWorkOrders>;
+ if(!admin&&r.some(x=>["manager","vezető","vezeto"].includes(x)))return <Suspense fallback={<Fallback/>}><OperationalRoleDashboardPage kind="manager"/></Suspense>;
  return <>
    {admin&&<Suspense fallback={null}><AdminProductSaleQuickAction/></Suspense>}
    <Suspense fallback={<Fallback/>}><Home/></Suspense>
