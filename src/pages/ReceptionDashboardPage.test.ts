@@ -15,8 +15,9 @@ test("receptionist dashboard is calendar-first when calendar visibility is enabl
   expect(reception).toContain('className="reception-home__calendar"');
 });
 
-test("receptionist dashboard keeps secondary tools off the one-screen homepage", () => {
-  expect(reception).not.toContain('DashboardChecklistCard from"../components/DashboardChecklistCard"');
+test("receptionist dashboard keeps the compact operational checklist on the homepage", () => {
+  expect(reception).toContain('DashboardChecklistCard from"../components/DashboardChecklistCard"');
+  expect(reception).toContain('<section className="reception-home__checklist"><DashboardChecklistCard/></section>');
   expect(reception).not.toContain("<ReceptionDeviceControlPanel/>");
   expect(reception).toContain("<DashboardDailyOperations compact/>");
 });
