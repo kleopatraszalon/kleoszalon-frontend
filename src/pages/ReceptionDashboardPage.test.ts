@@ -37,7 +37,8 @@ test("embedded receptionist day view uses one full visible width per day and hor
 });
 
 test("receptionist does not inherit the generic work-order dashboard wrapper", () => {
-  expect(roleDashboard).toContain("if(receptionist||locationOperator)return <ReceptionDashboardPage/>");
+  expect(roleDashboard).toContain("if(receptionist)return <ReceptionDashboardPage/>");
+  expect(roleDashboard).toContain('<OperationalRoleDashboardPage kind="salon"/>');
   expect(roleDashboard).not.toContain("<WithWorkOrders><ReceptionDashboardPage");
 });
 
