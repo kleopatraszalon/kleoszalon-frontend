@@ -12,7 +12,7 @@ test("a recepcios menu a napi munkafolyamatot koveti",()=>{
 
 test("a reszlegnezet tenyleges reszlegek szerint csoportosit",()=>{
  const calendar=read("pages/AppointmentsCalendarCore.tsx");
- expect(calendar).toContain("new Set(appointments.map(appointmentDepartment))");
+ expect(calendar).toContain("new Set<string>(appointments.map(appointmentDepartment))");
  expect(calendar).toContain('appointmentDepartment(item) === column.serviceKey');
 });
 
