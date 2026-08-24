@@ -681,13 +681,15 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                       const width = 100 / lanes;
                       const employee = item.employee_id ? employeeById.get(String(item.employee_id)) : "";
                       const operational = appointmentOperationalStatus(item, statusNow);
-                      const naturalEventHeight = (clippedEnd - clippedStart) * PX_PER_MINUTE - 4;
-                      const eventHeight = Math.min(72, Math.max(48, naturalEventHeight));
-                      const compact = eventHeight < 60;
+                      const durationMinutes = clippedEnd - clippedStart;
+                      const eventHeight = Math.min(112, Math.max(48, 32 + durationMinutes * .55));
+                      const compact = eventHeight < 64;
                       return (
                         <button
                           type="button"
                           key={item.id}
+                          data-lanes={lanes}
+                          aria-label={`${formatTime(item.start_time)}–${formatTime(item.end_time)}, ${item.client_name || item.title || "Vendég"}, ${serviceLabel}, ${operational.label}, ${formatCreatedAt(item.created_at)}`}
                           draggable={!operational.closed}
                           className={`operational-calendar-event ${operational.className} ${operational.closed ? "is-closed" : ""} ${compact ? "is-compact" : ""}`}
                           title={`${operational.label} · Kattintás: munkalap létrehozása / megnyitása`}
