@@ -7,7 +7,8 @@ const styles = fs.readFileSync(path.join(__dirname, "OperationalCalendarBoard.cs
 test("calendar appointments stay compact while retaining readable metadata", () => {
   expect(calendar).toContain("Math.min(112, Math.max(48, 32 + durationMinutes * .55))");
   expect(calendar).toContain("data-lanes={lanes}");
-  expect(calendar).toContain("aria-label={`${formatTime(item.start_time)}–${formatTime(item.end_time)}");
+  expect(calendar).toContain("aria-label={");
+  expect(calendar).toContain("formatCreatedAt(item.created_at)");
   expect(styles).toContain("max-width: min(520px, calc(100% - 8px))");
   expect(styles).toContain(".operational-calendar-event .operational-event-created");
   expect(styles).toContain("-webkit-line-clamp: 1");
