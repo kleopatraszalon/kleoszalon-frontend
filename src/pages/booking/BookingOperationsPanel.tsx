@@ -18,7 +18,7 @@ export type BookingOperationAppointment = {
 type WaitItem={id:string;client_name:string;phone?:string|null;email?:string|null;status:string;created_at:string;preferred_from?:string|null;employee_name?:string|null};
 type BreakItem={id:string;title:string;start_time:string;end_time:string;employee_name?:string|null};
 type WorkOrderLink={appointment_id:string;work_order_id:string|null;work_order_number:string|null;created?:boolean;skipped?:boolean};
-type Props = { appointments: BookingOperationAppointment[]; employeeCount: number; scheduledMinutes?: number | null; dailyTarget?: number | null; onOpenAppointment?: (id: string) => void; };
+type Props = { appointments: BookingOperationAppointment[]; employeeCount: number; scheduledMinutes?: number | null; dailyTarget?: number | null; compact?: boolean; onOpenAppointment?: (id: string) => void; };
 const normalizeStatus=(value?:string|null)=>String(value||"confirmed").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
 const minutesBetween=(start:string,end:string)=>Math.max(0,(new Date(end).getTime()-new Date(start).getTime())/60000);
 const timeText=(value:string)=>new Date(value).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
@@ -32,7 +32,7 @@ function apiErrorText(error:any,fallback:string){
   return diagnostics.length?`${base} (${diagnostics.join(', ')})`:base;
 }
 
-export default function BookingOperationsPanel({ appointments, employeeCount, scheduledMinutes, dailyTarget, onOpenAppointment }: Props) {
+export default function BookingOperationsPanel({ appointments, employeeCount, scheduledMinutes, dailyTarget, compact=false, onOpenAppointment }: Props) {
   const navigate=useNavigate();
   const{user}=useCurrentUser() as any;
   const canEditBooking=useMemo(()=>roleList(user?.role).some(role=>EDITOR_ROLES.has(role)),[user?.role]);
@@ -105,6 +105,11 @@ export default function BookingOperationsPanel({ appointments, employeeCount, sc
     const missingRevenue=dailyTarget==null?null:Math.max(0,Number(dailyTarget)-expectedRevenue);
     return{active,completed,cancelled,noShow,plannedMinutes,utilization,upcoming,warnings,expectedRevenue,missingRevenue};
   },[appointments,employeeCount,scheduledMinutes,waitlist.length,dailyTarget]);
+
+  if(compact)return <section className="booking-operations is-compact" aria-label="Napi operatív mutatók">
+    <header className="booking-operations__header"><div><span>NAPI OPERATÍV MUTATÓK</span><h2>Mai működés</h2><p>A tényleges beosztott munkaórák és a munkaköri órás bevételi célok alapján.</p></div><div className="booking-operations__capacity"><Gauge/><strong>{summary.utilization}%</strong><small>foglaltság</small></div></header>
+    <div className="booking-operations__metrics"><article><Gauge/><div><strong>{summary.utilization}%</strong><span>foglaltság</span></div></article><article><CalendarCheck2/><div><strong>{dailyTarget==null?'—':`${Number(dailyTarget).toLocaleString('hu-HU')} Ft`}</strong><span>munkaórákból számolt terv</span></div></article><article><Clock3/><div><strong>{summary.expectedRevenue.toLocaleString('hu-HU')} Ft</strong><span>várható bevétel</span></div></article><article><AlertTriangle/><div><strong>{summary.missingRevenue==null?'—':`${summary.missingRevenue.toLocaleString('hu-HU')} Ft`}</strong><span>tervhez hiányzik</span></div></article><article><UsersRound/><div><strong>{Math.max(0,100-summary.utilization)}%</strong><span>szabad kapacitás</span></div></article></div>
+  </section>;
 
   return <section className="booking-operations" aria-label="Napi foglalási irányítóközpont">
     <header className="booking-operations__header"><div><span>FOGLALÁSI IRÁNYÍTÓKÖZPONT</span><h2>Napi működési áttekintés</h2><p>Kapacitás, vendégállapotok, várólista és technikai szünetek egy helyen.</p></div><div className="booking-operations__capacity"><Gauge/><strong>{summary.utilization}%</strong><small>tervezett kapacitás</small></div></header>
