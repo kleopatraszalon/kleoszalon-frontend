@@ -3,6 +3,7 @@ import{CalendarDays,ClipboardPlus,ShoppingBag,Users,WalletCards,MessageCircle,Ch
 import{useNavigate}from"react-router-dom";
 import AppointmentsCalendarCore from"./AppointmentsCalendarCore";
 import DashboardDailyOperations from"./dashboard/DashboardDailyOperations";
+import DashboardChecklistCard from"../components/DashboardChecklistCard";
 import withBase from"../utils/apiBase";
 import"./ReceptionDashboardPage.css";
 
@@ -29,6 +30,7 @@ export default function ReceptionDashboardPage(){
   </section>
   <nav className="reception-home__shortcuts" aria-label="Recepciós gyorsműveletek">{visible.map(x=>{const Icon=icons[x.key]||CheckSquare;return <button key={x.key} type="button" onClick={()=>navigate(x.route)} className={x.key==='product_sale'?'is-emphasis':''}><Icon size={16}/><span>{x.name}</span></button>})}{fitnessAllowed&&<button type="button" onClick={()=>navigate('/finance/fitness')} className="is-fitness"><Dumbbell size={16}/><span>Fitnesz – Gyöngyös</span></button>}</nav>
   <DashboardDailyOperations compact/>
+  <section className="reception-home__checklist"><DashboardChecklistCard/></section>
   {showCalendar&&<section className="reception-home__calendar"><AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}/></section>}
  </main>
 }
