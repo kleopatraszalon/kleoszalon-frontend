@@ -136,13 +136,33 @@ function appointmentServiceKey(item: Appointment) {
   return item.service_names?.find((name) => name?.trim())?.trim() || item.title?.trim() || "Általános szolgáltatás";
 }
 
-const DEPARTMENTS = ["Fodrászat", "Kéz- és lábápolás", "Kozmetika", "Masszázs"];
+const DEPARTMENT_STYLES: Record<string, { background: string; border: string; text: string }> = {
+  "Fodrászat": { background: "#f4d9e6", border: "#d98cad", text: "#642b47" },
+  "Barber": { background: "#cbd8e8", border: "#819bb9", text: "#263f5c" },
+  "Kozmetika": { background: "#d7c9eb", border: "#a88bd0", text: "#493266" },
+  "Szempilla és szemöldök": { background: "#ead2f2", border: "#bd8ccc", text: "#573465" },
+  "Smink": { background: "#f3c8cf", border: "#db8d9c", text: "#682f3a" },
+  "Kézápolás": { background: "#c8e4dd", border: "#78bbae", text: "#224e46" },
+  "Lábápolás": { background: "#d7e6bd", border: "#9fbe72", text: "#3d5722" },
+  "Masszázs": { background: "#f1d8a8", border: "#d2a85c", text: "#5b431b" },
+  "Testkezelés": { background: "#bfe0e8", border: "#78b5c3", text: "#244f59" },
+  "Szolárium": { background: "#f6df9c", border: "#d9b64f", text: "#604a12" },
+  "Egyéb": { background: "#ddd9d7", border: "#aaa19d", text: "#49413e" },
+};
+const DEPARTMENTS = Object.keys(DEPARTMENT_STYLES);
 function appointmentDepartment(item: Appointment) {
   const value = [item.title, ...(item.service_names || [])].join(" ").toLocaleLowerCase("hu-HU");
+  if (/barber|szakáll|borotv|férfi haj/.test(value)) return "Barber";
+  if (/szempilla|szemöldök|lash|brow/.test(value)) return "Szempilla és szemöldök";
+  if (/smink|make.?up/.test(value)) return "Smink";
+  if (/szolári|solarium|barnít/.test(value)) return "Szolárium";
+  if (/testkezel|alakform|cellulit|kavitáció|rádiófrekv|fogyasztó/.test(value)) return "Testkezelés";
   if (/massz|massage/.test(value)) return "Masszázs";
-  if (/köröm|manik|pedik|kéz|láb|nail/.test(value)) return "Kéz- és lábápolás";
-  if (/kozmet|arc|szempilla|szemöldök|smink|wax|gyanta/.test(value)) return "Kozmetika";
-  return "Fodrászat";
+  if (/pedik|lábápol|tyúkszem|talp/.test(value)) return "Lábápolás";
+  if (/köröm|manik|kézápol|nail|gél.?lakk/.test(value)) return "Kézápolás";
+  if (/kozmet|arc|wax|gyanta|bőrkezel|hámlaszt/.test(value)) return "Kozmetika";
+  if (/fodr|haj|frizura|balayage|melír|dauer|festés|vágás/.test(value)) return "Fodrászat";
+  return "Egyéb";
 }
 
 function parseMode(raw: string | null | undefined): CalendarMode | null {
@@ -315,8 +335,7 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
   );
 
   const serviceColors = useMemo(() => {
-    const keys = DEPARTMENTS;
-    return new Map(keys.map((key, index) => [key, SERVICE_PALETTE[index % SERVICE_PALETTE.length]]));
+    return new Map(DEPARTMENTS.map((key) => [key, DEPARTMENT_STYLES[key]]));
   }, []);
 
   const normalizedSearch = search.trim().toLocaleLowerCase("hu-HU");
