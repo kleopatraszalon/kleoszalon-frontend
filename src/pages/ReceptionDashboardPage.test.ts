@@ -10,8 +10,9 @@ test("receptionist dashboard is calendar-first when calendar visibility is enabl
   expect(reception).toContain('AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}');
   expect(reception).toContain("showCalendar&&<section");
   expect(reception).toContain("DashboardDailyOperations");
-  expect(reception).toContain("Recepciós irányítópult");
-  expect(reception).toContain("Napi munka");
+  expect(reception).toContain("Recepciós munkatér");
+  expect(reception).toContain("Mai operáció");
+  expect(reception).toContain('className="reception-home__calendar"');
 });
 
 test("receptionist dashboard keeps secondary tools off the one-screen homepage", () => {
