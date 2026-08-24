@@ -681,8 +681,9 @@ export default function AppointmentsCalendarPage({ embedded = false, initialMode
                       const width = 100 / lanes;
                       const employee = item.employee_id ? employeeById.get(String(item.employee_id)) : "";
                       const operational = appointmentOperationalStatus(item, statusNow);
-                      const eventHeight = Math.max(40, (clippedEnd - clippedStart) * PX_PER_MINUTE - 4);
-                      const compact = eventHeight < 68;
+                      const naturalEventHeight = (clippedEnd - clippedStart) * PX_PER_MINUTE - 4;
+                      const eventHeight = Math.min(72, Math.max(48, naturalEventHeight));
+                      const compact = eventHeight < 60;
                       return (
                         <button
                           type="button"
