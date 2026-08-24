@@ -18,7 +18,7 @@ export type BookingOperationAppointment = {
 type WaitItem={id:string;client_name:string;phone?:string|null;email?:string|null;status:string;created_at:string;preferred_from?:string|null;employee_name?:string|null};
 type BreakItem={id:string;title:string;start_time:string;end_time:string;employee_name?:string|null};
 type WorkOrderLink={appointment_id:string;work_order_id:string|null;work_order_number:string|null;created?:boolean;skipped?:boolean};
-type Props = { appointments: BookingOperationAppointment[]; employeeCount: number; dailyTarget?: number | null; onOpenAppointment?: (id: string) => void; };
+type Props = { appointments: BookingOperationAppointment[]; employeeCount: number; scheduledMinutes?: number | null; dailyTarget?: number | null; onOpenAppointment?: (id: string) => void; };
 const normalizeStatus=(value?:string|null)=>String(value||"confirmed").trim().toLowerCase().replace(/[^a-z0-9_-]/g,"");
 const minutesBetween=(start:string,end:string)=>Math.max(0,(new Date(end).getTime()-new Date(start).getTime())/60000);
 const timeText=(value:string)=>new Date(value).toLocaleTimeString("hu-HU",{hour:"2-digit",minute:"2-digit"});
@@ -32,7 +32,7 @@ function apiErrorText(error:any,fallback:string){
   return diagnostics.length?`${base} (${diagnostics.join(', ')})`:base;
 }
 
-export default function BookingOperationsPanel({ appointments, employeeCount, dailyTarget, onOpenAppointment }: Props) {
+export default function BookingOperationsPanel({ appointments, employeeCount, scheduledMinutes, dailyTarget, onOpenAppointment }: Props) {
   const navigate=useNavigate();
   const{user}=useCurrentUser() as any;
   const canEditBooking=useMemo(()=>roleList(user?.role).some(role=>EDITOR_ROLES.has(role)),[user?.role]);
@@ -97,14 +97,14 @@ export default function BookingOperationsPanel({ appointments, employeeCount, da
   const summary = useMemo(() => {
     const now=Date.now(),activeStatuses=new Set(["confirmed","pending","arrived","in_progress","booked"]),cancelledStatuses=new Set(["cancelled","canceled"]),noShowStatuses=new Set(["no_show","noshow"]);
     const active=appointments.filter(i=>activeStatuses.has(normalizeStatus(i.status))),completed=appointments.filter(i=>normalizeStatus(i.status)==="completed"),cancelled=appointments.filter(i=>cancelledStatuses.has(normalizeStatus(i.status))),noShow=appointments.filter(i=>noShowStatuses.has(normalizeStatus(i.status)));
-    const plannedMinutes=appointments.reduce((sum,i)=>sum+minutesBetween(i.start_time,i.end_time),0),availableMinutes=Math.max(1,employeeCount*8*60),utilization=Math.min(100,Math.round(plannedMinutes/availableMinutes*100));
+    const plannedMinutes=appointments.reduce((sum,i)=>sum+minutesBetween(i.start_time,i.end_time),0),availableMinutes=Math.max(1,scheduledMinutes&&scheduledMinutes>0?scheduledMinutes:employeeCount*8*60),utilization=Math.min(100,Math.round(plannedMinutes/availableMinutes*100));
     const upcoming=active.filter(i=>new Date(i.start_time).getTime()>=now-6*60*60*1000).sort((a,b)=>new Date(a.start_time).getTime()-new Date(b.start_time).getTime()).slice(0,8);
     const overloadedEmployees=Array.from(appointments.reduce((map,i)=>{if(i.employee_id)map.set(i.employee_id,(map.get(i.employee_id)||0)+minutesBetween(i.start_time,i.end_time));return map},new Map<string,number>())).filter(([,minutes])=>minutes>8*60).length;
     const warnings=[overloadedEmployees?`${overloadedEmployees} munkatársnál 8 órát meghaladó terhelés látható.`:"",noShow.length?`${noShow.length} meg nem jelenés igényel utánkövetést.`:"",cancelled.length>=3?`${cancelled.length} lemondás miatt érdemes várólistát aktiválni.`:"",waitlist.length?`${waitlist.length} vendég vár szabad időpontra.`:""].filter(Boolean);
     const expectedRevenue=appointments.reduce((sum,item)=>sum+Number(item.expected_revenue??item.price??0),0);
     const missingRevenue=dailyTarget==null?null:Math.max(0,Number(dailyTarget)-expectedRevenue);
     return{active,completed,cancelled,noShow,plannedMinutes,utilization,upcoming,warnings,expectedRevenue,missingRevenue};
-  },[appointments,employeeCount,waitlist.length,dailyTarget]);
+  },[appointments,employeeCount,scheduledMinutes,waitlist.length,dailyTarget]);
 
   return <section className="booking-operations" aria-label="Napi foglalási irányítóközpont">
     <header className="booking-operations__header"><div><span>FOGLALÁSI IRÁNYÍTÓKÖZPONT</span><h2>Napi működési áttekintés</h2><p>Kapacitás, vendégállapotok, várólista és technikai szünetek egy helyen.</p></div><div className="booking-operations__capacity"><Gauge/><strong>{summary.utilization}%</strong><small>tervezett kapacitás</small></div></header>
