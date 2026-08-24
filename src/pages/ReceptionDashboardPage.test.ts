@@ -8,15 +8,16 @@ const calendarCss = fs.readFileSync(path.join(__dirname, "OperationalCalendarBoa
 
 test("receptionist dashboard is calendar-first when calendar visibility is enabled", () => {
   expect(reception).toContain('AppointmentsCalendarCore embedded initialMode="days" visibleDayCount={5}');
-  expect(reception).toContain("showCalendar&&<AppointmentsCalendarCore");
+  expect(reception).toContain("showCalendar&&<section");
   expect(reception).toContain("DashboardDailyOperations");
   expect(reception).toContain("Recepciós irányítópult");
   expect(reception).toContain("Napi munka");
 });
 
-test("receptionist dashboard keeps the personal checklist configurable", () => {
-  expect(reception).toContain('DashboardChecklistCard from"../components/DashboardChecklistCard"');
-  expect(reception).toContain("showChecklist&&<DashboardChecklistCard/>");
+test("receptionist dashboard keeps secondary tools off the one-screen homepage", () => {
+  expect(reception).not.toContain('DashboardChecklistCard from"../components/DashboardChecklistCard"');
+  expect(reception).not.toContain("<ReceptionDeviceControlPanel/>");
+  expect(reception).toContain("<DashboardDailyOperations compact/>");
 });
 
 test("receptionist homepage exposes product sales by default", () => {
