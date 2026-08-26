@@ -5,6 +5,7 @@ import{apiFetch}from"../utils/api";
 import WorkOrderNew from"./WorkOrderNew";
 import WorkOrderDetail from"./WorkOrderDetail";
 import WorkOrderWorkflowNavigator from"./workorders/WorkOrderWorkflowNavigator";
+import WorkOrderCompanySelector from"./workorders/WorkOrderCompanySelector";
 import"./WorkOrderNewModalPage.css";
 
 type Props={onClose?:()=>void};
@@ -68,6 +69,7 @@ export default function WorkOrderNewModalPage({onClose}:Props){
    {!fromCalendar&&<WorkOrderWorkflowNavigator scrollRoot={scrollRef}/>} 
 
    <div className={`wo-modal-scroll${existing?" wo-modal-scroll--detail":""}`} ref={scrollRef}>
+    {!fromCalendar&&<WorkOrderCompanySelector workOrderId={id||null}/>} 
     {fromCalendar?
      <div className="wo-resume-state">
       {resumeLoading?<>
