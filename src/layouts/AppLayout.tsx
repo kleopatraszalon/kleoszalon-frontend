@@ -38,6 +38,7 @@ const NotificationsPage=lazy(()=>import("../pages/NotificationsPage"));
 const AccessControlPage=lazy(()=>import("../pages/AccessControlPage"));
 const AuditLogPage=lazy(()=>import("../pages/AuditLogPage"));
 const StaffChatAdminPage=lazy(()=>import("../pages/StaffChatAdminPage"));
+const LegalEntitiesSettingsPage=lazy(()=>import("../pages/LegalEntitiesSettingsPage"));
 const Deferred=({children}:{children:React.ReactNode})=><Suspense fallback={null}>{children}</Suspense>;
 function IdleAiHelpChat({pageTitle}:{pageTitle:string}){
   const[ready,setReady]=useState(false);
@@ -58,6 +59,8 @@ const pageNames: Record<string, string> = {
   "/warehouse/lots": "Sarzs és lejárat (FEFO)",
   "/masterdata/services": "Szolgáltatási törzs", "/masterdata/products": "Termékek", "/products": "Termékek", "/warehouse/products": "Termékek",
   "/dashboard/notifications": "Értesítési központ",
+  "/settings": "Rendszerbeállítások",
+  "/settings/legal-entities": "Cégek és könyvelési egységek",
   "/settings/roles": "Jogosultságok és hozzáférések",
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
   "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
@@ -65,7 +68,7 @@ const pageNames: Record<string, string> = {
   "/modules/team/timetable": "Saját beosztás",
   "/staff/chat": "Munkatársi chat",
 };
-function roleList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return t.split(",").map(x=>x.replace(/[[\]"]/g,"").trim().toLowerCase()).filter(Boolean)}
+function roleList(raw:unknown):string[]{if(Array.isArray(raw))return raw.map(String).map(x=>x.toLowerCase());const t=String(raw??"");try{const p=JSON.parse(t);if(Array.isArray(p))return p.map(String).map(x=>x.toLowerCase())}catch{}return t.split(",").map(x=>x.replace(/[[\]\"]/g,"").trim().toLowerCase()).filter(Boolean)}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
@@ -155,7 +158,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const isMasterServices = location.pathname === "/masterdata/services";
   const isProducts = ["/masterdata/products","/products","/warehouse/products"].includes(location.pathname);
   const showChecklistDashboard = !isStaff && !isAccounting && ["/", "/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(location.pathname);
+  const isSettingsArea = location.pathname === "/settings" || location.pathname === "/settings/legal-entities";
+  const canViewLegalEntities = isElevated || isAccounting;
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
+  if (location.pathname === "/settings/legal-entities" && canViewLegalEntities) pageContent = <LegalEntitiesSettingsPage />;
   if (location.pathname === "/settings/roles") pageContent = <AccessControlPage />;
   if (location.pathname === "/modules/settings/audit-log") pageContent = <AuditLogPage />;
   if (location.pathname === "/modules/settings/chat-supervision") pageContent = <StaffChatAdminPage />;
@@ -170,6 +176,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="app-layout-column">
       <header className="modern-topbar"><div className="modern-topbar-left"><button className="topbar-collapse" type="button" onClick={toggleSidebar} title={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-label={language==="en"?"Open or close menu":"Menü nyitása vagy bezárása"} aria-expanded={!collapsed}><span className="desktop-sidebar-icon">{collapsed?<PanelLeftOpen size={19}/>:<PanelLeftClose size={19}/>}</span><span className="mobile-sidebar-icon">{collapsed?<PanelLeftOpen size={20}/>:<PanelLeftClose size={20}/>}</span></button><div className="topbar-breadcrumb"><span>{isAccounting?"Könyvelési VIR":isStaff?t("shell.staff"):t("shell.vir")}</span><ChevronRight size={13}/><b>{currentPage}</b></div></div>
       <div className="modern-topbar-right"><LanguageSwitcher compact/>{!isStaff&&<div className="topbar-global-search"><Search size={15}/><input placeholder={t("shell.quick_search")}/></div>}<div className="topbar-location"><Building2 size={15}/><span><small>{t("shell.location")}</small><b>{salon}</b></span></div><Deferred><NotificationBell/></Deferred><div className="topbar-profile"><span>{fullName.split(/\s+/).slice(0,2).map(n=>n[0]).join("").toUpperCase()}</span><div><b>{fullName}</b><small>{today}</small></div></div><button className="topbar-logout" type="button" onClick={()=>logout()} title={t("shell.logout")} aria-label={t("shell.logout")}><LogOut size={16}/><span>{t("shell.logout")}</span></button></div></header>
+      {isSettingsArea&&canViewLegalEntities&&<div style={{display:"flex",gap:8,flexWrap:"wrap",padding:"12px 28px 0",background:"#f8fafc"}}><button type="button" onClick={()=>navigate("/settings")} style={{border:location.pathname==="/settings"?"1px solid #5b21b6":"1px solid #cbd5e1",background:location.pathname==="/settings"?"#ede9fe":"#fff",color:"#312e81",borderRadius:10,padding:"9px 13px",fontWeight:800,cursor:"pointer"}}>Rendszerbeállítások</button><button type="button" onClick={()=>navigate("/settings/legal-entities")} style={{border:location.pathname==="/settings/legal-entities"?"1px solid #5b21b6":"1px solid #cbd5e1",background:location.pathname==="/settings/legal-entities"?"#ede9fe":"#fff",color:"#312e81",borderRadius:10,padding:"9px 13px",fontWeight:800,cursor:"pointer"}}>Cégek és könyvelési egységek</button></div>}
       <Deferred>{showImport&&<AltegioServiceImportButton/>}</Deferred>
       <div className="altegio-main app-layout-main"><AccessBoundary><Suspense fallback={<div style={{padding:"1rem"}}>{language==="en"?"Loading…":"Betöltés…"}</div>}>{showChecklistDashboard&&<DashboardChecklistCard/>}{pageContent}</Suspense></AccessBoundary></div>
     </div><IdleAiHelpChat pageTitle={currentPage}/>
