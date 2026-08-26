@@ -6,6 +6,7 @@ import FinanceWorkspacePage from "./finance/FinanceWorkspacePage";
 import PenzugyLegacy from "./PenzugyLegacy";
 import ProductSalePage from "./ProductSalePage";
 import ReceiptCompliancePage from "./ReceiptCompliancePage";
+import ReceiptDocumentsPage from "./ReceiptDocumentsPage";
 import FitnessPage from "./FitnessPage";
 import FitnessLockerPanel from "./FitnessLockerPanel";
 import FitnessLockerKiosk from "./FitnessLockerKiosk";
@@ -23,32 +24,13 @@ import BusinessContinuityGameDayPage from "./BusinessContinuityGameDayPage";
 import OperationalRiskControlRegisterPage from "./OperationalRiskControlRegisterPage";
 import "./TransactionTraceForensics.css";
 
-/**
- * Finance v5 route adapter.
- *
- * The modern Finance workspace owns the general finance routes while the
- * existing operational cashier/checkout and invoice flows stay on the proven
- * legacy screen. Direct retail product sales have their own work-order-free
- * screen under /finance/product-sale. Receipt/NAV compliance is isolated under
- * /finance/receipt-compliance and aggregates both work orders and retail sales.
- * The reconciliation center owns daily end-to-end financial and stock integrity.
- * Transaction Trace provides tamper-evident lifecycle proof for individual
- * business transactions. Exception Command Center is the cross-functional
- * management work queue for automatically detected business exceptions, while
- * Exception Intelligence provides recurrence, escalation and root-cause analytics,
- * CAPA governs corrective/preventive action, its management workqueue owns
- * responsibility assignment and acknowledgement, Major Incident / War Room owns
- * severe correlated incident command, Resilience & Recovery governs RTO/RPO,
- * recovery runbooks, change-freeze and evidence-based ALL CLEAR, Business
- * Continuity GameDay proves the same recovery discipline in safe simulations,
- * and Operational Risk & Control Register closes the enterprise risk/control loop.
- */
-
+/** Finance v5 route adapter. */
 export default function Penzugy() {
   const { pathname } = useLocation();
   const management = hasStoredRole(["admin", "manager"]);
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
+  if(pathname === "/finance/receipts") return <ReceiptDocumentsPage />;
   if(pathname.startsWith("/finance/fixed-assets")) return <><FixedAssetGovernancePanel/><FixedAssetsPage /></>;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
@@ -65,16 +47,11 @@ export default function Penzugy() {
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
   if(pathname === "/finance/fitness") return <FitnessPage />;
   if(pathname.startsWith("/finance/fitness/")) return <FitnessPage />;
-  const legacyFlow =
-    pathname === "/finance/cashier" ||
-    pathname.startsWith("/finance/cashier/") ||
-    pathname === "/finance/checkout" ||
-    pathname.startsWith("/finance/checkout/") ||
-    pathname.startsWith("/finance/invoices/");
-
+  const legacyFlow = pathname === "/finance/cashier" || pathname.startsWith("/finance/cashier/") || pathname === "/finance/checkout" || pathname.startsWith("/finance/checkout/") || pathname.startsWith("/finance/invoices/");
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
     <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
+      <Link to="/finance/receipts" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#3b2458",color:"white"}}>Számítógépes nyugták</Link>
       <Link to="/finance/fixed-assets" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#6e56a3",color:"white"}}>Tárgyi eszközök</Link>
       {management&&<Link to="/finance/exception-command-center" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#991b1b",color:"white"}}>Exception Command Center</Link>}
       {management&&<Link to="/finance/exception-command-center/intelligence" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#312e81",color:"white"}}>Exception Intelligence</Link>}
