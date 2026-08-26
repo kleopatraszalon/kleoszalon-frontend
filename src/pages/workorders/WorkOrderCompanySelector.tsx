@@ -13,9 +13,13 @@ export default function WorkOrderCompanySelector({workOrderId}:{workOrderId?:str
  const selected=useMemo(()=>rows.find(x=>String(x.id)===value)||null,[rows,value]);
  useEffect(()=>{let alive=true;setLoading(true);setError('');void(async()=>{try{
   if(workOrderId){const r=await api.get(`/vir/receipt-compliance/legal-entities/workorders/${encodeURIComponent(workOrderId)}`);if(!alive)return;const d=r.data as WorkOrderCompanyResponse,choices=Array.isArray(d?.choices)?d.choices:[];setRows(choices);setValue(String(d?.work_order?.legal_entity_id||''));setLocked(Boolean(d?.locked));try{sessionStorage.setItem(SELECTED,String(d?.work_order?.legal_entity_id||''));sessionStorage.setItem(REQUIRED,choices.length>1?'1':'0')}catch{}}
-  else{const r=await api.get('/vir/receipt-compliance/legal-entities');if(!alive)return;const all=Array.isArray(r.data?.rows)?r.data.rows:[];setRows(all);let stored='';try{stored=sessionStorage.getItem(SELECTED)||''}catch{}if(stored&&!all.some((x:Entity)=>String(x.id)===stored))stored='';if(!stored&&all.length===1)stored=String(all[0].id);setValue(stored);try{sessionStorage.setItem(SELECTED,stored);sessionStorage.setItem(REQUIRED,all.length>1?'1':'0')}catch{}}
+  else{const r=await api.get('/vir/receipt-compliance/legal-entities');if(!alive)return;const all=Array.isArray(r.data?.rows)?r.data.rows:[];setRows(all);const next=all.length===1?String(all[0].id):'';setValue(next);try{sessionStorage.setItem(SELECTED,next);sessionStorage.setItem(REQUIRED,all.length>1?'1':'0')}catch{}if(all.length===1)await api.post('/vir/receipt-compliance/legal-entities/pending-selection',{legal_entity_id:next});else await api.delete('/vir/receipt-compliance/legal-entities/pending-selection').catch(()=>undefined)}
  }catch(e){if(alive)setError(err(e))}finally{if(alive)setLoading(false)}})();return()=>{alive=false}},[workOrderId]);
- async function change(next:string){setValue(next);setError('');try{sessionStorage.setItem(SELECTED,next)}catch{}if(!workOrderId||!next)return;setSaving(true);try{await api.put(`/vir/receipt-compliance/legal-entities/workorders/${encodeURIComponent(workOrderId)}`,{legal_entity_id:next});}catch(e){setError(err(e))}finally{setSaving(false)}}
+ async function change(next:string){setValue(next);setError('');try{sessionStorage.setItem(SELECTED,next)}catch{}setSaving(true);try{
+   if(workOrderId){if(!next)return;await api.put(`/vir/receipt-compliance/legal-entities/workorders/${encodeURIComponent(workOrderId)}`,{legal_entity_id:next});}
+   else if(next)await api.post('/vir/receipt-compliance/legal-entities/pending-selection',{legal_entity_id:next});
+   else await api.delete('/vir/receipt-compliance/legal-entities/pending-selection');
+  }catch(e){setError(err(e))}finally{setSaving(false)}}
  return <section style={{margin:'0 0 14px',padding:'14px 16px',border:'1px solid #ddd6fe',borderRadius:14,background:'linear-gradient(135deg,#faf5ff,#fff)'}} aria-label="Munkalap kibocsátó cég">
   <div style={{display:'flex',gap:12,alignItems:'center',justifyContent:'space-between',flexWrap:'wrap'}}>
    <div style={{display:'flex',gap:10,alignItems:'center'}}><span style={{width:38,height:38,borderRadius:12,display:'grid',placeItems:'center',background:'#ede9fe',color:'#5b21b6'}}><Building2 size={20}/></span><div><b style={{display:'block'}}>Kibocsátó cég / könyvelési egység</b><small style={{color:'#64748b'}}>A munkalap, fizetés, számla és nyugta ugyanahhoz a céghez kerül.</small></div></div>
@@ -28,8 +32,8 @@ export default function WorkOrderCompanySelector({workOrderId}:{workOrderId?:str
    </select>
    {loading||saving?<RefreshCw size={18} style={{animation:'spin 1s linear infinite'}}/>:null}
   </div>
-  {selected&&<div style={{marginTop:8,fontSize:12,color:'#475569'}}><b>{selected.legal_name}</b>{selected.locations?.length?` · ${selected.locations.map(l=>l.name).join(', ')}`:''}</div>}
-  {rows.length>1&&!value&&!locked&&<div style={{marginTop:8,fontSize:12,fontWeight:700,color:'#b45309'}}>Ebben a környezetben több cég aktív. A munkalap lezárása előtt a cég kiválasztása kötelező.</div>}
+  {selected&&<div style={{marginTop:8,fontSize:12,color:'#475569'}}><b>{selected.legal_name}</b>{selected.locations?.length?` · Elérhető: ${selected.locations.map(l=>l.name).join(', ')}`:''}</div>}
+  {rows.length>1&&!value&&!locked&&<div style={{marginTop:8,fontSize:12,fontWeight:700,color:'#b45309'}}>Több cég aktív. Válassza ki a kibocsátó céget; enélkül a rendszer nem engedi létrehozni és kifizetni a munkalapot.</div>}
   {error&&<div style={{marginTop:8,fontSize:12,fontWeight:700,color:'#b91c1c'}}>{error}</div>}
  </section>;
 }
