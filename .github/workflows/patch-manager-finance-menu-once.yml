@@ -1,0 +1,37 @@
+name: One-off manager finance menu patch
+
+on:
+  push:
+    branches: [fix/manager-new-finance-menus-20260827]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/manager-new-finance-menus-20260827
+      - name: Add new finance menus to manager workspace
+        shell: python
+        run: |
+          from pathlib import Path
+          p=Path('src/components/Sidebar.tsx')
+          s=p.read_text()
+          old="const MANAGER:MenuItem[]=[{id:99501,name:'Vezetői irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99502,name:'Legfőbb mutatók',icon:'ChartNoAxesCombined',route:'/reports/top-metrics',children:[]},{id:99503,name:'Profit és bevétel',icon:'WalletCards',route:'/reports/profit',children:[]},{id:99504,name:'Szalonok',icon:'Building2',route:'/masterdata/salons',children:[]},{id:99505,name:'Naptár és kapacitás',icon:'CalendarDays',route:'/appointments/calendar',children:[]},{id:99506,name:'Munkatársak',icon:'Users',route:'/employees',children:[]},{id:99507,name:'Pénzügyek',icon:'WalletCards',route:'/finance',children:[]},{id:99508,name:'Készlet',icon:'Boxes',route:'/warehouse',children:[]},{id:99509,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];"
+          new="const MANAGER:MenuItem[]=[{id:99501,name:'Vezetői irányítópult',icon:'LayoutDashboard',route:'/',children:[]},{id:99502,name:'Legfőbb mutatók',icon:'ChartNoAxesCombined',route:'/reports/top-metrics',children:[]},{id:99503,name:'Profit és bevétel',icon:'WalletCards',route:'/reports/profit',children:[]},{id:99504,name:'Szalonok',icon:'Building2',route:'/masterdata/salons',children:[]},{id:99505,name:'Naptár és kapacitás',icon:'CalendarDays',route:'/appointments/calendar',children:[]},{id:99506,name:'Munkatársak',icon:'Users',route:'/employees',children:[]},{id:99507,name:'Pénzügyek',icon:'WalletCards',children:[{id:995071,name:'Pénzügyi áttekintés',route:'/finance',children:[]},{id:995072,name:'Bizonylat-beérkeztetés',route:'/finance/document-intake',children:[]},{id:995073,name:'Altegio szinkron / import',route:'/finance/altegio',children:[]},{id:995074,name:'NAV Online Számla',route:'/finance/nav-online-invoice',children:[]},{id:995075,name:'Számítógépes nyugták',route:'/finance/receipts',children:[]},{id:995076,name:'Nyugta és NAV-adatszolgáltatás',route:'/finance/receipt-compliance',children:[]}]},{id:99510,name:'Cégek és könyvelési egységek',icon:'Building2',route:'/settings/legal-entities',children:[]},{id:99508,name:'Készlet',icon:'Boxes',route:'/warehouse',children:[]},{id:99509,name:'Beszerzés',icon:'ShoppingBag',route:'/warehouse?view=procurement&section=dashboard',children:[]}];"
+          if old not in s:
+              raise SystemExit('Manager menu pattern not found')
+          p.write_text(s.replace(old,new))
+      - name: Verify and commit
+        run: |
+          grep -Fq "Altegio szinkron / import" src/components/Sidebar.tsx
+          grep -Fq "Cégek és könyvelési egységek" src/components/Sidebar.tsx
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/components/Sidebar.tsx
+          git commit -m 'fix: expose new finance menus for manager role'
+          git push origin fix/manager-new-finance-menus-20260827
