@@ -13,6 +13,7 @@ const groups:Group[]=[
  {label:"Pénzügyek",icon:<WalletCards size={18}/>,items:[
   {label:"Pénzügyi áttekintés",to:"/finance"},
   {label:"Cégek és külön könyvelések",to:"/settings/legal-entities"},
+  {label:"Bizonylat-beérkeztetés",to:"/finance/document-intake"},
   {label:"Tárgyi eszközök és amortizáció",to:"/finance/fixed-assets"},
   {label:"NAV Online Számla",to:"/finance/nav-online-invoice"},
   {label:"Számítógépes nyugták",to:"/finance/receipts"},
