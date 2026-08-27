@@ -7,6 +7,7 @@ import PenzugyLegacy from "./PenzugyLegacy";
 import ProductSalePage from "./ProductSalePage";
 import ReceiptCompliancePage from "./ReceiptCompliancePage";
 import ReceiptDocumentsPage from "./ReceiptDocumentsPage";
+import ExternalDocumentIntakePage from "./ExternalDocumentIntakePage";
 import FitnessPage from "./FitnessPage";
 import FitnessLockerPanel from "./FitnessLockerPanel";
 import FitnessLockerKiosk from "./FitnessLockerKiosk";
@@ -31,6 +32,7 @@ export default function Penzugy() {
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname === "/finance/receipts") return <ReceiptDocumentsPage />;
+  if(pathname === "/finance/document-intake") return <ExternalDocumentIntakePage />;
   if(pathname.startsWith("/finance/fixed-assets")) return <><FixedAssetGovernancePanel/><FixedAssetsPage /></>;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
@@ -51,6 +53,7 @@ export default function Penzugy() {
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
     <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
+      <Link to="/finance/document-intake" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#166534",color:"white"}}>Bizonylat-beérkeztetés</Link>
       <Link to="/finance/receipts" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#3b2458",color:"white"}}>Számítógépes nyugták</Link>
       <Link to="/finance/fixed-assets" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#6e56a3",color:"white"}}>Tárgyi eszközök</Link>
       {management&&<Link to="/finance/exception-command-center" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#991b1b",color:"white"}}>Exception Command Center</Link>}
