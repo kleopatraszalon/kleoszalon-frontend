@@ -25,18 +25,21 @@ import MajorIncidentWarRoomPage from "./MajorIncidentWarRoomPage";
 import ResilienceRecoveryPage from "./ResilienceRecoveryPage";
 import BusinessContinuityGameDayPage from "./BusinessContinuityGameDayPage";
 import OperationalRiskControlRegisterPage from "./OperationalRiskControlRegisterPage";
+import LegalEntitiesSettingsPage from "./LegalEntitiesSettingsPage";
 import "./TransactionTraceForensics.css";
 
 /** Finance v5 route adapter. */
 export default function Penzugy() {
   const { pathname } = useLocation();
   const management = hasStoredRole(["admin", "manager"]);
+  const legalEntityAccess = hasStoredRole(["admin", "accounting"]);
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
   if(pathname === "/finance/receipt-compliance") return <ReceiptCompliancePage />;
   if(pathname === "/finance/receipts") return <ReceiptDocumentsPage />;
   if(pathname === "/finance/document-intake") return <ExternalDocumentIntakePage />;
   if(pathname === "/finance/altegio") return <AltegioDataIntakePage />;
   if(pathname === "/finance/nav-online-invoice") return <ExternalInvoiceNavPage />;
+  if(pathname === "/finance/legal-entities") return legalEntityAccess ? <LegalEntitiesSettingsPage /> : <Navigate to="/finance" replace />;
   if(pathname.startsWith("/finance/fixed-assets")) return <><FixedAssetGovernancePanel/><FixedAssetsPage /></>;
   if(pathname.startsWith("/finance/reconciliation")) return <ReconciliationCenterPage />;
   if(pathname.startsWith("/finance/transaction-trace")) return <TransactionTracePage />;
@@ -57,6 +60,7 @@ export default function Penzugy() {
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
     <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
+      {legalEntityAccess&&<Link to="/finance/legal-entities" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#5b21b6",color:"white"}}>Cégek és könyvelési egységek</Link>}
       <Link to="/finance/document-intake" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#166534",color:"white"}}>Bizonylat-beérkeztetés</Link>
       <Link to="/finance/altegio" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#0f766e",color:"white"}}>Altegio szinkron / import</Link>
       <Link to="/finance/nav-online-invoice" style={{textDecoration:"none",fontWeight:800,fontSize:13,padding:"9px 13px",borderRadius:10,background:"#1d4ed8",color:"white"}}>NAV Online Számla</Link>
