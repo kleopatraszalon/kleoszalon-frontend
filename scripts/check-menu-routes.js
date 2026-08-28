@@ -1,10 +1,25 @@
 const fs=require('fs');
 const path=require('path');
+
 const app=fs.readFileSync('src/App.tsx','utf8');
 const routeAccess=fs.readFileSync('src/routing/routeAccess.tsx','utf8');
+const routeAggregator=fs.readFileSync('src/routing/routes.ts','utf8');
+const fontScale=fs.readFileSync('src/styles/vir-font-scale.css','utf8');
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
 const accountingSidebar=fs.existsSync('src/components/AccountingSidebar.tsx')?fs.readFileSync('src/components/AccountingSidebar.tsx','utf8'):'';
 const staticMenus=sidebar+'\n'+accountingSidebar;
+
+const routeFiles=[
+  'src/routing/publicRoutes.tsx',
+  'src/routing/bookingRoutes.tsx',
+  'src/routing/hrRoutes.tsx',
+  'src/routing/financeRoutes.tsx',
+  'src/routing/inventoryRoutes.tsx',
+  'src/routing/adminRoutes.tsx',
+];
+const routeSources=routeFiles.map(file=>({file,source:fs.readFileSync(file,'utf8')}));
+const routes=routeSources.map(entry=>entry.source).join('\n');
+
 const critical=[
   '/appointments/calendar','/workorders','/modules/team/timetable','/modules/team/attendance',
   '/modules/customers/clients','/modules/customers/crm','/employees','/loyalty','/finance',
@@ -18,8 +33,8 @@ const scopedMenuRoutes=[
 ];
 const failures=[];
 const escapeRegex=value=>value.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-const hasRoute=route=>new RegExp(`path\\s*:\\s*["']${escapeRegex(route)}["']`).test(app);
-const hasDynamicCustomerRoute=()=>/path\s*:\s*["']\/modules\/customers\/:view["']/.test(app);
+const hasRoute=route=>new RegExp(`path\\s*:\\s*["']${escapeRegex(route)}["']`).test(routes);
+const hasDynamicCustomerRoute=()=>/path\s*:\s*["']\/modules\/customers\/:view["']/.test(routes);
 
 for(const route of critical){
   const exact=hasRoute(route);
@@ -28,18 +43,38 @@ for(const route of critical){
 }
 for(const route of scopedMenuRoutes)if(!staticMenus.includes(route))failures.push(`A szerepkör-alapú statikus menüben hiányzik: ${route}`);
 
-// Every static React Router path must have exactly one owner. Duplicate route
-// declarations are maintenance hazards because one page can silently shadow or
-// disagree with another implementation while both appear valid in code review.
-const routeMatches=[...app.matchAll(/\bpath\s*:\s*["']([^"']+)["']/g)].map(match=>match[1]);
-const routeCounts=new Map();
-for(const route of routeMatches)routeCounts.set(route,(routeCounts.get(route)||0)+1);
-for(const [route,count] of routeCounts)if(count>1)failures.push(`Duplikált router útvonal (${count}x): ${route}`);
+// Every static React Router path must have exactly one owner across all route
+// modules. The module name is included in the error to make ownership obvious.
+const routeOwners=new Map();
+for(const {file,source} of routeSources){
+  for(const match of source.matchAll(/\bpath\s*:\s*["']([^"']+)["']/g)){
+    const route=match[1];
+    const owners=routeOwners.get(route)||[];
+    owners.push(file);
+    routeOwners.set(route,owners);
+  }
+}
+for(const [route,owners] of routeOwners)if(owners.length>1)failures.push(`Duplikált router útvonal (${owners.length}x): ${route} -> ${owners.join(', ')}`);
+const routeMatches=[...routeOwners.keys()];
+if(routeMatches.length!==179) failures.push(`A moduláris router route-száma megváltozott: várt 179, aktuális ${routeMatches.length}. Ellenőrizd, hogy route nem veszett-e el.`);
 
-if(!app.includes('from "./routing/routeAccess"')) failures.push('Az App.tsx nem a központi routing/routeAccess guard réteget használja.');
-if(/function\s+RequireAuth\s*\(/.test(app)||/function\s+RequireRoles\s*\(/.test(app)) failures.push('Auth/role guard implementáció került vissza az App.tsx-be; használd a routing/routeAccess modult.');
+// App.tsx must remain a composition root, not grow back into a monolithic
+// routing file. Route ownership belongs to the six domain modules.
+if(!app.includes('from "./routing/routes"')) failures.push('Az App.tsx nem a routing/routes aggregátort használja.');
+if(/\bpath\s*:\s*["']/.test(app)) failures.push('Route deklaráció került vissza az App.tsx-be; tedd a megfelelő domain route modulba.');
+if(/\blazy\s*\(/.test(app)) failures.push('Lazy page-regisztráció került vissza az App.tsx-be; használd a routing/routePages modult.');
+for(const moduleName of ['publicRoutes','bookingRoutes','hrRoutes','financeRoutes','inventoryRoutes','adminRoutes']){
+  if(!routeAggregator.includes(moduleName)) failures.push(`A route aggregátorból hiányzik: ${moduleName}`);
+}
+if(/createBrowserRouter\s*\(/.test(routes)) failures.push('Domain route modul nem hozhat létre saját BrowserRouter példányt.');
+
 if(!/export\s+function\s+RequireAuth/.test(routeAccess)||!/export\s+function\s+RequireRoles/.test(routeAccess)) failures.push('A központi routeAccess modulból hiányzik az auth vagy role guard.');
 if(!/ADMIN_ROLES/.test(routeAccess)||!/MANAGEMENT_ROLES/.test(routeAccess)||!/KIOSK_MANAGER_ROLES/.test(routeAccess)) failures.push('A route szerepkör-csoportok nincsenek központilag definiálva.');
+
+// 1.5x typography is a deliberate global design-system setting, not scattered
+// per-page overrides.
+if(!app.includes('./styles/vir-font-scale.css')) failures.push('A globális VIR typography scale nincs betöltve az App.tsx-ben.');
+if(!/--vir-font-scale\s*:\s*150%/.test(fontScale)) failures.push('A VIR globális betűméret-skála nem 150%.');
 
 // Source-changing workflows must never bypass PR review by committing directly
 // to main. Deployment workflows may deploy main, but they must not mutate code.
@@ -53,7 +88,7 @@ if(fs.existsSync(workflowDir)){
   }
 }
 
-const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(app);
+const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(routeAccess);
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
 if(!/MENU_CACHE_KEY='kleo\.menu\.cache\.v\d+'/.test(sidebar)) failures.push('A menü-cache kulcs nincs verziózva.');
 
@@ -62,4 +97,4 @@ if(failures.length){
   failures.forEach(x=>console.error(' - '+x));
   process.exit(1);
 }
-console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${critical.length} kritikus router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);
+console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${routeFiles.length} domain modul, ${critical.length} kritikus router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);

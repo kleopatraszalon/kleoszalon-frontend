@@ -3,13 +3,14 @@ import path from "path";
 
 describe("Management improvement project workspace", () => {
   const page = fs.readFileSync(path.join(__dirname, "ManagementImprovementPage.tsx"), "utf8");
-  const app = fs.readFileSync(path.join(__dirname, "..", "App.tsx"), "utf8");
+  const adminRoutes = fs.readFileSync(path.join(__dirname, "..", "routing", "adminRoutes.tsx"), "utf8");
+  const routePages = fs.readFileSync(path.join(__dirname, "..", "routing", "routePages.ts"), "utf8");
   const projectTemplate = "/projects/" + String.fromCharCode(36) + "{detail.project.id}";
 
   test("is routed as a management-only operations module", () => {
-    expect(app).toContain('const ManagementImprovementPage = lazy(() => import("./pages/ManagementImprovementPage"))');
-    expect(app).toContain('path: "/operations/improvement"');
-    expect(app).toContain('R(MANAGEMENT, <ManagementImprovementPage />)');
+    expect(routePages).toContain('export const ManagementImprovementPage = lazy(() => import("../pages/ManagementImprovementPage"))');
+    expect(adminRoutes).toContain('path: "/operations/improvement"');
+    expect(adminRoutes).toContain('R(MANAGEMENT, <ManagementImprovementPage />)');
   });
 
   test("uses the database-backed improvement API for projects CAPA KPI approval and audit", () => {

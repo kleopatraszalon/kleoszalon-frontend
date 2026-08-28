@@ -5,13 +5,13 @@ const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),'utf8');
 
 test('critical management routes remain reachable',()=>{
   const finance=read('src/pages/Penzugy.tsx');
-  const app=read('src/App.tsx');
+  const adminRoutes=read('src/routing/adminRoutes.tsx');
   expect(finance).toContain('/finance/reconciliation');
   expect(finance).toContain('ReconciliationCenterPage');
   expect(finance).toContain('/finance/executive-ai');
   expect(finance).toContain('ExecutiveAiAssistantPage');
-  expect(app).toContain('/admin/system-health');
-  expect(app).toContain('SystemHealthPage');
+  expect(adminRoutes).toContain('/admin/system-health');
+  expect(adminRoutes).toContain('SystemHealthPage');
 });
 
 test('critical management menu names stay canonical',()=>{

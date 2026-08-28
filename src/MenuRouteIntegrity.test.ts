@@ -2,14 +2,23 @@ import fs from 'fs';
 import path from 'path';
 
 const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),'utf8');
+const routeFiles=[
+  'src/routing/publicRoutes.tsx',
+  'src/routing/bookingRoutes.tsx',
+  'src/routing/hrRoutes.tsx',
+  'src/routing/financeRoutes.tsx',
+  'src/routing/inventoryRoutes.tsx',
+  'src/routing/adminRoutes.tsx',
+];
 
 describe('VIR menu route integrity',()=>{
-  const app=read('src/App.tsx');
+  const routes=routeFiles.map(read).join('\n');
+  const pages=read('src/routing/routePages.ts');
   const calendar=read('src/pages/AppointmentsCalendar.tsx');
   const waitlist=read('src/pages/BookingWaitlistPage.tsx');
 
   it('routes appointment menu views to their implemented screens',()=>{
-    expect(app).toContain('path: "/appointments/list"');
+    expect(routes).toContain('path: "/appointments/list"');
     expect(calendar).toContain('"voice-booking": "/appointments/voice-booking-stats"');
     expect(calendar).toContain('"complex-services": "/modules/appointments/complex-services"');
     expect(calendar).toContain('"group-bookings": "/modules/appointments/group-bookings"');
@@ -21,27 +30,27 @@ describe('VIR menu route integrity',()=>{
   });
 
   it('keeps legacy operational menu links on functional pages',()=>{
-    expect(app).toContain('path: "/operations/tasks"');
-    expect(app).toContain('to="/extra/tasks"');
-    expect(app).toContain('path: "/operations/maintenance"');
-    expect(app).toContain('to="/spec/maintenance"');
-    expect(app).toContain('path: "/operations/documents"');
-    expect(app).toContain('to="/extra/documents"');
-    expect(app).toContain('path: "/operations/email"');
-    expect(app).toContain('to="/spec/internal-email"');
-    expect(app).toContain('path: "/operations/complaints"');
-    expect(app).toContain('to="/marketing/complaints"');
+    expect(routes).toContain('path: "/operations/tasks"');
+    expect(routes).toContain('to="/extra/tasks"');
+    expect(routes).toContain('path: "/operations/maintenance"');
+    expect(routes).toContain('to="/spec/maintenance"');
+    expect(routes).toContain('path: "/operations/documents"');
+    expect(routes).toContain('to="/extra/documents"');
+    expect(routes).toContain('path: "/operations/email"');
+    expect(routes).toContain('to="/spec/internal-email"');
+    expect(routes).toContain('path: "/operations/complaints"');
+    expect(routes).toContain('to="/marketing/complaints"');
   });
 
   it('wires developed reporting and administration pages instead of report fallbacks',()=>{
-    expect(app).toContain('const ManagementToolsPage = lazy');
-    expect(app).toContain('path: "/reports/management-tools"');
-    expect(app).toContain('path: "/reports/builder"');
-    expect(app).toContain('path: "/reports/inventory-movements"');
-    expect(app).toContain('path: "/settings/menu-order"');
-    expect(app).toContain('path: "/settings/system-health"');
-    expect(app).toContain('path: "/settings/uat"');
-    expect(app).toContain('path: "/settings/gdpr"');
-    expect(app).toContain('path: "/kiosk/admin"');
+    expect(pages).toContain('export const ManagementToolsPage = lazy');
+    expect(routes).toContain('path: "/reports/management-tools"');
+    expect(routes).toContain('path: "/reports/builder"');
+    expect(routes).toContain('path: "/reports/inventory-movements"');
+    expect(routes).toContain('path: "/settings/menu-order"');
+    expect(routes).toContain('path: "/settings/system-health"');
+    expect(routes).toContain('path: "/settings/uat"');
+    expect(routes).toContain('path: "/settings/gdpr"');
+    expect(routes).toContain('path: "/kiosk/admin"');
   });
 });
