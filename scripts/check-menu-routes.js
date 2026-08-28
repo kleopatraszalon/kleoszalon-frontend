@@ -1,4 +1,5 @@
 const fs=require('fs');
+const path=require('path');
 const app=fs.readFileSync('src/App.tsx','utf8');
 const routeAccess=fs.readFileSync('src/routing/routeAccess.tsx','utf8');
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
@@ -39,6 +40,18 @@ if(!app.includes('from "./routing/routeAccess"')) failures.push('Az App.tsx nem 
 if(/function\s+RequireAuth\s*\(/.test(app)||/function\s+RequireRoles\s*\(/.test(app)) failures.push('Auth/role guard implementáció került vissza az App.tsx-be; használd a routing/routeAccess modult.');
 if(!/export\s+function\s+RequireAuth/.test(routeAccess)||!/export\s+function\s+RequireRoles/.test(routeAccess)) failures.push('A központi routeAccess modulból hiányzik az auth vagy role guard.');
 if(!/ADMIN_ROLES/.test(routeAccess)||!/MANAGEMENT_ROLES/.test(routeAccess)||!/KIOSK_MANAGER_ROLES/.test(routeAccess)) failures.push('A route szerepkör-csoportok nincsenek központilag definiálva.');
+
+// Source-changing workflows must never bypass PR review by committing directly
+// to main. Deployment workflows may deploy main, but they must not mutate code.
+const workflowDir='.github/workflows';
+if(fs.existsSync(workflowDir)){
+  for(const name of fs.readdirSync(workflowDir).filter(file=>/\.ya?ml$/i.test(file))){
+    const workflow=fs.readFileSync(path.join(workflowDir,name),'utf8');
+    const writesContents=/contents\s*:\s*write/i.test(workflow);
+    const pushesMain=/git\s+push[^\n]*(?:HEAD:main|origin\s+main|refs\/heads\/main)/i.test(workflow);
+    if(writesContents&&pushesMain) failures.push(`Közvetlen main-forrásmódosító workflow tiltott: ${name}`);
+  }
+}
 
 const forbiddenDashboardFallback=/function\s+FallbackRedirect\s*\(\s*\)\s*\{[\s\S]{0,320}<Navigate\s+to=\{getToken\(\)\?HOME_PATH/.test(app);
 if(forbiddenDashboardFallback) failures.push('Az ismeretlen route még mindig csendben az irányítópultra irányít.');
