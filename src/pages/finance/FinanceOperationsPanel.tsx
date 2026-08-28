@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{ArrowLeftRight,Banknote,Plus,RefreshCw,RotateCcw,WalletCards}from"lucide-react";
 import api from"../../api";
 import"./FinanceOperationsPanel.css";
@@ -17,8 +17,8 @@ export default function FinanceOperationsPanel(){
  const[refundAccount,setRefundAccount]=useState(""),[refundWorkOrder,setRefundWorkOrder]=useState(""),[refundAmount,setRefundAmount]=useState(0),[refundReason,setRefundReason]=useState("");
  const[newAccountName,setNewAccountName]=useState(""),[newAccountType,setNewAccountType]=useState("cash");
  const query=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";
- const load=async()=>{setLoading(true);setError("");try{const[a,c,m]=await Promise.all([api.get(`/api/transactions/finance-operations/accounts${query}`),api.get(`/api/transactions/finance-operations/categories${query}`),api.get(`/api/transactions/finance-operations/movements${query}`)]);setAccounts(a.data||[]);setCategories(c.data||[]);setMovements(m.data||[]);setAccountId(v=>v||a.data?.[0]?.id||"");setSource(v=>v||a.data?.[0]?.id||"");setDestination(v=>v||a.data?.[1]?.id||"");setRefundAccount(v=>v||a.data?.[0]?.id||"")}catch(e:any){setError(e?.response?.data?.message||e?.message||"A pénzügyi műveletek nem tölthetők be.")}finally{setLoading(false)}};
- useEffect(()=>{void load()},[]);
+ const load=useCallback(async()=>{setLoading(true);setError("");try{const[a,c,m]=await Promise.all([api.get(`/api/transactions/finance-operations/accounts${query}`),api.get(`/api/transactions/finance-operations/categories${query}`),api.get(`/api/transactions/finance-operations/movements${query}`)]);setAccounts(a.data||[]);setCategories(c.data||[]);setMovements(m.data||[]);setAccountId(v=>v||a.data?.[0]?.id||"");setSource(v=>v||a.data?.[0]?.id||"");setDestination(v=>v||a.data?.[1]?.id||"");setRefundAccount(v=>v||a.data?.[0]?.id||"")}catch(e:any){setError(e?.response?.data?.message||e?.message||"A pénzügyi műveletek nem tölthetők be.")}finally{setLoading(false)}},[query]);
+ useEffect(()=>{void load()},[load]);
  const today=useMemo(()=>movements.filter(m=>new Date(m.occurred_at).toDateString()===new Date().toDateString()),[movements]);
  const income=today.filter(m=>m.direction==="income").reduce((s,m)=>s+Number(m.amount||0),0),expense=today.filter(m=>m.direction==="expense").reduce((s,m)=>s+Number(m.amount||0),0);
  const toast=(text:string)=>{setNotice(text);window.setTimeout(()=>setNotice(""),2600)};
