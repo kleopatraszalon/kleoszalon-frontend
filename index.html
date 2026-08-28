@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#17100b" />
+    <meta name="description" content="Kleopátra Szépségszalonok vállalatirányítási rendszer" />
+    <link rel="apple-touch-icon" href="/logo192.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="stylesheet" href="/vir-responsive-fixes.css" />
+    <title>Kleoszalon VIR</title>
+  </head>
+  <body>
+    <noscript>A rendszer használatához JavaScript szükséges.</noscript>
+    <div id="root"></div>
+    <script src="/vir-mobile-menu.js" defer></script>
+    <script>
+      document.addEventListener('click', function (event) {
+        var target = event.target;
+        var anchor = target && target.closest ? target.closest('a') : null;
+        if (!anchor) return;
+        try {
+          var url = new URL(anchor.href, window.location.href);
+          var automationTools = ['winback', 'occasions', 'empty', 'roi'];
+          if (url.origin === window.location.origin && url.pathname === '/marketing-studio.html' && automationTools.indexOf(url.searchParams.get('tool')) >= 0) {
+            url.pathname = '/marketing-automation.html';
+          }
+          var standalone = ['/flyer-designer.html', '/marketing-studio.html', '/marketing-automation.html'];
+          if (url.origin === window.location.origin && standalone.indexOf(url.pathname) >= 0) {
+            event.preventDefault();
+            event.stopPropagation();
+            window.location.assign(url.href);
+          }
+        } catch (_) {}
+      }, true);
+    </script>
+    <script type="module" src="/src/index.tsx"></script>
+  </body>
+</html>
