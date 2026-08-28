@@ -6,7 +6,7 @@ type Locker={locker_no:number;controller_channel:number;status:string;door_state
 const dt=(v:any)=>v?new Date(v).toLocaleString('hu-HU'):'—';
 export default function FitnessLockerPanel(){
  const[data,setData]=useState<any>(null),[events,setEvents]=useState<any[]>([]),[access,setAccess]=useState<any>(null),[error,setError]=useState(''),[ok,setOk]=useState(''),[busy,setBusy]=useState(false),[card,setCard]=useState(''),[token,setToken]=useState('');const scanRef=useRef<HTMLInputElement|null>(null);
- const lockers:Locker[]=data?.lockers||[];const summary=data?.summary||{};const isAdmin=Boolean(access?.is_admin);
+ const lockers=useMemo<Locker[]>(()=>data?.lockers||[],[data?.lockers]);const summary=data?.summary||{};const isAdmin=Boolean(access?.is_admin);
  async function load(){try{const a=(await api.get('/vir/fitness/access')).data;setAccess(a);if(!a?.allowed)return;const[l,e]=await Promise.all([api.get('/vir/fitness/lockers'),api.get('/vir/fitness/lockers/events',{params:{limit:80}})]);setData(l.data);setEvents(e.data||[]);setError('')}catch(e:any){setError(e?.response?.data?.message||e?.message||'A szekrényrendszer nem tölthető be.')}}
  useEffect(()=>{void load();const t=setInterval(()=>void load(),3000);return()=>clearInterval(t)},[]);
  async function act(fn:()=>Promise<any>,msg:string){setBusy(true);setError('');setOk('');try{const r=await fn();setOk(msg);await load();return r}catch(e:any){setError(e?.response?.data?.reason||e?.response?.data?.message||e?.message||'A művelet nem sikerült.')}finally{setBusy(false)}}
