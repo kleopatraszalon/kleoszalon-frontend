@@ -21,6 +21,7 @@ import {
   ManagementImprovementPage,
   MobileAppAdminPage,
   ModulePlaceholderPage,
+  ModuleRoutesPage,
   NewsletterPage,
   OperationsQualityPage,
   SaasFranchiseAdminPage,
@@ -117,6 +118,6 @@ export const adminRoutes: RouteObject[] = [
     element: <Navigate to="/knowledge-base/library" replace />,
   },
   { path: "/spec/:moduleKey", element: A(<ModulePlaceholderPage />) },
-  { path: "/modules/:moduleKey/*", element: A(<ModulePlaceholderPage />) },
+  { path: "/modules/:moduleKey/*", element: A(<ModuleRoutesPage />) },
   { path: "*", element: <FallbackRedirect /> },
 ];
