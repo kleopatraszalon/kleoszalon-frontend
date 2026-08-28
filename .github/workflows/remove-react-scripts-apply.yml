@@ -53,11 +53,18 @@ jobs:
         run: |
           node -e "const p=require('./package.json'); if(p.devDependencies?.['react-scripts']||p.dependencies?.['react-scripts']) process.exit(1);"
           ! grep -q 'react-scripts' package.json
-      - name: Verify deterministic install without react-scripts
+      - name: Snapshot migrated package contract
+        run: |
+          sha256sum package.json package-lock.json | tee /tmp/migrated-package.sha256
+          cp package.json /tmp/migrated-package.json
+          cp package-lock.json /tmp/migrated-package-lock.json
+      - name: Verify deterministic clean install without react-scripts
         run: |
           rm -rf node_modules
           npm ci --no-audit --no-fund
-          git diff --exit-code -- package.json package-lock.json
+          cmp /tmp/migrated-package.json package.json
+          cmp /tmp/migrated-package-lock.json package-lock.json
+          sha256sum -c /tmp/migrated-package.sha256
       - name: Production dependency security audit
         run: npm audit --omit=dev --audit-level=moderate
       - name: Verify 37-warning ESLint behavior
