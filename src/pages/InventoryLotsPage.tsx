@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 
 type Warehouse={id:string|number;name:string;location_id?:string|null;location_name?:string|null};
@@ -35,7 +35,7 @@ export default function InventoryLotsPage(){
 
   const [receipt,setReceipt]=useState({warehouse_id:"",product_id:"",quantity:"",unit_cost:"",lot_code:"",manufactured_at:"",expires_at:"",document_number:"",note:""});
 
-  const load=async()=>{
+  const load=useCallback(async()=>{
     setLoading(true);setError("");
     try{
       const [w,p]=await Promise.all([
@@ -46,8 +46,8 @@ export default function InventoryLotsPage(){
       setProducts(Array.isArray(p.data)?p.data:[]);
       if(!receipt.warehouse_id&&w.data?.[0]?.id)setReceipt(x=>({...x,warehouse_id:String(w.data[0].id)}));
     }catch(e:any){setError(getMessage(e))}finally{setLoading(false)}
-  };
-  const loadLots=async()=>{
+  },[receipt.warehouse_id]);
+  const loadLots=useCallback(async()=>{
     try{
       const params:any={};if(warehouseId)params.warehouse_id=warehouseId;if(productId)params.product_id=productId;if(status)params.status=status;
       const [l,s]=await Promise.all([
@@ -56,14 +56,14 @@ export default function InventoryLotsPage(){
       ]);
       setLots(Array.isArray(l.data)?l.data:[]);setSummary(s.data||{});
     }catch(e:any){setError(getMessage(e))}
-  };
-  useEffect(()=>{void load()},[]);
-  useEffect(()=>{void loadLots()},[warehouseId,productId,status]);
+  },[productId,status,warehouseId]);
+  useEffect(()=>{void load()},[load]);
+  useEffect(()=>{void loadLots()},[loadLots]);
 
   const tracked=useMemo(()=>products.filter(p=>p.lot_tracking_enabled),[products]);
   const selectedReceiptProduct=products.find(p=>p.id===receipt.product_id);
   const selectedTracking=products.find(p=>p.id===trackProductId);
-  useEffect(()=>{if(selectedTracking){setLotTracking(Boolean(selectedTracking.lot_tracking_enabled));setExpiryTracking(Boolean(selectedTracking.expiry_tracking_enabled));setFefo(Boolean(selectedTracking.fefo_enabled))}},[trackProductId,products]);
+  useEffect(()=>{if(selectedTracking){setLotTracking(Boolean(selectedTracking.lot_tracking_enabled));setExpiryTracking(Boolean(selectedTracking.expiry_tracking_enabled));setFefo(Boolean(selectedTracking.fefo_enabled))}},[selectedTracking]);
 
   const saveTracking=async()=>{
     if(!trackProductId)return setError("Válasszon terméket.");
