@@ -1,0 +1,113 @@
+name: Apply safe hook dependency batch 3
+
+on:
+  push:
+    branches:
+      - maint/hook-deps-batch3-20260828
+    paths:
+      - .github/workflows/hook-deps-batch3-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: maint/hook-deps-batch3-20260828
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Stabilize third low-risk hook batch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p=Path(path)
+              text=p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected pattern missing in {path}: {old[:180]!r}')
+              p.write_text(text.replace(old,new,count),encoding='utf-8')
+
+          replace('src/pages/ProductCatalogPage.tsx',
+                  'import React, { useEffect, useMemo, useRef, useState } from "react";',
+                  'import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";')
+          replace('src/pages/ProductCatalogPage.tsx',
+                  'const {language,locale,t}=useLanguage(); const text=(hu:string,en:string)=>language==="en"?en:hu;',
+                  'const {language,locale,t}=useLanguage(); const text=useCallback((hu:string,en:string)=>language==="en"?en:hu,[language]);')
+          replace('src/pages/ProductCatalogPage.tsx',
+                  'const load=async()=>{try{setLoading(true);setError("");const r=await fetch(withBase(`products${inactive?"?include_inactive=1":""}`),{headers:auth()});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();setItems(Array.isArray(d)?d:[]);}catch(e:any){setError(e?.message||text("A termékek betöltése nem sikerült.","Products could not be loaded."));}finally{setLoading(false)}};\n  useEffect(()=>{void load()},[inactive]);',
+                  'const load=useCallback(async()=>{try{setLoading(true);setError("");const r=await fetch(withBase(`products${inactive?"?include_inactive=1":""}`),{headers:auth()});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();setItems(Array.isArray(d)?d:[]);}catch(e:any){setError(e?.message||text("A termékek betöltése nem sikerült.","Products could not be loaded."));}finally{setLoading(false)}},[inactive,text]);\n  useEffect(()=>{void load()},[load]);')
+
+          replace('src/pages/ServicesCatalogPage.tsx',
+                  'const load=async()=>{ try { setLoading(true); setError(""); const [s,typeResponse]=await Promise.all([',
+                  'const load=useCallback(async()=>{ try { setLoading(true); setError(""); const [s,typeResponse]=await Promise.all([')
+          replace('src/pages/ServicesCatalogPage.tsx',
+                  '  } catch(e:any){setError(e?.message||text("A szolgáltatások betöltése nem sikerült.","Services could not be loaded."));} finally{setLoading(false);} };\n  useEffect(()=>{void load();},[includeInactive]);',
+                  '  } catch(e:any){setError(e?.message||text("A szolgáltatások betöltése nem sikerült.","Services could not be loaded."));} finally{setLoading(false);} },[includeInactive,text]);\n  useEffect(()=>{void load();},[load]);')
+
+          replace('src/pages/clients/ClientLoyaltyPanel.tsx',
+                  "import React,{useEffect,useState}from'react';",
+                  "import React,{useCallback,useEffect,useState}from'react';")
+          replace('src/pages/clients/ClientLoyaltyPanel.tsx',
+                  " async function load(){setLoading(true);setError('');try{const [d,p,v,e,f]=await Promise.allSettled([api.get(`/api/transactions/loyalty-v4/customer/${encodeURIComponent(customerId)}`),api.get('/api/transactions/loyalty/pass-types'),api.get('/api/transactions/loyalty/voucher-types'),api.get('/api/employees'),api.get('/api/transactions/loyalty-v4/finance/accounts')]);if(d.status==='fulfilled')setData(d.value.data);else throw d.reason;setPassTypes(p.status==='fulfilled'&&Array.isArray(p.value.data)?p.value.data:[]);setVoucherTypes(v.status==='fulfilled'&&Array.isArray(v.value.data)?v.value.data:[]);setEmployees(e.status==='fulfilled'&&Array.isArray(e.value.data)?e.value.data:[]);setFinanceAccounts(f.status==='fulfilled'&&Array.isArray(f.value.data)?f.value.data:[])}catch(e:any){setError(e?.response?.data?.message||'A hűségadatok nem tölthetők be.')}finally{setLoading(false)}}\n useEffect(()=>{void load()},[customerId]);",
+                  " const load=useCallback(async()=>{setLoading(true);setError('');try{const [d,p,v,e,f]=await Promise.allSettled([api.get(`/api/transactions/loyalty-v4/customer/${encodeURIComponent(customerId)}`),api.get('/api/transactions/loyalty/pass-types'),api.get('/api/transactions/loyalty/voucher-types'),api.get('/api/employees'),api.get('/api/transactions/loyalty-v4/finance/accounts')]);if(d.status==='fulfilled')setData(d.value.data);else throw d.reason;setPassTypes(p.status==='fulfilled'&&Array.isArray(p.value.data)?p.value.data:[]);setVoucherTypes(v.status==='fulfilled'&&Array.isArray(v.value.data)?v.value.data:[]);setEmployees(e.status==='fulfilled'&&Array.isArray(e.value.data)?e.value.data:[]);setFinanceAccounts(f.status==='fulfilled'&&Array.isArray(f.value.data)?f.value.data:[])}catch(e:any){setError(e?.response?.data?.message||'A hűségadatok nem tölthetők be.')}finally{setLoading(false)}},[customerId]);\n useEffect(()=>{void load()},[load]);")
+
+          replace('src/pages/finance/FinanceControlCenter.tsx',
+                  'import React,{useEffect,useState}from"react";',
+                  'import React,{useCallback,useEffect,useState}from"react";')
+          replace('src/pages/finance/FinanceControlCenter.tsx',
+                  'async function load(){setLoading(true);setError("");try{const q=`?month=${encodeURIComponent(month)}${locationId?`&location_id=${encodeURIComponent(locationId)}`:""}`;const[s,i]=await Promise.all([api.get(`/api/transactions/finance-control/summary${q}`),api.get(`/api/transactions/finance-control/issues${q}`)]);setSummary(s.data);setIssues(i.data||[])}catch(e:any){setError(e?.response?.data?.message||"A pénzügyi ellenőrzések nem tölthetők be.")}finally{setLoading(false)}}\nuseEffect(()=>{void load()},[month]);',
+                  'const load=useCallback(async()=>{setLoading(true);setError("");try{const q=`?month=${encodeURIComponent(month)}${locationId?`&location_id=${encodeURIComponent(locationId)}`:""}`;const[s,i]=await Promise.all([api.get(`/api/transactions/finance-control/summary${q}`),api.get(`/api/transactions/finance-control/issues${q}`)]);setSummary(s.data);setIssues(i.data||[])}catch(e:any){setError(e?.response?.data?.message||"A pénzügyi ellenőrzések nem tölthetők be.")}finally{setLoading(false)}},[month,locationId]);\nuseEffect(()=>{void load()},[load]);')
+
+          replace('src/pages/finance/FinanceDailyDashboard.tsx',
+                  'import React,{useEffect,useMemo,useState}from"react";',
+                  'import React,{useCallback,useEffect,useMemo,useState}from"react";')
+          replace('src/pages/finance/FinanceDailyDashboard.tsx',
+                  ' async function load(){setLoading(true);setError("");try{const q=new URLSearchParams({date});if(locationId)q.set("location_id",locationId);const r=await api.get(`/api/transactions/finance-dashboard?${q.toString()}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||"A napi pénzügyi dashboard nem tölthető be.")}finally{setLoading(false)}}\n useEffect(()=>{void load()},[date,locationId,refreshKey]);',
+                  ' const load=useCallback(async()=>{setLoading(true);setError("");try{const q=new URLSearchParams({date});if(locationId)q.set("location_id",locationId);const r=await api.get(`/api/transactions/finance-dashboard?${q.toString()}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||"A napi pénzügyi dashboard nem tölthető be.")}finally{setLoading(false)},[date,locationId]);\n useEffect(()=>{void load()},[load,refreshKey]);')
+
+          replace('src/pages/finance/FinanceInvoicesPanel.tsx',
+                  'import React,{useEffect,useMemo,useState}from"react";',
+                  'import React,{useCallback,useEffect,useMemo,useState}from"react";')
+          replace('src/pages/finance/FinanceInvoicesPanel.tsx',
+                  ' async function load(){setLoading(true);setError("");try{const q=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[i,a]=await Promise.all([api.get(`/api/transactions/finance-operations/invoices${q}`),api.get(`/api/transactions/finance-operations/accounts${q}`)]);setItems(i.data||[]);setAccounts(a.data||[]);}catch(e:any){setError(e?.response?.data?.message||"A számlák nem tölthetők be.");}finally{setLoading(false)}}\n useEffect(()=>{void load()},[]);',
+                  ' const load=useCallback(async()=>{setLoading(true);setError("");try{const q=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[i,a]=await Promise.all([api.get(`/api/transactions/finance-operations/invoices${q}`),api.get(`/api/transactions/finance-operations/accounts${q}`)]);setItems(i.data||[]);setAccounts(a.data||[]);}catch(e:any){setError(e?.response?.data?.message||"A számlák nem tölthetők be.");}finally{setLoading(false)},[locationId]);\n useEffect(()=>{void load()},[load]);')
+
+          replace('src/pages/finance/FinanceOperationsPanel.tsx',
+                  'import React,{useEffect,useMemo,useState}from"react";',
+                  'import React,{useCallback,useEffect,useMemo,useState}from"react";')
+          replace('src/pages/finance/FinanceOperationsPanel.tsx',
+                  ' const load=async()=>{setLoading(true);setError("");try{const[a,c,m]=await Promise.all([api.get(`/api/transactions/finance-operations/accounts${query}`),api.get(`/api/transactions/finance-operations/categories${query}`),api.get(`/api/transactions/finance-operations/movements${query}`)]);setAccounts(a.data||[]);setCategories(c.data||[]);setMovements(m.data||[]);setAccountId(v=>v||a.data?.[0]?.id||"");setSource(v=>v||a.data?.[0]?.id||"");setDestination(v=>v||a.data?.[1]?.id||"");setRefundAccount(v=>v||a.data?.[0]?.id||"")}catch(e:any){setError(e?.response?.data?.message||e?.message||"A pénzügyi műveletek nem tölthetők be.")}finally{setLoading(false)}};\n useEffect(()=>{void load()},[]);',
+                  ' const load=useCallback(async()=>{setLoading(true);setError("");try{const[a,c,m]=await Promise.all([api.get(`/api/transactions/finance-operations/accounts${query}`),api.get(`/api/transactions/finance-operations/categories${query}`),api.get(`/api/transactions/finance-operations/movements${query}`)]);setAccounts(a.data||[]);setCategories(c.data||[]);setMovements(m.data||[]);setAccountId(v=>v||a.data?.[0]?.id||"");setSource(v=>v||a.data?.[0]?.id||"");setDestination(v=>v||a.data?.[1]?.id||"");setRefundAccount(v=>v||a.data?.[0]?.id||"")}catch(e:any){setError(e?.response?.data?.message||e?.message||"A pénzügyi műveletek nem tölthetők be.")}finally{setLoading(false)},[query]);\n useEffect(()=>{void load()},[load]);')
+
+          replace('scripts/run-release-lint.js',
+                  'process.env.ESLINT_WARNING_BASELINE || 37',
+                  'process.env.ESLINT_WARNING_BASELINE || 30')
+          PY
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify 30-warning hook budget
+        run: npm run lint:strict
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Run complete Vitest regression suite
+        env:
+          CI: true
+        run: npm test
+      - name: Verify Vite production build
+        env:
+          CI: true
+        run: npm run build
+      - name: Commit hook cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/ProductCatalogPage.tsx src/pages/ServicesCatalogPage.tsx src/pages/clients/ClientLoyaltyPanel.tsx src/pages/finance/FinanceControlCenter.tsx src/pages/finance/FinanceDailyDashboard.tsx src/pages/finance/FinanceInvoicesPanel.tsx src/pages/finance/FinanceOperationsPanel.tsx scripts/run-release-lint.js
+          git commit -m "Reduce hook dependency warning budget from 37 to 30"
+          git push origin HEAD:maint/hook-deps-batch3-20260828
