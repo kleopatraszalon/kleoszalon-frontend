@@ -9,6 +9,11 @@ const fontScaleRuntime=fs.readFileSync('src/utils/fontScale.ts','utf8');
 const fontScaleControl=fs.readFileSync('src/components/FontScaleControl.tsx','utf8');
 const languageSwitcher=fs.readFileSync('src/components/LanguageSwitcher.tsx','utf8');
 const indexSource=fs.readFileSync('src/index.tsx','utf8');
+const appLayout=fs.readFileSync('src/layouts/AppLayout.tsx','utf8');
+const appTopbar=fs.readFileSync('src/components/AppTopbar.tsx','utf8');
+const sessionIdleGuard=fs.readFileSync('src/hooks/useSessionIdleGuard.ts','utf8');
+const appLayoutModel=fs.readFileSync('src/layouts/appLayoutModel.ts','utf8');
+const appLayoutCss=fs.readFileSync('src/layouts/AppLayout.css','utf8');
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
 const accountingSidebar=fs.existsSync('src/components/AccountingSidebar.tsx')?fs.readFileSync('src/components/AccountingSidebar.tsx','utf8'):'';
 const staticMenus=sidebar+'\n'+accountingSidebar;
@@ -75,15 +80,29 @@ if(/createBrowserRouter\s*\(/.test(routes)) failures.push('Domain route modul ne
 if(!/export\s+function\s+RequireAuth/.test(routeAccess)||!/export\s+function\s+RequireRoles/.test(routeAccess)) failures.push('A központi routeAccess modulból hiányzik az auth vagy role guard.');
 if(!/ADMIN_ROLES/.test(routeAccess)||!/MANAGEMENT_ROLES/.test(routeAccess)||!/KIOSK_MANAGER_ROLES/.test(routeAccess)) failures.push('A route szerepkör-csoportok nincsenek központilag definiálva.');
 
-// Typography remains centralized, but users can now choose the scale directly
-// beside the language selector. The persisted value must be restored pre-render.
+// Typography remains centralized. 100% is the readable baseline and users can
+// choose larger values directly beside the language selector.
 if(!app.includes('./styles/vir-font-scale.css')) failures.push('A globális VIR typography scale nincs betöltve az App.tsx-ben.');
-if(!/--vir-font-scale\s*:\s*150%/.test(fontScale)||!/font-size\s*:\s*var\(--vir-font-scale\)/.test(fontScale)) failures.push('A VIR typography alapértéke vagy root alkalmazása hiányzik.');
+if(!/--vir-font-scale\s*:\s*100%/.test(fontScale)||!/font-size\s*:\s*var\(--vir-font-scale\)/.test(fontScale)) failures.push('A VIR typography 100%-os alapértéke vagy root alkalmazása hiányzik.');
+if(!/DEFAULT_FONT_SCALE\s*=\s*100/.test(fontScaleRuntime)) failures.push('A VIR alapértelmezett betűmérete nem 100%.');
 if(!fontScaleRuntime.includes('FONT_SCALE_OPTIONS = [100, 125, 150, 175, 200]')) failures.push('A támogatott betűméret lépcsők megváltoztak vagy hiányoznak.');
 if(!fontScaleRuntime.includes('kleo.font.scale.v1')||!fontScaleRuntime.includes('localStorage.setItem')) failures.push('A betűméret-beállítás tartós tárolása hiányzik.');
 if(!fontScaleControl.includes('A−')||!fontScaleControl.includes('A+')||!fontScaleControl.includes('saveFontScale')) failures.push('A felső betűméret-vezérlő nem tartalmazza a csökkentés/növelés funkciót.');
 if(!languageSwitcher.includes('FontScaleControl')||languageSwitcher.indexOf('FontScaleControl')>languageSwitcher.lastIndexOf('</label>')) failures.push('A betűméret-vezérlő nincs közvetlenül a nyelvválasztó mellett.');
 if(!indexSource.includes('initializeFontScale();')) failures.push('A mentett betűméret nem áll vissza az alkalmazás renderelése előtt.');
+
+// AppLayout is now a shell composition layer. Session activity, topbar rendering
+// and role/page metadata must remain extracted so this file cannot become a new
+// frontend monolith.
+if(!appLayout.includes('AppTopbar')) failures.push('Az AppLayout nem a külön AppTopbar komponenst használja.');
+if(!appLayout.includes('useSessionIdleGuard')) failures.push('Az AppLayout nem a külön session idle hookot használja.');
+if(!appLayout.includes('deriveRoleFlags')||!appLayout.includes('resolveCurrentPageHu')) failures.push('Az AppLayout szerepkör- vagy oldalcím-logikája nincs külön modellbe szervezve.');
+if(appLayout.includes('modern-topbar')||appLayout.includes('clearAuthenticatedSession')||appLayout.includes('const pageNames')) failures.push('Az AppLayoutba visszakerült topbar/session/page-meta implementáció.');
+if(!appTopbar.includes('LanguageSwitcher')||!appTopbar.includes('topbar-breadcrumb')||!appTopbar.includes('topbar-location')||!appTopbar.includes('topbar-logout')) failures.push('Az AppTopbar szerkezete hiányos.');
+if(!sessionIdleGuard.includes('IDLE_TIMEOUT_MS')||!sessionIdleGuard.includes('visibilitychange')||!sessionIdleGuard.includes('clearAuthenticatedSession')) failures.push('A session idle guardból hiányzik a korábbi biztonsági viselkedés.');
+if(!appLayoutModel.includes('PAGE_NAMES')||!appLayoutModel.includes('deriveRoleFlags')||!appLayoutModel.includes('resolveCurrentPageHu')) failures.push('Az AppLayout modellből hiányzik route- vagy role-meta logika.');
+if(!appLayoutCss.includes('--topbar-font-sm: .8125rem')||!appLayoutCss.includes('font-size:var(--topbar-font-sm)')) failures.push('A felső sáv tipográfiája nincs skálázható rem/token alapra állítva.');
+if(/\.topbar-(?:breadcrumb|global-search|location|profile|logout)[^{]*\{[^}]*font-size\s*:\s*\d+px/s.test(appLayoutCss)) failures.push('A felső sávban fix px-es font-size maradt.');
 
 // Source-changing workflows must never bypass PR review by committing directly
 // to main. Deployment workflows may deploy main, but they must not mutate code.
@@ -106,4 +125,4 @@ if(failures.length){
   failures.forEach(x=>console.error(' - '+x));
   process.exit(1);
 }
-console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${routeFiles.length} domain modul, ${critical.length} kritikus router, ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal és dinamikus font-scale kontroll ellenőrizve.`);
+console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${routeFiles.length} domain modul, ${critical.length} kritikus router, ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal, moduláris AppLayout és 100%-os dinamikus font-scale kontroll ellenőrizve.`);
