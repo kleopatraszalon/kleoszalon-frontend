@@ -21,6 +21,7 @@ import {
   ManagementImprovementPage,
   MobileAppAdminPage,
   ModulePlaceholderPage,
+  ModuleRoutesPage,
   NewsletterPage,
   OperationsQualityPage,
   SaasFranchiseAdminPage,
@@ -40,7 +41,6 @@ import {
   WebsitePagesAdminPage,
   MenuLayoutPage,
 } from "./routePages";
-import { FallbackRedirect } from "./routeAccess";
 
 export const adminRoutes: RouteObject[] = [
   { path: "/admin/system-health", element: R(MANAGEMENT, <SystemHealthPage />) },
@@ -117,6 +117,6 @@ export const adminRoutes: RouteObject[] = [
     element: <Navigate to="/knowledge-base/library" replace />,
   },
   { path: "/spec/:moduleKey", element: A(<ModulePlaceholderPage />) },
-  { path: "/modules/:moduleKey/*", element: A(<ModulePlaceholderPage />) },
-  { path: "*", element: <FallbackRedirect /> },
+  { path: "/modules/:moduleKey/*", element: A(<ModuleRoutesPage />) },
+  { path: "*", element: <ModuleRoutesPage /> },
 ];

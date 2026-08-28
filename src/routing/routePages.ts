@@ -54,6 +54,7 @@ export const VirReportsAdminPage = lazy(() => import("../pages/VirReportsAdminPa
 export const VirTopMetricsExtendedPage = lazy(() => import("../pages/VirTopMetricsExtendedPage"));
 export const VirSupplementaryReportsPage = lazy(() => import("../pages/VirSupplementaryReportsPage"));
 export const ModulePlaceholderPage = lazy(() => import("../pages/ModulePlaceholderPage"));
+export const ModuleRoutesPage = lazy(() => import("../pages/ModuleRoutesPage"));
 export const AppointmentsModulePage = lazy(() => import("../pages/AppointmentsModulePage"));
 export const ClientsCRMPage = lazy(() => import("../pages/ClientsCRMPage"));
 export const StaffImportPage = lazy(() => import("../pages/StaffImportPage"));
