@@ -28,8 +28,11 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "start:vite": "vite",
     "prebuild": "node scripts/write-release-meta.js",
     "build": "react-scripts build",
+    "build:vite": "node scripts/write-release-meta.js && vite build --outDir dist-vite",
+    "preview:vite": "vite preview --outDir dist-vite",
     "typecheck": "tsc --noEmit --pretty false",
     "lint:strict": "node scripts/run-release-lint.js",
     "quality:strict": "npm run typecheck && npm run lint:strict",
@@ -66,13 +69,15 @@
     "@testing-library/user-event": "^13.5.0",
     "@types/jest": "^27.5.2",
     "@types/node": "^16.18.126",
-    "@types/react": "^19.2.2",
+    "@types/react": "^18.3.12",
     "@types/react-big-calendar": "^1.16.3",
     "@types/react-calendar": "^3.9.0",
-    "@types/react-dom": "^19.2.2",
+    "@types/react-dom": "^18.3.1",
     "@types/react-modal": "^3.16.3",
+    "@vitejs/plugin-react": "^4.3.4",
     "baseline-browser-mapping": "^2.9.19",
     "react-scripts": "5.0.1",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "vite": "^5.4.14"
   }
 }
