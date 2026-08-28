@@ -7,7 +7,7 @@ import {
 } from "./routeAccess";
 import {
   AccessControlPage,
-  EmployeeSkillMatrixPage,
+  EmployeeRoutesPage,
   EmployeeWorkContextPage,
   EmployeesList,
   HrAttendancePage,
@@ -26,7 +26,6 @@ export const hrRoutes: RouteObject[] = [
   { path: "/hr/applications", element: R(MANAGEMENT, <HrDevelopmentPage />) },
   { path: "/spec/training", element: R(MANAGEMENT, <HrDevelopmentPage />) },
   { path: "/hr/evaluations", element: R(MANAGEMENT, <HrDevelopmentPage />) },
-  { path: "/hr/skill-matrix", element: R(MANAGEMENT, <EmployeeSkillMatrixPage />) },
   {
     path: "/modules/team/recruitment",
     element: <Navigate to="/hr/applications" replace />,
@@ -44,11 +43,10 @@ export const hrRoutes: RouteObject[] = [
   { path: "/modules/team/import", element: R(MANAGEMENT, <StaffImportPage />) },
   { path: "/hr", element: A(<EmployeesList />) },
   { path: "/employees", element: A(<EmployeesList />) },
-  { path: "/employees/skills", element: R(MANAGEMENT, <EmployeeSkillMatrixPage />) },
   { path: "/team", element: <Navigate to="/employees" replace /> },
   { path: "/staff", element: <Navigate to="/employees" replace /> },
   { path: "/employees/:id", element: A(<EmployeeWorkContextPage />) },
-  { path: "/employees/*", element: A(<EmployeesList />) },
+  { path: "/employees/*", element: A(<EmployeeRoutesPage />) },
   { path: "/modules/team/timetable", element: A(<RoleTimetablePage />) },
   { path: "/modules/team/attendance", element: A(<HrAttendancePage />) },
   { path: "/staff/chat", element: A(<StaffChatPage />) },
