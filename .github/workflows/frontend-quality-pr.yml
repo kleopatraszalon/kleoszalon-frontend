@@ -48,7 +48,7 @@ jobs:
       - name: Frontend tests
         env:
           CI: true
-        run: npm test -- --watchAll=false
+        run: npm test
 
       - name: Strict production build
         env:
