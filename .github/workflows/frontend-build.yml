@@ -51,11 +51,11 @@ jobs:
         shell: bash
         run: |
           set +e
-          output="$(npm test -- --watchAll=false 2>&1)"
+          output="$(npm test 2>&1)"
           code=$?
           printf '%s\n' "$output"
           if [ "$code" -ne 0 ]; then
-            summary="$(printf '%s\n' "$output" | grep -E '^(FAIL|PASS|Test Suites:|Tests:|Snapshots:|Time:|Ran all|[[:space:]]*●|[[:space:]]*Snapshot name:|[[:space:]]*Expected:|[[:space:]]*Received:)' | tail -n 100)"
+            summary="$(printf '%s\n' "$output" | grep -E '^(FAIL|PASS|Test Files:|Test Suites:|Tests:|Snapshots:|Time:|Duration:|Ran all|[[:space:]]*●|[[:space:]]*Snapshot name:|[[:space:]]*Expected:|[[:space:]]*Received:)' | tail -n 100)"
             if [ -z "$summary" ]; then summary="$(printf '%s' "$output" | tail -c 5000)"; fi
             detail="$(printf '%s' "$summary" | tr '\n' ' ' | sed 's/%/%25/g; s/\r/%0D/g')"
             echo "::error title=Frontend test failure::$detail"
