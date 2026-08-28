@@ -67,6 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const logout = useSessionIdleGuard();
   const [collapsed, setCollapsed] = useState(false);
+  const toggleSidebar = () => setCollapsed((value) => !value);
 
   const serviceView = new URLSearchParams(location.search).get("view") || "services";
   const currentPage = translateMenuLabel(
@@ -130,7 +131,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           salon={salon}
           today={today}
           onLogout={logout}
-          onToggleSidebar={() => setCollapsed((value) => !value)}
+          onToggleSidebar={toggleSidebar}
         />
 
         {isSettingsArea && canViewLegalEntities && (
