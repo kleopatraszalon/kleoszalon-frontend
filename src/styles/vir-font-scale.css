@@ -1,0 +1,21 @@
+/*
+ * VIR global typography scale.
+ *
+ * Keep the scale centralized: component and design-token rem values inherit
+ * this root multiplier instead of accumulating one-off font-size overrides.
+ */
+:root {
+  --vir-font-scale: 150%;
+}
+
+html {
+  font-size: var(--vir-font-scale);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+  line-height: 1.45;
+}
