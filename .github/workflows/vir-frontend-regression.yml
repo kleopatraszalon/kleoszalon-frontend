@@ -60,7 +60,7 @@ jobs:
         run: npm run lint:strict
 
       - name: Run complete frontend regression suite
-        run: npm test -- --watchAll=false --runInBand
+        run: npm test
 
       - name: Strict production build
         env:
