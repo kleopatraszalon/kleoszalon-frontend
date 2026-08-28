@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{CheckCircle2,FilePlus2,Landmark,RefreshCw,WalletCards,XCircle,Link2}from"lucide-react";
 import api from"../../api";
 import"./FinanceInvoicesPanel.css";
@@ -12,8 +12,8 @@ export default function FinanceInvoicesPanel(){
  const[form,setForm]=useState<any>({direction:"incoming",invoice_no:"",partner_name:"",partner_tax_no:"",issue_date:today(),performance_date:today(),due_date:today(),net_total:0,vat_total:0,gross_total:0});
  const locationId=localStorage.getItem("kleo_location_id")||"";
  const openTotal=useMemo(()=>items.filter(x=>["approved","overdue"].includes(x.status)).reduce((s,x)=>s+Number(x.gross_total||0),0),[items]);
- async function load(){setLoading(true);setError("");try{const q=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[i,a]=await Promise.all([api.get(`/api/transactions/finance-operations/invoices${q}`),api.get(`/api/transactions/finance-operations/accounts${q}`)]);setItems(i.data||[]);setAccounts(a.data||[]);}catch(e:any){setError(e?.response?.data?.message||"A számlák nem tölthetők be.");}finally{setLoading(false)}}
- useEffect(()=>{void load()},[]);
+ const load=useCallback(async()=>{setLoading(true);setError("");try{const q=locationId?`?location_id=${encodeURIComponent(locationId)}`:"";const[i,a]=await Promise.all([api.get(`/api/transactions/finance-operations/invoices${q}`),api.get(`/api/transactions/finance-operations/accounts${q}`)]);setItems(i.data||[]);setAccounts(a.data||[]);}catch(e:any){setError(e?.response?.data?.message||"A számlák nem tölthetők be.");}finally{setLoading(false)}},[locationId]);
+ useEffect(()=>{void load()},[load]);
  async function create(){setLoading(true);setError("");try{await api.post("/api/transactions/finance-operations/invoices",{...form,location_id:locationId||null});setForm((x:any)=>({...x,invoice_no:"",partner_name:"",partner_tax_no:"",net_total:0,vat_total:0,gross_total:0}));await load();}catch(e:any){setError(e?.response?.data?.message||"A számla nem menthető.");}finally{setLoading(false)}}
  async function action(id:string,type:"approve"|"ledger"|"cancel"|"pay"){setLoading(true);setError("");try{if(type==="approve")await api.post(`/api/transactions/finance-operations/invoices/${id}/approve`);if(type==="ledger")await api.post(`/api/transactions/finance-operations/invoices/${id}/post-to-ledger`);if(type==="cancel"){const reason=window.prompt("Sztornó indoka:");if(!reason)return;await api.post(`/api/transactions/finance-operations/invoices/${id}/cancel`,{reason});}if(type==="pay"){const account=accounts[0]?.id;if(!account)throw new Error("Nincs pénzügyi számla/pénztár.");await api.post(`/api/transactions/finance-operations/invoices/${id}/pay`,{account_id:account});}await load();}catch(e:any){setError(e?.response?.data?.message||e?.message||"A művelet sikertelen.");}finally{setLoading(false)}}
  const source=(x:Invoice)=>x.work_order_id?`Munkalap #${x.work_order_id}`:x.purchase_order_id?`Beszerzés #${x.purchase_order_id}`:"Kézi rögzítés";

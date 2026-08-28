@@ -26,13 +26,13 @@ export default function ServicesCatalogPage() {
   const [includeInactive,setIncludeInactive]=useState(false); const [expanded,setExpanded]=useState<Record<string,boolean>>({});
   const [newOpen,setNewOpen]=useState(false); const [selected,setSelected]=useState<Service|null>(null);
 
-  const load=async()=>{ try { setLoading(true); setError(""); const [s,typeResponse]=await Promise.all([
+  const load=useCallback(async()=>{ try { setLoading(true); setError(""); const [s,typeResponse]=await Promise.all([
       fetch(withBase(`services${includeInactive?"?include_inactive=1":""}`),{headers:headers()}),
       fetch(withBase("service-types"),{headers:headers()})]);
     if(!s.ok) throw new Error(`${text("Szolgáltatások","Services")}: HTTP ${s.status}`); const sd=await s.json(); const td=typeResponse.ok?await typeResponse.json():[];
     setServices(Array.isArray(sd)?sd:[]); setTypes(Array.isArray(td)?td:[]);
-  } catch(e:any){setError(e?.message||text("A szolgáltatások betöltése nem sikerült.","Services could not be loaded."));} finally{setLoading(false);} };
-  useEffect(()=>{void load();},[includeInactive]);
+  } catch(e:any){setError(e?.message||text("A szolgáltatások betöltése nem sikerült.","Services could not be loaded."));} finally{setLoading(false);} },[includeInactive,text]);
+  useEffect(()=>{void load();},[load]);
 
   const salons=useMemo(()=>{ const map=new Map<string,string>(); services.forEach(s=>(s.locations||[]).forEach(l=>map.set(String(l.id),l.name))); return Array.from(map.entries()).map(([id,name])=>({id,name})).sort((a,b)=>a.name.localeCompare(b.name,locale)); },[services,locale]);
   const filtered=useMemo(()=>services.filter(s=>{ const q=name.trim().toLocaleLowerCase(locale); const price=Number(s.list_price??s.base_price??0); const time=Number(s.duration_minutes??0);

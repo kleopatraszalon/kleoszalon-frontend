@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, FileSpreadsheet, Loader2, Package, Search, SlidersHorizontal, Upload } from "lucide-react";
 import withBase from "../utils/apiBase";
 import { useLanguage } from "../i18n/LanguageProvider";
@@ -21,15 +21,15 @@ type ViewMode="products"|"groups"|"categories";
 const viewMode=():ViewMode=>{const v=new URLSearchParams(window.location.search).get("view");return v==="groups"?"groups":v==="categories"?"categories":"products"};
 
 export default function ProductCatalogPage(){
-  const {language,locale,t}=useLanguage(); const text=(hu:string,en:string)=>language==="en"?en:hu;
+  const {language,locale,t}=useLanguage(); const text=useCallback((hu:string,en:string)=>language==="en"?en:hu,[language]);
   const displayNode=(value:string)=>value===OTHER_TYPE?text(OTHER_TYPE,"Other product type"):value===OTHER?text(OTHER,"Other"):value;
   const mode=viewMode();
   const [items,setItems]=useState<Product[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState("");
   const [q,setQ]=useState(""); const [type,setType]=useState(""); const [group,setGroup]=useState(""); const [category,setCategory]=useState(""); const [minPrice,setMinPrice]=useState(""); const [maxPrice,setMaxPrice]=useState(""); const [inactive,setInactive]=useState(false);
   const [openTypes,setOpenTypes]=useState<Record<string,boolean>>({}); const [openGroups,setOpenGroups]=useState<Record<string,boolean>>({}); const [openCats,setOpenCats]=useState<Record<string,boolean>>({});
   const inputRef=useRef<HTMLInputElement|null>(null); const [uploading,setUploading]=useState(false); const [msg,setMsg]=useState(""); const [msgErr,setMsgErr]=useState(false);
-  const load=async()=>{try{setLoading(true);setError("");const r=await fetch(withBase(`products${inactive?"?include_inactive=1":""}`),{headers:auth()});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();setItems(Array.isArray(d)?d:[]);}catch(e:any){setError(e?.message||text("A termékek betöltése nem sikerült.","Products could not be loaded."));}finally{setLoading(false)}};
-  useEffect(()=>{void load()},[inactive]);
+  const load=useCallback(async()=>{try{setLoading(true);setError("");const r=await fetch(withBase(`products${inactive?"?include_inactive=1":""}`),{headers:auth()});if(!r.ok)throw new Error(`HTTP ${r.status}`);const d=await r.json();setItems(Array.isArray(d)?d:[]);}catch(e:any){setError(e?.message||text("A termékek betöltése nem sikerült.","Products could not be loaded."));}finally{setLoading(false)}},[inactive,text]);
+  useEffect(()=>{void load()},[load]);
 
   const types=useMemo(()=>Array.from(new Set(items.map(x=>x.product_type_name||OTHER_TYPE))).sort((a,b)=>a.localeCompare(b,locale)),[items,locale]);
   const groups=useMemo(()=>Array.from(new Set(items.filter(x=>!type||(x.product_type_name||OTHER_TYPE)===type).map(x=>x.product_group_name||OTHER))).sort((a,b)=>a.localeCompare(b,locale)),[items,type,locale]);
