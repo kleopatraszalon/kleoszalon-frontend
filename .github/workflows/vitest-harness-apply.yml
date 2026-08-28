@@ -1,0 +1,94 @@
+name: Verify Vitest harness migration
+
+on:
+  push:
+    branches:
+      - modernize/vitest-harness-20260828
+    paths:
+      - .github/workflows/vitest-harness-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: modernize/vitest-harness-20260828
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install current dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Add Vitest and jsdom
+        run: npm install --save-dev vitest@2.1.9 jsdom@25.0.1 --no-audit --no-fund
+      - name: Configure dual test harness
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');
+          const p=JSON.parse(fs.readFileSync('package.json','utf8'));
+          p.scripts.test='vitest run';
+          p.scripts['test:watch']='vitest';
+          p.scripts['test:cra']='react-scripts test';
+          fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');
+          NODE
+          cat > vitest.config.ts <<'EOF'
+          import { defineConfig } from "vitest/config";
+          import react from "@vitejs/plugin-react";
+
+          export default defineConfig({
+            plugins: [react()],
+            test: {
+              globals: true,
+              environment: "jsdom",
+              setupFiles: ["./src/setupVitest.ts"],
+              include: ["src/**/*.{test,spec}.{js,jsx,ts,tsx}"],
+              testTimeout: 15000,
+            },
+          });
+          EOF
+          cat > src/setupVitest.ts <<'EOF'
+          import "@testing-library/jest-dom/vitest";
+          import { TextDecoder, TextEncoder } from "util";
+
+          if (typeof globalThis.TextEncoder === "undefined") {
+            Object.defineProperty(globalThis, "TextEncoder", {
+              configurable: true,
+              writable: true,
+              value: TextEncoder,
+            });
+          }
+
+          if (typeof globalThis.TextDecoder === "undefined") {
+            Object.defineProperty(globalThis, "TextDecoder", {
+              configurable: true,
+              writable: true,
+              value: TextDecoder,
+            });
+          }
+          EOF
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Existing lint gate
+        run: npm run lint:strict
+      - name: Run all tests with Vitest
+        run: npm test
+      - name: Verify CRA fallback suite
+        env:
+          CI: true
+        run: npm run test:cra -- --watchAll=false
+      - name: Verify Vite production build
+        env:
+          CI: true
+        run: npm run build
+      - name: Commit verified Vitest harness
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json package-lock.json vitest.config.ts src/setupVitest.ts
+          git commit -m "Add Vitest test harness alongside CRA fallback"
+          git push origin HEAD:modernize/vitest-harness-20260828
