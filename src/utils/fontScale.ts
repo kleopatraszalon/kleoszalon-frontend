@@ -1,5 +1,5 @@
 export const FONT_SCALE_STORAGE_KEY = "kleo.font.scale.v1";
-export const DEFAULT_FONT_SCALE = 150;
+export const DEFAULT_FONT_SCALE = 100;
 export const FONT_SCALE_OPTIONS = [100, 125, 150, 175, 200] as const;
 
 export type FontScale = (typeof FONT_SCALE_OPTIONS)[number];
