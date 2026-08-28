@@ -7,6 +7,7 @@ import {
 } from "./routeAccess";
 import {
   AccessControlPage,
+  EmployeeRoutesPage,
   EmployeeWorkContextPage,
   EmployeesList,
   HrAttendancePage,
@@ -45,7 +46,7 @@ export const hrRoutes: RouteObject[] = [
   { path: "/team", element: <Navigate to="/employees" replace /> },
   { path: "/staff", element: <Navigate to="/employees" replace /> },
   { path: "/employees/:id", element: A(<EmployeeWorkContextPage />) },
-  { path: "/employees/*", element: A(<EmployeesList />) },
+  { path: "/employees/*", element: A(<EmployeeRoutesPage />) },
   { path: "/modules/team/timetable", element: A(<RoleTimetablePage />) },
   { path: "/modules/team/attendance", element: A(<HrAttendancePage />) },
   { path: "/staff/chat", element: A(<StaffChatPage />) },
