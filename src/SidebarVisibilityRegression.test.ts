@@ -10,7 +10,8 @@ describe('VIR sidebar visibility regression', () => {
     expect(layout).toContain('const [collapsed, setCollapsed]');
     expect(layout).not.toContain('const [mobileOpen, setMobileOpen]');
     expect(layout).not.toContain('setMobileOpen(!collapsed)');
-    expect(layout).toContain('const toggleSidebar = () => setCollapsed(v=>!v);');
+    expect(layout).toMatch(/const toggleSidebar = \(\) => setCollapsed\(\(value\) => !value\);/);
+    expect(layout).toContain('onToggleSidebar={toggleSidebar}');
     expect(layout).not.toContain('window.matchMedia("(max-width: 900px)").matches ? setMobileOpen');
     expect(layout).not.toContain('is-mobile-sidebar-open');
   });

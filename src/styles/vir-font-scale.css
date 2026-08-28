@@ -1,11 +1,12 @@
 /*
  * VIR global typography scale.
  *
- * Keep the scale centralized: component and design-token rem values inherit
- * this root multiplier instead of accumulating one-off font-size overrides.
+ * 100% is the visual baseline. User-selected values are applied to this same
+ * root custom property before React renders, so every rem-based token scales
+ * consistently without per-page overrides.
  */
 :root {
-  --vir-font-scale: 150%;
+  --vir-font-scale: 100%;
 }
 
 html {

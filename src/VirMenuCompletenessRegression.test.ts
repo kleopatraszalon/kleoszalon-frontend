@@ -12,7 +12,8 @@ describe('VIR complete menu regression', () => {
   });
 
   it('keeps sidebar visibility controlled only by the explicit toggle', () => {
-    expect(layout).toContain('const toggleSidebar = () => setCollapsed(v=>!v);');
+    expect(layout).toMatch(/const toggleSidebar = \(\) => setCollapsed\(\(value\) => !value\);/);
+    expect(layout).toContain('onToggleSidebar={toggleSidebar}');
     expect(layout).not.toContain('setMobileOpen(!collapsed)');
     expect(layout).not.toContain('is-mobile-sidebar-open');
   });

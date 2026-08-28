@@ -4,10 +4,11 @@ const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),"utf8");
 
 test("Stage17 idle hardening checks expiry before focus activity",()=>{
   const session=read("src/utils/authSession.ts");
-  const layout=read("src/layouts/AppLayout.tsx");
+  const idleGuard=read("src/hooks/useSessionIdleGuard.ts");
   expect(session).toMatch(/5\s*\*\s*60\s*\*\s*1000/);
-  expect(layout).toMatch(/verifyThenRegisterActivity/);
-  expect(layout).toMatch(/elapsed\s*>=\s*IDLE_TIMEOUT_MS/);
+  expect(idleGuard).toMatch(/verifyThenRegisterActivity/);
+  expect(idleGuard).toMatch(/elapsed\s*>=\s*IDLE_TIMEOUT_MS/);
+  expect(idleGuard).toMatch(/visibilitychange/);
 });
 
 test("Stage17 uses shared language, audit, recycle-bin and filter infrastructure",()=>{
