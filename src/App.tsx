@@ -1,14 +1,20 @@
-import React, { Suspense, lazy, type ReactElement } from "react";
+import React, { Suspense, lazy } from "react";
 import {
   createBrowserRouter,
   RouterProvider,
   Navigate,
 } from "react-router-dom";
 import "./styles/kleo-theme.css";
-import AppLayout from "./layouts/AppLayout";
 import BrandLoadingScreen from "./components/BrandLoadingScreen";
-import { hasStoredRole } from "./utils/roles";
-import { hasStoredAuthToken } from "./utils/authSession";
+import {
+  ADMIN_ROLES as ADMIN,
+  MANAGEMENT_ROLES as MANAGEMENT,
+  KIOSK_MANAGER_ROLES as KIOSK_MANAGERS,
+  FallbackRedirect,
+  PublicOnly,
+  authenticated as A,
+  roleProtected as R,
+} from "./routing/routeAccess";
 const ProductsList = lazy(() => import("./pages/ProductsList"));
 const ProductTaxonomyReviewPage = lazy(() => import("./pages/ProductTaxonomyReviewPage"));
 const InventoryOperationsPage = lazy(() => import("./pages/InventoryOperationsPage"));
@@ -102,44 +108,7 @@ const WebsitePagesAdminPage = lazy(
   () => import("./pages/WebsitePagesAdminPage"),
 );
 const NavOnlineInvoicePage = lazy(() => import("./pages/NavOnlineInvoicePage"));
-const HOME_PATH = "/";
-type GuardProps = { children: ReactElement };
-type RoleGuardProps = GuardProps & { allowed: string[] };
-function RequireAuth({ children }: GuardProps) {
-  if (!hasStoredAuthToken()) return <Navigate to="/login" replace />;
-  const legacy = React.isValidElement(children) && children.type === "div";
-  return <AppLayout>{legacy ? <ModulePlaceholderPage /> : children}</AppLayout>;
-}
-function RequireRoles({ children, allowed }: RoleGuardProps) {
-  if (!hasStoredAuthToken()) return <Navigate to="/login" replace />;
-  if (!hasStoredRole(allowed)) return <Navigate to={HOME_PATH} replace />;
-  return <RequireAuth>{children}</RequireAuth>;
-}
-function PublicOnly({ children }: GuardProps) {
-  return hasStoredAuthToken() ? <Navigate to={HOME_PATH} replace /> : children;
-}
-function FallbackRedirect() {
-  return hasStoredAuthToken() ? (
-    <RequireAuth>
-      <ModulePlaceholderPage />
-    </RequireAuth>
-  ) : (
-    <Navigate to="/login" replace />
-  );
-}
-const A = (el: ReactElement) => <RequireAuth>{el}</RequireAuth>;
-const R = (roles: string[], el: ReactElement) => (
-  <RequireRoles allowed={roles}>{el}</RequireRoles>
-);
-const ADMIN = ["admin"];
-const MANAGEMENT = ["admin", "manager"];
-const KIOSK_MANAGERS = [
-  "admin",
-  "manager",
-  "location_manager",
-  "salon_manager",
-  "receptionist",
-];
+
 const router = createBrowserRouter([
   {
     path: "/login",
@@ -267,7 +236,6 @@ const router = createBrowserRouter([
     path: "/modules/settings/chat-supervision",
     element: R(MANAGEMENT, <ModulePlaceholderPage />),
   },
-  { path: "/hr/positions", element: A(<EmployeesList />) },
   { path: "/modules/team/import", element: R(MANAGEMENT, <StaffImportPage />) },
   { path: "/modules/customers/:view", element: A(<ClientsCRMPage />) },
   { path: "/bejelentkezesek", element: A(<Bejelentkezesek />) },

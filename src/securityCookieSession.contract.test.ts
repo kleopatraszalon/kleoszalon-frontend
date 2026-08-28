@@ -79,12 +79,16 @@ describe("browser session security contract", () => {
     expect(source).toMatch(/credentials:\s*["']include["']/);
   });
 
-  test("application router guards use the shared session routing helper", () => {
-    const source = read("App.tsx");
-    expect(source).toContain('import { hasStoredAuthToken } from "./utils/authSession"');
-    expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
-    expect(source).not.toContain("function getToken()");
-    expect((source.match(/hasStoredAuthToken\(\)/g) || []).length).toBeGreaterThanOrEqual(4);
+  test("application router guards use the centralized shared session routing helper", () => {
+    const appSource = read("App.tsx");
+    const routeAccessSource = read("routing/routeAccess.tsx");
+    const combined = `${appSource}\n${routeAccessSource}`;
+
+    expect(appSource).toContain('from "./routing/routeAccess"');
+    expect(routeAccessSource).toContain('import { hasStoredAuthToken } from "../utils/authSession"');
+    expect(combined).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
+    expect(combined).not.toContain("function getToken()");
+    expect((routeAccessSource.match(/hasStoredAuthToken\(\)/g) || []).length).toBeGreaterThanOrEqual(4);
   });
 
   test("private route uses the shared session routing helper", () => {
