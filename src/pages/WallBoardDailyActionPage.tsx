@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useEffect,useMemo,useRef,useState}from"react";
 import axios from"axios";
 import{CheckCircle2,ExternalLink,ImagePlus,MonitorPlay,Plus,RefreshCw,Save,Send,Smartphone,Sparkles,Undo2}from"lucide-react";
 import"./WallBoardDailyActionPage.css";
@@ -28,7 +28,9 @@ export default function WallBoardDailyActionPage(){
  async function loadLocations(){try{const r=await axios.get(`${API_BASE}/locations`,auth());const rows=Array.isArray(r.data)?r.data:Array.isArray(r.data?.locations)?r.data.locations:[];setLocations(rows.map((x:any)=>({id:String(x.id),name:String(x.name||x.city||'Telephely'),city:x.city||null})))}catch{setLocations([])}}
  async function loadAuto(){setAutoLoading(true);setAutoError('');try{const r=await axios.get(`${AUTO}/recommendation`,{...auth(),params:{date:autoDate,location_id:autoLocation||undefined}});setAutoResult(r.data as AutoResult)}catch(e:any){setAutoResult(null);setAutoError(e?.response?.data?.message||e?.message||'Az automatikus napi akció javaslat nem tölthető be.')}finally{setAutoLoading(false)}}
  async function loadActionServices(){try{const r=await axios.get(`${API_BASE}/services?include_inactive=1`,auth());const rows=Array.isArray(r.data)?r.data:[];setActionServices(rows.map((x:any)=>({...x,id:String(x.id),name:String(x.name||'Szolgáltatás')})).sort((a:ActionService,b:ActionService)=>a.name.localeCompare(b.name,'hu')))}catch{setActionServices([])}}
- useEffect(()=>{void load();void loadLocations();void(async()=>{await loadAuto();await loadActionServices()})()},[]);
+ const initialLoadRef=useRef(load);
+ const initialLoadAutoRef=useRef(loadAuto);
+ useEffect(()=>{void initialLoadRef.current();void loadLocations();void(async()=>{await initialLoadAutoRef.current();await loadActionServices()})()},[]);
  function setFromCampaign(c:any){setForm({...c,valid_from:localDate(new Date(c.valid_from)),valid_until:localDate(new Date(c.valid_until)),channels:Array.isArray(c.channels)&&c.channels.length?c.channels:['app'],audience:c.audience||{type:'all'}});setMessage('');setError('')}
  function fresh(){setForm(emptyForm());setMessage('');setError('')}
  function payload(){return{name:form.name,headline:form.headline,description_html:form.description_html,image_url:form.image_url||null,cta_label:form.cta_label||'Foglalok',cta_url:form.cta_url||'/foglalas',discount_text:form.discount_text||null,valid_from:new Date(form.valid_from).toISOString(),valid_until:new Date(form.valid_until).toISOString(),channels:['app'],audience:{type:'all'}}}
