@@ -9,8 +9,6 @@ import {
   markSessionActivity,
 } from "../utils/authSession";
 
-export type LogoutReason = "idle" | undefined;
-
 export function useSessionIdleGuard() {
   const navigate = useNavigate();
 
@@ -34,13 +32,6 @@ export function useSessionIdleGuard() {
     let fallbackActivityAt = Date.now();
     const currentLastActivity = () => getLastActivityAt() ?? fallbackActivityAt;
 
-    const schedule = () => {
-      if (timer !== undefined) window.clearTimeout(timer);
-      const elapsed = Date.now() - currentLastActivity();
-      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
-      timer = window.setTimeout(expireIfIdle, remaining + 50);
-    };
-
     const expireIfIdle = () => {
       if (!hasStoredAuthToken()) {
         logout();
@@ -52,6 +43,13 @@ export function useSessionIdleGuard() {
         return;
       }
       schedule();
+    };
+
+    const schedule = () => {
+      if (timer !== undefined) window.clearTimeout(timer);
+      const elapsed = Date.now() - currentLastActivity();
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
+      timer = window.setTimeout(expireIfIdle, remaining + 50);
     };
 
     const registerActivity = () => {
