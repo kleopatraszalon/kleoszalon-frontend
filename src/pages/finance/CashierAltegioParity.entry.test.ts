@@ -12,6 +12,6 @@ test("adds multi-account manual income expense partner reference and transfer",(
 
 test("checkout uses configured payment methods account card brand fee and split tender",()=>{expect(finance).toContain("/altegio/payment-methods");expect(finance).toContain("finance_account_id");expect(finance).toContain("payment_method_code");expect(finance).toContain("card_brand");expect(finance).toContain("Tranzakciós díj");expect(finance).toContain("+ Fizetési mód hozzáadása");expect(finance).toContain("Wallet, pont, kupon, bérlet és ajándékutalvány")});
 
-test("payment history exposes partial and full refund action",()=>{expect(finance).toContain("/payments/${payment.id}/refund");expect(finance).toContain("Fizetések és visszatérítések");expect(finance).toContain("Visszatérítés");expect(finance).toContain("refunded_amount")});
+test("payment history exposes partial and full refund action",()=>{expect(finance).toContain(`/payments/\${payment.id}/refund`);expect(finance).toContain("Fizetések és visszatérítések");expect(finance).toContain("Visszatérítés");expect(finance).toContain("refunded_amount")});
 
 test("checkout and cash operations remain blocked without an open shift",()=>{expect(finance).toContain("cashierShiftOpen");expect(finance).toContain("Fizetés rögzítéséhez előbb nyisd meg a pénztári műszakot");expect(finance).toContain("disabled={!cashierShiftOpen}");expect(adapter).toContain('pathname === "/finance/checkout"')});

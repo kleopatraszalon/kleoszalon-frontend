@@ -17,7 +17,7 @@ test('NAV admin exposes automatic queue worker controls without weakening live s
  expect(source).toContain('/api/transactions/nav-online-invoice/queue-worker/status');
  expect(source).toContain('/api/transactions/nav-online-invoice/queue-worker/run-now');
  expect(source).toContain('/api/transactions/nav-online-invoice/automation');
- expect(source).toContain('/queue/${id}/retry');
+ expect(source).toContain(`/queue/\${id}/retry`);
  expect(source).toContain('Automatikus beküldés');
  expect(source).toContain('Csak TEST automatikusan');
  expect(source).toContain('Bizonytalan manageInvoice hálózati eredménynél nem küld újra automatikusan');

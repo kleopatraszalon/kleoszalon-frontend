@@ -7,7 +7,7 @@ test("finance v5 workspace contains the requested operational areas",()=>{
     expect(source).toContain(label);
   }
   expect(source).toContain('/api/transactions/finance-v5');
-  expect(source).toContain('/movements/${id}/cancel');
+  expect(source).toContain(`/movements/\${id}/cancel`);
   expect(source).toContain('/partners/sync-suppliers');
   expect(source).toContain('/reports/pl');
   expect(source).toContain('/reports/daily-cash');

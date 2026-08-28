@@ -10,7 +10,7 @@ test("calendar work order opening persists arrival and resumes the same saved wo
   expect(modal).toContain("/api/transactions/booking-workorder/appointments/");
   expect(modal).toContain("/arrive");
   expect(modal).toContain("work_order_id");
-  expect(modal).toContain("navigate(`/workorders/${encodeURIComponent(workOrderId)}`,{replace:true})");
+  expect(modal).toContain(`navigate(\`/workorders/\${encodeURIComponent(workOrderId)}\`,{replace:true})`);
   expect(modal).toContain("Ha ehhez az időponthoz már tartozik munkalap, ugyanaz a munkalapszám nyílik meg");
 });
 
@@ -24,7 +24,7 @@ test("work order modal exposes the full saved detail and removes duplicate in-fo
 test("payment and close workflow buttons target stable section ids", () => {
   expect(navigator).toContain("payment:'workorder-payment-step'");
   expect(navigator).toContain("close:'workorder-close-step'");
-  expect(navigator).toContain("root.querySelector<HTMLElement>(`#${targetId}`)");
+  expect(navigator).toContain(`root.querySelector<HTMLElement>(\`#\${targetId}\`)`);
 });
 
 test("legacy salon-less guest profile does not block work order and payment flow", () => {
