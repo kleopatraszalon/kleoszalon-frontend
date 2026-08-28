@@ -3,8 +3,6 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import ClientFormsVersionPage from "./ClientFormsVersionPage";
 
-jest.mock("../utils/apiBase",()=>({__esModule:true,default:(path:string)=>`/${path}`}));
-
 const ok=(payload:unknown)=>Promise.resolve({ok:true,status:200,json:async()=>payload} as Response);
 
 describe("ClientFormsVersionPage",()=>{
@@ -16,7 +14,7 @@ describe("ClientFormsVersionPage",()=>{
   test("shows published version history and read-only document fields",async()=>{
     const fetchMock=jest.spyOn(global,"fetch").mockImplementation((input:RequestInfo|URL)=>{
       const url=String(input);
-      if(url==="/clients/form-versions") return ok({can_edit:false,forms:[{
+      if(url.endsWith("/api/clients/form-versions")) return ok({can_edit:false,forms:[{
         id:"form-1",title:"Adatkezelési nyilatkozat",description:"Teszt nyilatkozat",form_type:"consent",is_active:true,
         current_version:2,current_version_id:"version-2",current_status:"published",privacy_notice_version:"GDPR-v3",version_count:2,draft_count:0,
       }]});
@@ -34,7 +32,7 @@ describe("ClientFormsVersionPage",()=>{
     expect(screen.getAllByText("v2").length).toBeGreaterThan(0);
     expect(screen.getByText("GDPR-v3")).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:/Új verzió/i})).not.toBeInTheDocument();
-    await waitFor(()=>expect(fetchMock).toHaveBeenCalledWith("/clients/form-versions",expect.any(Object)));
-    await waitFor(()=>expect(fetchMock).toHaveBeenCalledWith("/clients/form-versions/form-1",expect.any(Object)));
+    await waitFor(()=>expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/clients\/form-versions$/),expect.any(Object)));
+    await waitFor(()=>expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/clients\/form-versions\/form-1$/),expect.any(Object)));
   });
 });

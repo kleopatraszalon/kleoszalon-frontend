@@ -9,7 +9,9 @@ test("Vite is the default development and production builder while CRA remains a
   expect(pkg.scripts.build).toBe("vite build --outDir build");
   expect(pkg.scripts["start:cra"]).toBe("react-scripts start");
   expect(pkg.scripts["build:cra"]).toBe("react-scripts build");
-  expect(pkg.scripts.test).toBe("react-scripts test");
+  expect(pkg.scripts.test).toBe("vitest run");
+  expect(pkg.scripts["test:watch"]).toBe("vitest");
+  expect(pkg.scripts["test:cra"]).toBe("react-scripts test");
 });
 
 test("Vite production output preserves the release-control manifest contract", () => {
