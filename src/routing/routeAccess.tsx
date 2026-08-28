@@ -1,8 +1,10 @@
-import type { ReactElement } from "react";
+import { lazy, type ReactElement } from "react";
 import { Navigate } from "react-router-dom";
 import AppLayout from "../layouts/AppLayout";
 import { hasStoredRole } from "../utils/roles";
 import { hasStoredAuthToken } from "../utils/authSession";
+
+const ModulePlaceholderPage = lazy(() => import("../pages/ModulePlaceholderPage"));
 
 export const HOME_PATH = "/";
 
@@ -35,7 +37,13 @@ export function PublicOnly({ children }: GuardProps) {
 }
 
 export function FallbackRedirect() {
-  return hasStoredAuthToken() ? <Navigate to={HOME_PATH} replace /> : <Navigate to="/login" replace />;
+  return hasStoredAuthToken() ? (
+    <RequireAuth>
+      <ModulePlaceholderPage />
+    </RequireAuth>
+  ) : (
+    <Navigate to="/login" replace />
+  );
 }
 
 export const authenticated = (element: ReactElement) => <RequireAuth>{element}</RequireAuth>;
