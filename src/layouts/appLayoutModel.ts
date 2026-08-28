@@ -27,6 +27,9 @@ const PAGE_NAMES: Record<string, string> = {
   "/knowledge-base/checklists": "Check listák",
   "/modules/team/timetable": "Saját beosztás",
   "/staff/chat": "Munkatársi chat",
+  "/admin/booking-v4": "VIR Autopilot",
+  "/modules/vir-autopilot": "VIR Autopilot",
+  "/modules/vir-autopilot/dashboard": "VIR Autopilot",
 };
 
 const ACCOUNTING_ROLES = ["accounting", "bookkeeper", "konyveles", "könyvelés"];
