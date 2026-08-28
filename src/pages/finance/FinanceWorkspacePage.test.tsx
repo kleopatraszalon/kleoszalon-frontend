@@ -17,11 +17,11 @@ test("finance v5 workspace contains the requested operational areas",()=>{
 
 test("finance v5 adapter keeps cashier checkout, invoice and NAV flows separate",()=>{
   const adapter=fs.readFileSync(path.join(process.cwd(),"src/pages/Penzugy.tsx"),"utf8");
-  const app=fs.readFileSync(path.join(process.cwd(),"src/App.tsx"),"utf8");
+  const routes=fs.readFileSync(path.join(process.cwd(),"src/routing/financeRoutes.tsx"),"utf8");
   expect(adapter).toContain('FinanceWorkspacePage');
   expect(adapter).toContain('PenzugyLegacy');
   expect(adapter).toContain('pathname === "/finance/checkout"');
   expect(adapter).toContain('pathname.startsWith("/finance/invoices/")');
-  expect(app).toContain('path: "/finance/nav-online-invoice"');
-  expect(app).toContain('path: "/finance/*"');
+  expect(routes).toContain('path: "/finance/nav-online-invoice"');
+  expect(routes).toContain('path: "/finance/*"');
 });
