@@ -81,10 +81,12 @@ describe("browser session security contract", () => {
 
   test("application router guards use the centralized shared session routing helper", () => {
     const appSource = read("App.tsx");
+    const routesSource = read("routing/routes.ts");
     const routeAccessSource = read("routing/routeAccess.tsx");
-    const combined = `${appSource}\n${routeAccessSource}`;
+    const combined = `${appSource}\n${routesSource}\n${routeAccessSource}`;
 
-    expect(appSource).toContain('from "./routing/routeAccess"');
+    expect(appSource).toContain('from "./routing/routes"');
+    expect(routesSource).toContain('import { adminRoutes } from "./adminRoutes"');
     expect(routeAccessSource).toContain('import { hasStoredAuthToken } from "../utils/authSession"');
     expect(combined).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
     expect(combined).not.toContain("function getToken()");
