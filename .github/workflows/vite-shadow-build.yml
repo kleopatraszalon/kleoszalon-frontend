@@ -1,0 +1,49 @@
+name: Vite shadow build
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "index.html"
+      - "src/**"
+      - "public/**"
+      - ".github/workflows/vite-shadow-build.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.ts"
+      - "index.html"
+      - "src/**"
+      - "public/**"
+      - ".github/workflows/vite-shadow-build.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  vite-shadow-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Build Vite shadow artifact
+        run: npm run build:vite
+      - name: Verify Vite artifact and public compatibility assets
+        run: |
+          test -f dist-vite/index.html
+          test -f dist-vite/release-meta.json
+          test -f dist-vite/vir-mobile-menu.js
+          test -f dist-vite/vir-responsive-fixes.css
+          grep -q 'type="module"' dist-vite/index.html
