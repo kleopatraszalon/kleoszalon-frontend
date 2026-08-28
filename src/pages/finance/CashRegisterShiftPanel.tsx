@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from "react";
+import React,{useCallback,useEffect,useMemo,useState} from "react";
 import {ArrowRightLeft,CheckCircle2,Clock3,FileDown,History,LockKeyhole,Printer,RefreshCw,UnlockKeyhole,Users} from "lucide-react";
 import api from "../../api";
 import {hasStoredRole} from "../../utils/roles";
@@ -35,7 +35,7 @@ export default function CashRegisterShiftPanel({onChanged,onShiftStatusChange}:P
  const reportLocation=()=>isAdmin&&allLocations?"":locationId;
  const reportSuffix=()=>{const loc=reportLocation();return loc?`?location_id=${encodeURIComponent(loc)}`:""};
 
- async function loadCurrent(){
+ const loadCurrent=useCallback(async()=>{
   if(!locationId){setState({shift:null,totals:null,handovers:[],pending_handover:null,latest_report:null});onShiftStatusChange?.(false);return}
   setLoading(true);setError("");
   try{
@@ -45,17 +45,17 @@ export default function CashRegisterShiftPanel({onChanged,onShiftStatusChange}:P
    if(next.pending_handover?.expected_cash!=null)setAcceptCount(Number(next.pending_handover.expected_cash));
   }catch(e:any){setError(e?.response?.data?.message||"A pénztári műszak nem tölthető be.")}
   finally{setLoading(false)}
- }
- async function loadHistory(){
+ },[locationId,onShiftStatusChange,today]);
+ const loadHistory=useCallback(async()=>{
   if(!isManager)return;
   try{
    const loc=isAdmin&&allLocations?"":locationId;
    const q=[`from=${encodeURIComponent(from)}`,`to=${encodeURIComponent(to)}`,loc?`location_id=${encodeURIComponent(loc)}`:""].filter(Boolean).join("&");
    const r=await api.get(`/api/transactions/cashier/shift-history?${q}`);setHistory(r.data?.rows||[]);setHistorySummary(r.data?.summary||null);
   }catch(e:any){setError(e?.response?.data?.message||"A vezetői kasszatörténet nem tölthető be.")}
- }
- useEffect(()=>{void loadCurrent()},[locationId]);
- useEffect(()=>{if(isManager)void loadHistory()},[locationId,allLocations]);
+ },[allLocations,from,isAdmin,isManager,locationId,to]);
+ useEffect(()=>{void loadCurrent()},[loadCurrent]);
+ useEffect(()=>{if(isManager)void loadHistory()},[isManager,loadHistory]);
  async function changed(){await loadCurrent();if(isManager)await loadHistory();await onChanged?.()}
 
  async function openShift(){
