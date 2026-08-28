@@ -4,12 +4,12 @@ import path from "path";
 describe("BookingVoiceStatsPage stage1e contract",()=>{
   const read=(file:string)=>fs.readFileSync(path.join(process.cwd(),file),"utf8");
   test("management route exists before appointments wildcard",()=>{
-    const app=read("src/App.tsx");
-    const route=app.indexOf('/appointments/voice-booking-stats');
-    const wildcard=app.indexOf('/appointments/*');
+    const routes=read("src/routing/bookingRoutes.tsx");
+    const route=routes.indexOf('/appointments/voice-booking-stats');
+    const wildcard=routes.indexOf('/appointments/*');
     expect(route).toBeGreaterThanOrEqual(0);
     expect(wildcard).toBeGreaterThan(route);
-    expect(app).toMatch(/R\s*\(\s*MANAGEMENT\s*,\s*<BookingVoiceStatsPage\s*\/>\s*\)/);
+    expect(routes).toMatch(/R\s*\(\s*MANAGEMENT\s*,\s*<BookingVoiceStatsPage\s*\/>\s*\)/);
   });
   test("page exposes voice analytics, AI, locations and privacy-safe recent events",()=>{
     const page=read("src/pages/BookingVoiceStatsPage.tsx");
