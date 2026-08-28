@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useState}from"react";
 import{Boxes,CheckCircle2,Plus,Sparkles,Trash2,UsersRound,X}from"lucide-react";
 import api from"../../api/api";
 import{useCurrentUser}from"../../hooks/useCurrentUser";
@@ -30,9 +30,9 @@ export default function AdvancedBookingLauncher(){
  const employeesAtLocation=useMemo(()=>employees.filter(e=>!locationId||!e.location_id||String(e.location_id)===locationId),[employees,locationId]);
  const activeLines=useMemo(()=>lines.filter(x=>x.service_id&&x.employee_id),[lines]);
 
- const loadResources=async(loc=locationId)=>{if(!loc)return setResources([]);try{const r=await api.get(`${prefix}/resources`,{params:{location_id:loc}});setResources(arr<BookingResource>(r.data))}catch(e){setError(errorText(e))}};
- useEffect(()=>{if(!open)return;setError("");void Promise.all([api.get("/locations"),api.get("/employees"),api.get("/clients"),api.get("/services")]).then(([l,e,c,s])=>{setLocations(arr<Item>(l.data));setEmployees(arr<Item>(e.data));setClients(arr<Item>(c.data));setServices(arr<Item>(s.data));const initial=String(user?.location_id||arr<Item>(l.data)[0]?.id||"");setLocationId(x=>x||initial);if(initial)void loadResources(initial)}).catch(e=>setError(errorText(e)))},[open]);
- useEffect(()=>{if(open&&locationId)void loadResources(locationId)},[locationId,open]);
+ const loadResources=useCallback(async(loc:string)=>{if(!loc)return setResources([]);try{const r=await api.get("/transactions/booking-operations/advanced/resources",{params:{location_id:loc}});setResources(arr<BookingResource>(r.data))}catch(e){setError(errorText(e))}},[]);
+ useEffect(()=>{if(!open)return;setError("");void Promise.all([api.get("/locations"),api.get("/employees"),api.get("/clients"),api.get("/services")]).then(([l,e,c,s])=>{setLocations(arr<Item>(l.data));setEmployees(arr<Item>(e.data));setClients(arr<Item>(c.data));setServices(arr<Item>(s.data));const initial=String(user?.location_id||arr<Item>(l.data)[0]?.id||"");setLocationId(x=>x||initial);if(initial)void loadResources(initial)}).catch(e=>setError(errorText(e)))},[open,user?.location_id,loadResources]);
+ useEffect(()=>{if(open&&locationId)void loadResources(locationId)},[locationId,open,loadResources]);
  useEffect(()=>{if(!open)return;const ids=[...new Set(lines.map(x=>x.service_id).filter(Boolean))];for(const id of ids)if(requirements[id]===undefined)void api.get(`${prefix}/service-resources/${id}`).then(r=>setRequirements(cur=>({...cur,[id]:arr<Requirement>(r.data)}))).catch(()=>setRequirements(cur=>({...cur,[id]:[]})))},[lines,open]);
  useEffect(()=>{setPlan(null)},[locationId,clientId,date,time,mode,lines,preferred]);
 
@@ -44,7 +44,7 @@ export default function AdvancedBookingLauncher(){
  const removeLine=(key:string)=>setLines(cur=>cur.length<=1?cur:cur.filter(x=>x.key!==key));
  const resourcesFor=(group:string)=>resources.filter(r=>r.active&&r.resource_group===group);
 
- const createResource=async()=>{if(!resourceName.trim()||!resourceGroup.trim()){setError("Az erőforrás neve és csoportja kötelező.");return}setBusy(true);try{await api.post(`${prefix}/resources`,{location_id:locationId,name:resourceName,resource_group:resourceGroup,resource_type:resourceType});setResourceName("");await loadResources()}catch(e){setError(errorText(e))}finally{setBusy(false)}};
+ const createResource=async()=>{if(!resourceName.trim()||!resourceGroup.trim()){setError("Az erőforrás neve és csoportja kötelező.");return}setBusy(true);try{await api.post(`${prefix}/resources`,{location_id:locationId,name:resourceName,resource_group:resourceGroup,resource_type:resourceType});setResourceName("");await loadResources(locationId)}catch(e){setError(errorText(e))}finally{setBusy(false)}};
  const loadConfig=async(serviceId:string)=>{setConfigService(serviceId);if(!serviceId)return setConfigRequirements([]);try{const r=await api.get(`${prefix}/service-resources/${serviceId}`);setConfigRequirements(arr<Requirement>(r.data).map(x=>({...x,quantity:Number(x.quantity||1)})))}catch(e){setError(errorText(e))}};
  const saveConfig=async()=>{if(!configService)return;setBusy(true);try{const r=await api.put(`${prefix}/service-resources/${configService}`,{requirements:configRequirements});const next=arr<Requirement>(r.data?.requirements);setConfigRequirements(next);setRequirements(cur=>({...cur,[configService]:next}));setError("")}catch(e){setError(errorText(e))}finally{setBusy(false)}};
 

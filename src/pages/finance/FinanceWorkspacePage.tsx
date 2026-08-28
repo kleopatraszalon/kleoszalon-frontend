@@ -28,7 +28,7 @@ export default function FinanceWorkspacePage(){
  const[dashboard,setDashboard]=useState<Row>({}),[accounts,setAccounts]=useState<Row[]>([]),[partners,setPartners]=useState<Row[]>([]),[categories,setCategories]=useState<Row[]>([]),[methods,setMethods]=useState<Row[]>([]),[movements,setMovements]=useState<Row[]>([]),[documents,setDocuments]=useState<Row[]>([]),[pl,setPl]=useState<Row>({months:[],categories:[]}),[dailyCash,setDailyCash]=useState<Row[]>([]),[settings,setSettings]=useState<Row>({});
  const[search,setSearch]=useState(""),[direction,setDirection]=useState(""),[accountFilter,setAccountFilter]=useState(""),[categoryFilter,setCategoryFilter]=useState(""),[partnerFilter,setPartnerFilter]=useState(""),[methodFilter,setMethodFilter]=useState("");
  const[modal,setModal]=useState<string|null>(null),[form,setForm]=useState<Row>({}),[tick,setTick]=useState(0);
- const scoped={location_id:locationId||undefined};
+ const scoped=useMemo(()=>({location_id:locationId||undefined}),[locationId]);
  const refresh=()=>setTick(x=>x+1);
 
  useEffect(()=>{let active=true;(async()=>{setLoading(true);setError("");try{
@@ -39,7 +39,7 @@ export default function FinanceWorkspacePage(){
    if(tab==="documents"){const r=await api.get(`${BASE}/documents${q(scoped)}`);if(active)setDocuments(r.data||[])}
    if(tab==="reports"){const[r,d]=await Promise.all([api.get(`${BASE}/reports/pl${q({...scoped,from,to})}`),api.get(`${BASE}/reports/daily-cash${q({...scoped,date:to})}`)]);if(active){setPl(r.data||{});setDailyCash(d.data||[])}}
    if(tab==="settings"||tab==="online"){const r=await api.get(`${BASE}/settings${q(scoped)}`);if(active)setSettings(r.data||{})}
-  }catch(e:any){if(active)setError(e?.response?.data?.message||"A pénzügyi adatok betöltése nem sikerült.")}finally{if(active)setLoading(false)}})();return()=>{active=false}},[tab,tick,from,to,accountFilter,categoryFilter,partnerFilter,methodFilter,direction,search]);
+  }catch(e:any){if(active)setError(e?.response?.data?.message||"A pénzügyi adatok betöltése nem sikerült.")}finally{if(active)setLoading(false)}})();return()=>{active=false}},[tab,tick,from,to,accountFilter,categoryFilter,partnerFilter,methodFilter,direction,search,scoped]);
 
  const filteredPartners=useMemo(()=>partners.filter(p=>`${p.name||""} ${p.company_name||""} ${p.tax_number||""} ${p.email||""}`.toLowerCase().includes(search.toLowerCase())),[partners,search]);
  const filteredDocs=useMemo(()=>documents.filter(d=>`${d.document_number||""} ${d.partner_display_name||d.partner_name||""} ${d.document_type||""}`.toLowerCase().includes(search.toLowerCase())),[documents,search]);
