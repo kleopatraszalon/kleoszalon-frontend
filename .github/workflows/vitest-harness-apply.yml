@@ -53,7 +53,17 @@ jobs:
           EOF
           cat > src/setupVitest.ts <<'EOF'
           import "@testing-library/jest-dom/vitest";
+          import { vi } from "vitest";
           import { TextDecoder, TextEncoder } from "util";
+
+          // A handful of legacy tests still use Jest's mock API. Vitest's `vi`
+          // implements the same fn/spy/restore surface, so expose it only in the
+          // Vitest setup instead of rewriting otherwise portable test logic.
+          Object.defineProperty(globalThis, "jest", {
+            configurable: true,
+            writable: true,
+            value: vi,
+          });
 
           if (typeof globalThis.TextEncoder === "undefined") {
             Object.defineProperty(globalThis, "TextEncoder", {
@@ -71,6 +81,27 @@ jobs:
             });
           }
           EOF
+      - name: Make architecture contracts dual-harness compatible
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          p=Path('src/pages/ClientFormsVersionPage.test.tsx')
+          text=p.read_text(encoding='utf-8')
+          text=text.replace('jest.mock("../utils/apiBase",()=>({__esModule:true,default:(path:string)=>`/${path}`}));\n\n','')
+          text=text.replace('if(url==="/clients/form-versions")', 'if(url.endsWith("/api/clients/form-versions"))')
+          text=text.replace('expect(fetchMock).toHaveBeenCalledWith("/clients/form-versions",expect.any(Object))', 'expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\\/api\\/clients\\/form-versions$/),expect.any(Object))')
+          text=text.replace('expect(fetchMock).toHaveBeenCalledWith("/clients/form-versions/form-1",expect.any(Object))', 'expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\\/api\\/clients\\/form-versions\\/form-1$/),expect.any(Object))')
+          p.write_text(text,encoding='utf-8')
+
+          p=Path('src/ViteProductionBuild.contract.test.ts')
+          text=p.read_text(encoding='utf-8')
+          old='expect(pkg.scripts.test).toBe("react-scripts test");'
+          new='expect(pkg.scripts.test).toBe("vitest run");\n  expect(pkg.scripts["test:watch"]).toBe("vitest");\n  expect(pkg.scripts["test:cra"]).toBe("react-scripts test");'
+          if old not in text:
+              raise SystemExit('Expected Vite production test contract was not found')
+          p.write_text(text.replace(old,new,1),encoding='utf-8')
+          PY
       - name: TypeScript typecheck
         run: npm run typecheck
       - name: Existing lint gate
@@ -89,6 +120,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json vitest.config.ts src/setupVitest.ts
+          git add package.json package-lock.json vitest.config.ts src/setupVitest.ts src/pages/ClientFormsVersionPage.test.tsx src/ViteProductionBuild.contract.test.ts
           git commit -m "Add Vitest test harness alongside CRA fallback"
           git push origin HEAD:modernize/vitest-harness-20260828
