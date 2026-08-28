@@ -5,6 +5,10 @@ const app=fs.readFileSync('src/App.tsx','utf8');
 const routeAccess=fs.readFileSync('src/routing/routeAccess.tsx','utf8');
 const routeAggregator=fs.readFileSync('src/routing/routes.ts','utf8');
 const fontScale=fs.readFileSync('src/styles/vir-font-scale.css','utf8');
+const fontScaleRuntime=fs.readFileSync('src/utils/fontScale.ts','utf8');
+const fontScaleControl=fs.readFileSync('src/components/FontScaleControl.tsx','utf8');
+const languageSwitcher=fs.readFileSync('src/components/LanguageSwitcher.tsx','utf8');
+const indexSource=fs.readFileSync('src/index.tsx','utf8');
 const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
 const accountingSidebar=fs.existsSync('src/components/AccountingSidebar.tsx')?fs.readFileSync('src/components/AccountingSidebar.tsx','utf8'):'';
 const staticMenus=sidebar+'\n'+accountingSidebar;
@@ -71,10 +75,15 @@ if(/createBrowserRouter\s*\(/.test(routes)) failures.push('Domain route modul ne
 if(!/export\s+function\s+RequireAuth/.test(routeAccess)||!/export\s+function\s+RequireRoles/.test(routeAccess)) failures.push('A központi routeAccess modulból hiányzik az auth vagy role guard.');
 if(!/ADMIN_ROLES/.test(routeAccess)||!/MANAGEMENT_ROLES/.test(routeAccess)||!/KIOSK_MANAGER_ROLES/.test(routeAccess)) failures.push('A route szerepkör-csoportok nincsenek központilag definiálva.');
 
-// 1.5x typography is a deliberate global design-system setting, not scattered
-// per-page overrides.
+// Typography remains centralized, but users can now choose the scale directly
+// beside the language selector. The persisted value must be restored pre-render.
 if(!app.includes('./styles/vir-font-scale.css')) failures.push('A globális VIR typography scale nincs betöltve az App.tsx-ben.');
-if(!/--vir-font-scale\s*:\s*150%/.test(fontScale)) failures.push('A VIR globális betűméret-skála nem 150%.');
+if(!/--vir-font-scale\s*:\s*150%/.test(fontScale)||!/font-size\s*:\s*var\(--vir-font-scale\)/.test(fontScale)) failures.push('A VIR typography alapértéke vagy root alkalmazása hiányzik.');
+if(!fontScaleRuntime.includes('FONT_SCALE_OPTIONS = [100, 125, 150, 175, 200]')) failures.push('A támogatott betűméret lépcsők megváltoztak vagy hiányoznak.');
+if(!fontScaleRuntime.includes('kleo.font.scale.v1')||!fontScaleRuntime.includes('localStorage.setItem')) failures.push('A betűméret-beállítás tartós tárolása hiányzik.');
+if(!fontScaleControl.includes('A−')||!fontScaleControl.includes('A+')||!fontScaleControl.includes('saveFontScale')) failures.push('A felső betűméret-vezérlő nem tartalmazza a csökkentés/növelés funkciót.');
+if(!languageSwitcher.includes('FontScaleControl')||languageSwitcher.indexOf('FontScaleControl')>languageSwitcher.lastIndexOf('</label>')) failures.push('A betűméret-vezérlő nincs közvetlenül a nyelvválasztó mellett.');
+if(!indexSource.includes('initializeFontScale();')) failures.push('A mentett betűméret nem áll vissza az alkalmazás renderelése előtt.');
 
 // Source-changing workflows must never bypass PR review by committing directly
 // to main. Deployment workflows may deploy main, but they must not mutate code.
@@ -97,4 +106,4 @@ if(failures.length){
   failures.forEach(x=>console.error(' - '+x));
   process.exit(1);
 }
-console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${routeFiles.length} domain modul, ${critical.length} kritikus router és ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal ellenőrizve.`);
+console.log(`Routing audit OK: ${routeMatches.length} egyedi route, ${routeFiles.length} domain modul, ${critical.length} kritikus router, ${scopedMenuRoutes.length} statikus szerepkör-menü útvonal és dinamikus font-scale kontroll ellenőrizve.`);

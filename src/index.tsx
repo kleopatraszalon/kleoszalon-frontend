@@ -8,6 +8,7 @@ import CopyrightNotice from "./components/CopyrightNotice";
 import AppLayout from "./layouts/AppLayout";
 import BookingV4TaxonomyOptimizerPage from "./pages/BookingV4TaxonomyOptimizerPage";
 import { hasStoredAuthToken } from "./utils/authSession";
+import { initializeFontScale } from "./utils/fontScale";
 import { hasStoredRole } from "./utils/roles";
 
 import "./styles/kleo-theme.css";
@@ -41,6 +42,7 @@ function installRouteBridge() {
   };
 }
 
+initializeFontScale();
 installRouteBridge();
 
 function bookingV4AdminEntry() {
