@@ -29,32 +29,23 @@
   "scripts": {
     "start": "vite",
     "start:vite": "vite",
-    "start:cra": "react-scripts start",
     "prebuild": "node scripts/write-release-meta.js",
     "build": "vite build --outDir build",
     "postbuild": "node scripts/normalize-vite-manifest.js build",
     "build:vite": "node scripts/write-release-meta.js && vite build --outDir dist-vite",
     "postbuild:vite": "node scripts/normalize-vite-manifest.js dist-vite",
-    "build:cra": "react-scripts build",
     "preview:vite": "vite preview --outDir build",
     "typecheck": "tsc --noEmit --pretty false",
     "lint:strict": "node scripts/run-release-lint.js",
     "quality:strict": "npm run typecheck && npm run lint:strict",
     "test": "vitest run",
-    "eject": "react-scripts eject",
-    "test:watch": "vitest",
-    "test:cra": "react-scripts test"
+    "test:watch": "vitest"
   },
   "eslintConfig": {
     "extends": [
       "react-app",
       "react-app/jest"
     ]
-  },
-  "jest": {
-    "moduleNameMapper": {
-      "^react-router/dom$": "<rootDir>/node_modules/react-router/dist/development/dom-export.js"
-    }
   },
   "browserslist": {
     "production": [
@@ -81,9 +72,12 @@
     "@types/react-dom": "^18.3.1",
     "@types/react-modal": "^3.16.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.24",
     "baseline-browser-mapping": "^2.9.19",
+    "eslint": "^8.57.1",
+    "eslint-config-react-app": "^7.0.1",
     "jsdom": "^25.0.1",
-    "react-scripts": "5.0.1",
+    "tailwindcss": "^3.4.19",
     "typescript": "^4.9.5",
     "vite": "^5.4.14",
     "vitest": "^2.1.9"
