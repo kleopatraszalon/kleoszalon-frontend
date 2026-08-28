@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useRef,useState}from"react";
+import React,{useCallback,useEffect,useMemo,useRef,useState}from"react";
 import axios from"axios";
 import{Archive,CheckCircle2,CloudCog,Download,FileSpreadsheet,FileText,Mail,MonitorPlay,RefreshCw,Save,ShieldCheck,Star,Upload,Users}from"lucide-react";
 import"./VirSpecParityPage.css";
@@ -20,13 +20,13 @@ export default function VirSpecParityPage(){
  const[docId,setDocId]=useState(''),[docTitle,setDocTitle]=useState(''),[docStatus,setDocStatus]=useState('draft'),[docVersion,setDocVersion]=useState(0);const editorRef=useRef<HTMLDivElement>(null);
  const wallboardBase=`${API_BASE}/signage/wallboard`;
  const pendingReviews=useMemo(()=>reviews.filter(x=>x.moderation_status==='pending'),[reviews]);
- async function loadAll(silent=false){if(!silent)setLoading(true);setError('');try{
+ const loadAll=useCallback(async(silent=false)=>{if(!silent)setLoading(true);setError('');try{
    const cfg=auth();const [o,c,r,l,rv,d]=await Promise.all([
     axios.get(parity('/overview'),cfg),axios.get(parity('/complaints'),cfg),axios.get(parity('/reports'),cfg),axios.get(parity(`/legacy-evaluations?year=${year}`),cfg),axios.get(parity('/review-moderation'),cfg),axios.get(parity('/documents'),cfg)
    ]);setOverview(o.data);setComplaints(c.data||[]);setReportData(r.data||{definitions:[],sources:[]});setLegacy(l.data||{});setReviews(rv.data||[]);setDocuments(d.data||[]);
    try{const e=await axios.get(`${API_BASE}/employees`,cfg);const rows=Array.isArray(e.data)?e.data:Array.isArray(e.data?.employees)?e.data.employees:[];setEmployees(rows)}catch{}
- }catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||'Betöltési hiba.')}finally{setLoading(false)}}
- useEffect(()=>{void loadAll()},[year]);
+ }catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||'Betöltési hiba.')}finally{setLoading(false)}},[year]);
+ useEffect(()=>{void loadAll()},[loadAll]);
  async function syncMailbox(){setLoading(true);setError('');try{await axios.post(parity('/complaints/sync'),{},auth());await loadAll(true)}catch(e:any){setError(e?.response?.data?.message||e?.message)}finally{setLoading(false)}}
  async function uploadComplaintFiles(id:string,files:FileList|null){if(!files?.length)return;const fd=new FormData();Array.from(files).forEach(f=>fd.append('files',f));setLoading(true);try{const cfg:any=auth();cfg.headers={...(cfg.headers||{}),'Content-Type':'multipart/form-data'};await axios.post(parity(`/complaints/${id}/attachments`),fd,cfg);await loadAll(true)}catch(e:any){setError(e?.response?.data?.message||e?.message)}finally{setLoading(false)}}
  async function downloadAttachment(a:any){const r=await axios.get(parity(`/complaint-attachments/${a.id}`),{...auth(),responseType:'blob'});downloadBlob(r.data,a.filename||'csatolmany')}

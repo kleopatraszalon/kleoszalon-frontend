@@ -1,12 +1,12 @@
-import React,{FormEvent,useEffect,useRef,useState}from"react";
+import React,{FormEvent,useCallback,useEffect,useRef,useState}from"react";
 import{Circle,MessageCirclePlus,RefreshCw,Search,Send,UsersRound}from"lucide-react";
 import api from"../api/api";
 import"./StaffChatPage.css";
 
 type Coworker={id:string;full_name:string;email?:string;online?:boolean};type Conversation={id:string;other_name:string;title?:string;is_group?:boolean;last_message?:string;unread_count?:number;other_online?:boolean};type Message={id:string;sender_name:string;content:string;created_at:string;is_mine:boolean};
 export default function StaffChatPage(){const[coworkers,setCoworkers]=useState<Coworker[]>([]);const[conversations,setConversations]=useState<Conversation[]>([]);const[selected,setSelected]=useState<Conversation|null>(null);const[messages,setMessages]=useState<Message[]>([]);const[text,setText]=useState("");const[q,setQ]=useState("");const[loading,setLoading]=useState(true);const[error,setError]=useState("");const bottom=useRef<HTMLDivElement|null>(null);
- const loadLists=async()=>{try{setError("");const[c,w]=await Promise.all([api.get("/transactions/staff-chat/conversations"),api.get("/transactions/staff-chat/coworkers",{params:{q}})]);setConversations(c.data||[]);setCoworkers(w.data||[]);await api.post("/transactions/staff-chat/presence")}catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||"A chat nem tölthető be.")}finally{setLoading(false)}};
- useEffect(()=>{loadLists();const timer=window.setInterval(loadLists,30000);return()=>window.clearInterval(timer)},[q]);
+ const loadLists=useCallback(async()=>{try{setError("");const[c,w]=await Promise.all([api.get("/transactions/staff-chat/conversations"),api.get("/transactions/staff-chat/coworkers",{params:{q}})]);setConversations(c.data||[]);setCoworkers(w.data||[]);await api.post("/transactions/staff-chat/presence")}catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||"A chat nem tölthető be.")}finally{setLoading(false)}},[q]);
+ useEffect(()=>{loadLists();const timer=window.setInterval(loadLists,30000);return()=>window.clearInterval(timer)},[loadLists]);
  const open=async(c:Conversation)=>{setSelected(c);try{const r=await api.get(`/transactions/staff-chat/conversations/${c.id}/messages`);setMessages(r.data||[]);setConversations(v=>v.map(x=>x.id===c.id?{...x,unread_count:0}:x))}catch(e:any){setError(e?.response?.data?.message||"Az üzenetek nem tölthetők be.")}};
  useEffect(()=>{bottom.current?.scrollIntoView({behavior:"smooth"})},[messages]);
  const start=async(c:Coworker)=>{try{const r=await api.post("/transactions/staff-chat/conversations",{coworker_id:c.id});await loadLists();const found=(await api.get("/transactions/staff-chat/conversations")).data?.find((x:Conversation)=>x.id===r.data.id);if(found)await open(found)}catch(e:any){setError(e?.response?.data?.message||"A beszélgetés nem indítható.")}};

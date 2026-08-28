@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from'react';
+import React,{useCallback,useEffect,useMemo,useState}from'react';
 import{AlertTriangle,Boxes,ClipboardList,PackageSearch,RefreshCw,ShoppingCart,Wrench}from'lucide-react';
 import api from'../../api';
 import'./InventoryControlDashboard.css';
@@ -9,8 +9,8 @@ const huf=(v:any)=>`${Math.round(Number(v||0)).toLocaleString('hu-HU')} Ft`;
 
 export default function InventoryControlDashboard({locationId,refreshKey=0}:{locationId:string;refreshKey?:number}){
  const[data,setData]=useState<Data|null>(null),[loading,setLoading]=useState(false),[error,setError]=useState('');
- async function load(){setLoading(true);setError('');try{const p=new URLSearchParams();if(locationId)p.set('location_id',locationId);const r=await api.get(`/api/transactions/inventory-control/summary${p.toString()?`?${p.toString()}`:''}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||'A készletirányítási összesítő nem tölthető be.')}finally{setLoading(false)}}
- useEffect(()=>{void load()},[locationId,refreshKey]);
+ const load=useCallback(async()=>{setLoading(true);setError('');try{const p=new URLSearchParams();if(locationId)p.set('location_id',locationId);const r=await api.get(`/api/transactions/inventory-control/summary${p.toString()?`?${p.toString()}`:''}`);setData(r.data)}catch(e:any){setError(e?.response?.data?.message||'A készletirányítási összesítő nem tölthető be.')}finally{setLoading(false)}},[locationId]);
+ useEffect(()=>{void load()},[load,refreshKey]);
  const alerts=useMemo(()=>{if(!data)return[];const a:string[]=[];if(Number(data.kpis.out_count)>0)a.push(`${data.kpis.out_count} termék kifogyott.`);if(Number(data.kpis.low_count)>0)a.push(`${data.kpis.low_count} termék elérte vagy alulmúlta a minimum készletszintet.`);if(Number(data.kpis.procurement_needed_count)>0)a.push(`${data.kpis.procurement_needed_count} szalonigényt a központi készlet nem tud teljesen fedezni; beszállítói beszerzés szükséges.`);return a},[data]);
  return <section className="icd">
   <header className="icd-head"><div><span>KÉSZLETIRÁNYÍTÁS</span><h2>Munkalap → fogyás → utánpótlás</h2><p>A munkalapok anyagfelhasználása, minimumkészlet, szalonigény és központi beszerzési szükséglet egy nézetben.</p></div><button onClick={load} disabled={loading}><RefreshCw size={16}/>{loading?'Frissítés…':'Frissítés'}</button></header>
