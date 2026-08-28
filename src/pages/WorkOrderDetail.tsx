@@ -6,7 +6,7 @@ import WorkOrderGuestContextPanel from'./workorders/WorkOrderGuestContextPanel';
 import WorkOrderLoyaltyPanel,{LoyaltySelection}from'./workorders/WorkOrderLoyaltyPanel';
 import WorkOrderItemPickerModal,{PickerProduct,PickerService}from'./workorders/WorkOrderItemPickerModal';
 import WorkOrderReviewPanel from'./workorders/WorkOrderReviewPanel';
-import WorkOrderPaymentPanel,{PaymentDraft,PaymentMethod}from'./workorders/WorkOrderPaymentPanel';
+import WorkOrderPaymentPanel,{PaymentDraft}from'./workorders/WorkOrderPaymentPanel';
 import WorkOrderClosePanel from'./workorders/WorkOrderClosePanel';
 import type{WorkOrderMaterial}from'./workorders/WorkOrderMaterialsPanel';
 import'./WorkOrderDetail.css';

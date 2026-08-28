@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   AlertTriangle, CalendarCheck2, Clock3, Gauge, RefreshCw,
-  UserRoundCheck, UserRoundX, UsersRound,
+  UsersRound,
 } from "lucide-react";
 import api from "../../api/api";
 import { useCurrentUser } from "../../hooks/useCurrentUser";

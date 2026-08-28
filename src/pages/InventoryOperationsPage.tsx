@@ -57,8 +57,6 @@ export default function InventoryOperationsPage(){
  const[reportType,setReportType]=useState("");const[reportFrom,setReportFrom]=useState("");const[reportTo,setReportTo]=useState("");
 
  const locationQuery=locationId?`location_id=${encodeURIComponent(locationId)}`:"location_id=";
- const scopedWarehouses=useMemo(()=>warehouses.filter(w=>!locationId?true:String(w.location_id||"")===locationId),[warehouses,locationId]);
- const productById=useMemo(()=>new Map(products.map(p=>[String(p.id),p])),[products]);
  const currentLocationName=locations.find(l=>String(l.id)===locationId)?.name||locations.find(l=>String(l.id)===locationId)?.title||user?.location_name||"Központ";
 
  async function loadRefs(){const jobs=await Promise.all([api.get("/api/locations"),api.get("/api/transactions/inventory/ops/catalog/products"),api.get("/api/transactions/inventory/ops/catalog/categories"),api.get("/api/transactions/inventory/ops/units")]);setLocations(arr<Location>(jobs[0].data));setProducts(arr<Product>(jobs[1].data));setCategories(arr<Category>(jobs[2].data));setUnits(arr<Unit>(jobs[3].data))}
@@ -89,7 +87,7 @@ export default function InventoryOperationsPage(){
  async function deleteBom(id:string|number){await run(()=>api.delete(`/api/transactions/inventory/ops/bom/${id}`),"Az anyagjegyzék-tétel archiválva.")}
 
  const filteredMovements=useMemo(()=>movements.filter(m=>(!reportType||m.movement_type===reportType)&&(!reportFrom||new Date(m.created_at)>=new Date(reportFrom))&&(!reportTo||new Date(m.created_at)<new Date(`${reportTo}T23:59:59`))),[movements,reportType,reportFrom,reportTo]);
- const totalValue=balances.reduce((a,b)=>a+Number(b.stock_value||0),0);const low=balances.filter(b=>b.stock_status==="low").length;const out=balances.filter(b=>b.stock_status==="out").length;
+ const totalValue=balances.reduce((a,b)=>a+Number(b.stock_value||0),0);const low=balances.filter(b=>b.stock_status==="low").length;
 
  return <div className="invops-page">
   <header className="invops-header"><div><span className="invops-eyebrow">LOGISZTIKA / KÉSZLETGAZDÁLKODÁS V4</span><h1>Raktárak és készletműveletek</h1><p>Raktárankénti készlet, bevételezés, értékesítés, selejt, leltár, áthelyezés, utánrendelés, anyagjegyzék és készletkontroll egy munkaterületen.</p></div><div className="invops-location"><label>Telephely</label><select disabled={!isGlobal||userLoading} value={locationId} onChange={e=>setLocationId(e.target.value)}>{isGlobal&&<option value="">Központ / összes</option>}{locations.map(l=><option key={l.id} value={String(l.id)}>{l.name||l.title||l.id}</option>)}</select></div></header>
