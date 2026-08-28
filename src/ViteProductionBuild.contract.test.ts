@@ -3,15 +3,19 @@ import path from "path";
 
 const read = (relative: string) => fs.readFileSync(path.join(process.cwd(), relative), "utf8");
 
-test("Vite is the default development and production builder while CRA remains an explicit fallback", () => {
+test("Vite and Vitest are the sole frontend runtime toolchain", () => {
   const pkg = JSON.parse(read("package.json"));
   expect(pkg.scripts.start).toBe("vite");
   expect(pkg.scripts.build).toBe("vite build --outDir build");
-  expect(pkg.scripts["start:cra"]).toBe("react-scripts start");
-  expect(pkg.scripts["build:cra"]).toBe("react-scripts build");
   expect(pkg.scripts.test).toBe("vitest run");
   expect(pkg.scripts["test:watch"]).toBe("vitest");
-  expect(pkg.scripts["test:cra"]).toBe("react-scripts test");
+  expect(pkg.scripts["start:cra"]).toBeUndefined();
+  expect(pkg.scripts["build:cra"]).toBeUndefined();
+  expect(pkg.scripts["test:cra"]).toBeUndefined();
+  expect(pkg.devDependencies?.["react-scripts"]).toBeUndefined();
+  expect(pkg.devDependencies?.["eslint-config-react-app"]).toBe("^7.0.1");
+  expect(pkg.devDependencies?.tailwindcss).toBe("^3.4.19");
+  expect(pkg.devDependencies?.autoprefixer).toBe("^10.4.24");
 });
 
 test("Vite production output preserves the release-control manifest contract", () => {
