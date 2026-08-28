@@ -3,7 +3,7 @@ import path from'node:path';
 
 describe('VIR Migration Center v19 contract',()=>{
  const page=fs.readFileSync(path.join(process.cwd(),'src/pages/MigrationCenterPage.tsx'),'utf8');
- const app=fs.readFileSync(path.join(process.cwd(),'src/App.tsx'),'utf8');
+ const adminRoutes=fs.readFileSync(path.join(process.cwd(),'src/routing/adminRoutes.tsx'),'utf8');
  const saas=fs.readFileSync(path.join(process.cwd(),'src/pages/SaasFranchiseAdminPage.tsx'),'utf8');
  test('keeps Altegio visible even with legacy native import duplication',()=>{
   expect(page).toContain('Altegio');
@@ -26,7 +26,7 @@ describe('VIR Migration Center v19 contract',()=>{
   expect(page).not.toContain('detail.run.entity_type==="appointments"');
  });
  test('uses the existing protected SaaS admin route as a dedicated workspace',()=>{
-  expect(app).toContain('path: "/admin/saas"');
+  expect(adminRoutes).toContain('path: "/admin/saas"');
   expect(saas).toContain('workspace=migration-center');
   expect(saas).toContain('MigrationCenterPage');
   expect(saas).toContain('VIR Migrációs Központ v19');
