@@ -1,0 +1,106 @@
+name: Apply safe hook dependency batch 5
+
+on:
+  push:
+    branches:
+      - maint/hook-deps-batch5-20260828
+    paths:
+      - .github/workflows/hook-deps-batch5-apply.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: maint/hook-deps-batch5-20260828
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Stabilize fifth low-risk hook batch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new, count=1):
+              p=Path(path)
+              text=p.read_text(encoding='utf-8')
+              if old not in text:
+                  raise SystemExit(f'Expected pattern missing in {path}: {old[:180]!r}')
+              p.write_text(text.replace(old,new,count),encoding='utf-8')
+
+          def replace_after(path, anchor, old, new):
+              p=Path(path)
+              text=p.read_text(encoding='utf-8')
+              start=text.find(anchor)
+              if start < 0:
+                  raise SystemExit(f'Anchor missing in {path}: {anchor[:180]!r}')
+              pos=text.find(old,start)
+              if pos < 0:
+                  raise SystemExit(f'Expected pattern after anchor missing in {path}: {old[:180]!r}')
+              text=text[:pos]+new+text[pos+len(old):]
+              p.write_text(text,encoding='utf-8')
+
+          # Signage: the aggregate loader has no render-state dependencies.
+          replace('src/pages/SignagePage.tsx','import React, { useEffect, useMemo, useRef, useState } from "react";','import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";')
+          replace('src/pages/SignagePage.tsx','  async function loadAll() {','  const loadAll = useCallback(async () => {')
+          replace_after('src/pages/SignagePage.tsx','  const loadAll = useCallback(async () => {','  }\n\n  useEffect(() => { loadAll(); }, []);','  }, []);\n\n  useEffect(() => { loadAll(); }, [loadAll]);')
+          replace('src/pages/SignagePage.tsx','  }, [svcPages.length]);','  }, [svcPages.length, loadAll]);')
+
+          # UAT center: make run/case loaders explicit and stable.
+          replace('src/pages/UatTestCenterPage.tsx',"import React,{useEffect,useMemo,useState}from'react';","import React,{useCallback,useEffect,useMemo,useState}from'react';")
+          replace('src/pages/UatTestCenterPage.tsx'," async function loadCases(){try{const r=await api.get('/api/transactions/uat/cases');setCases(r.data||[])}catch(e:any){setError(e?.response?.data?.message||'A követelmény-adatok nem tölthetők be.')}}\n async function loadRuns(){setLoading(true);setError('');try{const r=await api.get(`/api/transactions/uat/runs${locationId?`?location_id=${encodeURIComponent(locationId)}`:''}`);setRuns(r.data||[]);if(r.data?.[0])await open(r.data[0].id)}catch(e:any){setError(e?.response?.data?.message||'Az UAT adatok nem tölthetők be.')}finally{setLoading(false)}}\n async function open(id:string){const r=await api.get(`/api/transactions/uat/runs/${id}`);setCurrent(r.data)}\n useEffect(()=>{void Promise.all([loadCases(),loadRuns()])},[]);",
+          " const loadCases=useCallback(async()=>{try{const r=await api.get('/api/transactions/uat/cases');setCases(r.data||[])}catch(e:any){setError(e?.response?.data?.message||'A követelmény-adatok nem tölthetők be.')}},[]);\n const open=useCallback(async(id:string)=>{const r=await api.get(`/api/transactions/uat/runs/${id}`);setCurrent(r.data)},[]);\n const loadRuns=useCallback(async()=>{setLoading(true);setError('');try{const r=await api.get(`/api/transactions/uat/runs${locationId?`?location_id=${encodeURIComponent(locationId)}`:''}`);setRuns(r.data||[]);if(r.data?.[0])await open(r.data[0].id)}catch(e:any){setError(e?.response?.data?.message||'Az UAT adatok nem tölthetők be.')}finally{setLoading(false)},[locationId,open]);\n useEffect(()=>{void Promise.all([loadCases(),loadRuns()])},[loadCases,loadRuns]);")
+
+          # Runtime settings: API base and auth callback are the complete loader contract.
+          replace('src/pages/VirRuntimeSettingsPanel.tsx','import React,{useEffect,useState}from"react";','import React,{useCallback,useEffect,useState}from"react";')
+          replace('src/pages/VirRuntimeSettingsPanel.tsx',' async function load(){',' const load=useCallback(async()=>{')
+          replace_after('src/pages/VirRuntimeSettingsPanel.tsx',' const load=useCallback(async()=>{','}\n useEffect(()=>{void load()},[]);','},[auth,base]);\n useEffect(()=>{void load()},[load]);')
+
+          # Cashier Altegio: remove captured accountId and declare all loader inputs.
+          replace('src/pages/finance/CashierAltegioOperationsPanel.tsx','if(!accountId&&a.data?.[0]?.id)setAccountId(String(a.data[0].id))','setAccountId(v=>v||String(a.data?.[0]?.id||""))')
+          replace_after('src/pages/finance/CashierAltegioOperationsPanel.tsx',' const load=useCallback(async()=>{','},[locationId]);\n useEffect(()=>{void load()},[load]);','},[locationId,qs]);\n useEffect(()=>{void load()},[load]);')
+
+          # Client governance: duplicate refresh depends only on current merge permission.
+          replace('src/pages/clients/ClientGovernanceLauncher.tsx','import React, { useEffect, useMemo, useState } from "react";','import React, { useCallback, useEffect, useMemo, useState } from "react";')
+          replace('src/pages/clients/ClientGovernanceLauncher.tsx','  const refreshDuplicates = async () => {','  const refreshDuplicates = useCallback(async () => {')
+          replace_after('src/pages/clients/ClientGovernanceLauncher.tsx','  const refreshDuplicates = useCallback(async () => {','  };\n\n  useEffect(() => {\n    if (!open || !canMerge) return;\n    void refreshDuplicates();\n  }, [open, canMerge]);','  }, [canMerge]);\n\n  useEffect(() => {\n    if (!open || !canMerge) return;\n    void refreshDuplicates();\n  }, [open, canMerge, refreshDuplicates]);')
+
+          # Cash register movements: business date + location fully determine the read model.
+          replace('src/pages/finance/CashRegisterMovementsPanel.tsx','import React, { useEffect, useMemo, useState } from "react";','import React, { useCallback, useEffect, useMemo, useState } from "react";')
+          replace('src/pages/finance/CashRegisterMovementsPanel.tsx','  async function load() {','  const load = useCallback(async () => {')
+          replace_after('src/pages/finance/CashRegisterMovementsPanel.tsx','  const load = useCallback(async () => {','  }\n\n  useEffect(() => {\n    void load();\n  }, [locationId]);','  }, [businessDate, locationId]);\n\n  useEffect(() => {\n    void load();\n  }, [load]);')
+
+          # Checklists admin loader: explicit permission/selection lifecycle.
+          replace('src/pages/ChecklistsPage.tsx','import React, { useEffect, useMemo, useState } from "react";','import React, { useCallback, useEffect, useMemo, useState } from "react";')
+          replace('src/pages/ChecklistsPage.tsx','  async function loadAdmin(keepSelection = true) {','  const loadAdmin = useCallback(async (keepSelection = true) => {')
+          replace_after('src/pages/ChecklistsPage.tsx','  const loadAdmin = useCallback(async (keepSelection = true) => {','    setSelectedId(nextId);\n  }\n\n  useEffect(() => { void loadMy(); }, []);\n  useEffect(() => { if (admin) loadAdmin(false).catch(e => setError(errorMessage(e,"Az admin adatok nem tölthetők be."))); }, [admin]);','    setSelectedId(nextId);\n  }, [admin, selectedId]);\n\n  useEffect(() => { void loadMy(); }, []);\n  useEffect(() => { if (admin) loadAdmin(false).catch(e => setError(errorMessage(e,"Az admin adatok nem tölthetők be."))); }, [admin, loadAdmin]);')
+
+          replace('scripts/run-release-lint.js','process.env.ESLINT_WARNING_BASELINE || 20','process.env.ESLINT_WARNING_BASELINE || 12')
+          PY
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify 12-warning hook budget
+        run: npm run lint:strict
+      - name: TypeScript typecheck
+        run: npm run typecheck
+      - name: Run complete Vitest regression suite
+        env:
+          CI: true
+        run: npm test
+      - name: Verify Vite production build
+        env:
+          CI: true
+        run: npm run build
+      - name: Commit hook cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/pages/SignagePage.tsx src/pages/UatTestCenterPage.tsx src/pages/VirRuntimeSettingsPanel.tsx src/pages/finance/CashierAltegioOperationsPanel.tsx src/pages/clients/ClientGovernanceLauncher.tsx src/pages/finance/CashRegisterMovementsPanel.tsx src/pages/ChecklistsPage.tsx scripts/run-release-lint.js
+          git commit -m "Reduce hook dependency warning budget from 20 to 12"
+          git push origin HEAD:maint/hook-deps-batch5-20260828
