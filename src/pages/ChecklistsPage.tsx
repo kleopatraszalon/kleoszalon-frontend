@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle,
   CalendarClock,
@@ -167,7 +167,7 @@ export default function ChecklistsPage() {
     }
   }
 
-  async function loadAdmin(keepSelection = true) {
+  const loadAdmin = useCallback(async (keepSelection = true) => {
     if (!admin) return;
     const [c, p, s] = await Promise.all([
       api.get<Checklist[]>("/checklists/admin/checklists"),
@@ -181,10 +181,10 @@ export default function ChecklistsPage() {
       ? selectedId
       : (c.data?.[0]?.id || "");
     setSelectedId(nextId);
-  }
+  }, [admin, selectedId]);
 
   useEffect(() => { void loadMy(); }, []);
-  useEffect(() => { if (admin) loadAdmin(false).catch(e => setError(errorMessage(e,"Az admin adatok nem tölthetők be."))); }, [admin]);
+  useEffect(() => { if (admin) loadAdmin(false).catch(e => setError(errorMessage(e,"Az admin adatok nem tölthetők be."))); }, [admin, loadAdmin]);
   useEffect(() => {
     if (!selected) return;
     setDraft({

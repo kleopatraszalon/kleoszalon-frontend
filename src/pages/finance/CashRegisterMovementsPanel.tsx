@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowDownCircle, ArrowUpCircle, RefreshCw, RotateCcw } from "lucide-react";
 import api from "../../api";
 import "./CashRegisterMovementsPanel.css";
@@ -64,7 +64,7 @@ export default function CashRegisterMovementsPanel({ onChanged, disabled=false, 
 
   const activeRows = useMemo(() => data.rows.filter((row) => !row.voided_at), [data.rows]);
 
-  async function load() {
+  const load = useCallback(async () => {
     if (!locationId) return;
     setLoading(true);
     setError("");
@@ -78,11 +78,11 @@ export default function CashRegisterMovementsPanel({ onChanged, disabled=false, 
     } finally {
       setLoading(false);
     }
-  }
+  }, [businessDate, locationId]);
 
   useEffect(() => {
     void load();
-  }, [locationId]);
+  }, [load]);
 
   async function save() {
     if (!locationId || disabled) return;

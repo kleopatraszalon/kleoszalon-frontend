@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from'react';
+import React,{useCallback,useEffect,useMemo,useState}from'react';
 import{CheckCircle2,Clock3,Database,Download,ExternalLink,FileCheck2,Flag,PlayCircle,RefreshCw,ShieldCheck,XCircle,Zap}from'lucide-react';
 import{useNavigate}from'react-router-dom';
 import api from'../api';
@@ -13,10 +13,10 @@ export default function UatTestCenterPage(){
  const nav=useNavigate();
  const[runs,setRuns]=useState<any[]>([]),[current,setCurrent]=useState<any>(null),[cases,setCases]=useState<Result[]>([]),[loading,setLoading]=useState(false),[error,setError]=useState(''),[info,setInfo]=useState(''),[tab,setTab]=useState<Tab>('requirements');
  const locationId=localStorage.getItem('kleo_location_id')||'';
- async function loadCases(){try{const r=await api.get('/api/transactions/uat/cases');setCases(r.data||[])}catch(e:any){setError(e?.response?.data?.message||'A követelmény-adatok nem tölthetők be.')}}
- async function loadRuns(){setLoading(true);setError('');try{const r=await api.get(`/api/transactions/uat/runs${locationId?`?location_id=${encodeURIComponent(locationId)}`:''}`);setRuns(r.data||[]);if(r.data?.[0])await open(r.data[0].id)}catch(e:any){setError(e?.response?.data?.message||'Az UAT adatok nem tölthetők be.')}finally{setLoading(false)}}
- async function open(id:string){const r=await api.get(`/api/transactions/uat/runs/${id}`);setCurrent(r.data)}
- useEffect(()=>{void Promise.all([loadCases(),loadRuns()])},[]);
+ const loadCases=useCallback(async()=>{try{const r=await api.get('/api/transactions/uat/cases');setCases(r.data||[])}catch(e:any){setError(e?.response?.data?.message||'A követelmény-adatok nem tölthetők be.')}},[]);
+ const open=useCallback(async(id:string)=>{const r=await api.get(`/api/transactions/uat/runs/${id}`);setCurrent(r.data)},[]);
+ const loadRuns=useCallback(async()=>{setLoading(true);setError('');try{const r=await api.get(`/api/transactions/uat/runs${locationId?`?location_id=${encodeURIComponent(locationId)}`:''}`);setRuns(r.data||[]);if(r.data?.[0])await open(r.data[0].id)}catch(e:any){setError(e?.response?.data?.message||'Az UAT adatok nem tölthetők be.')}finally{setLoading(false)}},[locationId,open]);
+ useEffect(()=>{void Promise.all([loadCases(),loadRuns()])},[loadCases,loadRuns]);
  const source:Result[]=current?.results?.length?current.results:cases;
  const traces=useMemo<RequirementTrace[]>(()=>source.map(toRequirementTrace),[source]);
  const summary=useMemo(()=>summarizeTraceability(traces),[traces]);

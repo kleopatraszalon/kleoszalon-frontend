@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Merge, RefreshCw, Search, ShieldBan, UserRound, X } from "lucide-react";
 import withBase from "../../utils/apiBase";
 import { useCurrentUser } from "../../hooks/useCurrentUser";
@@ -100,7 +100,7 @@ export default function ClientGovernanceLauncher() {
   const [preview, setPreview] = useState<MergePreview | null>(null);
   const [confirmed, setConfirmed] = useState(false);
 
-  const refreshDuplicates = async () => {
+  const refreshDuplicates = useCallback(async () => {
     if (!canMerge) return;
     try {
       const rows = await api<DuplicateGroup[]>("clients/duplicates");
@@ -108,12 +108,12 @@ export default function ClientGovernanceLauncher() {
     } catch (e: any) {
       setError(e.message || "A duplikációk nem tölthetők be.");
     }
-  };
+  }, [canMerge]);
 
   useEffect(() => {
     if (!open || !canMerge) return;
     void refreshDuplicates();
-  }, [open, canMerge]);
+  }, [open, canMerge, refreshDuplicates]);
 
   useEffect(() => {
     if (!open || query.trim().length < 2) {

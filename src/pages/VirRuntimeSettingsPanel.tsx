@@ -1,4 +1,4 @@
-import React,{useEffect,useState}from"react";
+import React,{useCallback,useEffect,useState}from"react";
 import axios from"axios";
 import{CheckCircle2,CloudCog,KeyRound,Mail,RefreshCw,Save,ServerCog,ShieldCheck}from"lucide-react";
 import"./VirRuntimeSettingsPanel.css";
@@ -16,8 +16,8 @@ const secretKeys=['COMPLAINT_IMAP_PASS','IMAP_PASS','VIR_GITHUB_TOKEN','VIR_REND
 export default function VirRuntimeSettingsPanel({API_BASE,auth}:Props){
  const[form,setForm]=useState<FormState>(defaults),[snapshot,setSnapshot]=useState<any>({}),[render,setRender]=useState<any>(null),[mailbox,setMailbox]=useState<any>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
  const base=`${API_BASE}/signage/runtime-settings`;
- async function load(){setBusy(true);setError('');try{const r=await axios.get(base,auth());const s=r.data?.settings||{};const next={...defaults};Object.keys(next).forEach(k=>{if(!s[k]?.secret&&s[k]?.value!==undefined&&s[k]?.value!==null&&String(s[k].value)!=='')next[k]=String(s[k].value)});setForm(next);setSnapshot(s);setRender(r.data?.render||null);setMailbox(r.data?.mailbox||null)}catch(e:any){setError(e?.response?.status===403?'A rendszerkonfiguráció csak adminisztrátori jogosultsággal módosítható.':e?.response?.data?.message||e?.response?.data?.error||e?.message||'Konfigurációs hiba.')}finally{setBusy(false)}}
- useEffect(()=>{void load()},[]);
+ const load=useCallback(async()=>{setBusy(true);setError('');try{const r=await axios.get(base,auth());const s=r.data?.settings||{};const next={...defaults};Object.keys(next).forEach(k=>{if(!s[k]?.secret&&s[k]?.value!==undefined&&s[k]?.value!==null&&String(s[k].value)!=='')next[k]=String(s[k].value)});setForm(next);setSnapshot(s);setRender(r.data?.render||null);setMailbox(r.data?.mailbox||null)}catch(e:any){setError(e?.response?.status===403?'A rendszerkonfiguráció csak adminisztrátori jogosultsággal módosítható.':e?.response?.data?.message||e?.response?.data?.error||e?.message||'Konfigurációs hiba.')}finally{setBusy(false)}},[auth,base]);
+ useEffect(()=>{void load()},[load]);
  const set=(key:string,value:any)=>setForm(p=>({...p,[key]:String(value)}));
  async function save(silent=false){setBusy(true);setError('');if(!silent)setMessage('');try{const payload:any={...form};secretKeys.forEach(k=>{if(!payload[k])delete payload[k]});const r=await axios.put(base,{settings:payload},auth());setSnapshot(r.data?.settings||snapshot);setRender(r.data?.render||render);setMailbox(r.data?.mailbox||mailbox);setForm(p=>({...p,COMPLAINT_IMAP_PASS:'',IMAP_PASS:'',VIR_GITHUB_TOKEN:'',VIR_RENDER_API_KEY:''}));if(!silent)setMessage('A VIR rendszerkonfiguráció mentve. A titkos adatok titkosítva kerültek az adatbázisba.');return true}catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||'Mentési hiba.');return false}finally{setBusy(false)}}
  async function applyGithub(){if(!await save(true))return;setBusy(true);setError('');setMessage('');try{const r=await axios.post(`${base}/github/apply`,{},auth());setMessage(`GitHub release-gate kész: ${r.data?.environment||form.VIR_GITHUB_ENVIRONMENT}; reviewer: ${r.data?.reviewer||form.VIR_GITHUB_REVIEWER}.`)}catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||'GitHub beállítási hiba.')}finally{setBusy(false)}}
