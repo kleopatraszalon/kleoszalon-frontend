@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState} from "react";
+import React,{useCallback,useEffect,useMemo,useState} from "react";
 import {BarChart3,Building2,CreditCard,FileSpreadsheet,FileText,Landmark,Plus,RefreshCw,Search,Settings2,Users} from "lucide-react";
 import api from "../../api";
 import "./FinanceAltegioWorkspace.css";
@@ -30,8 +30,8 @@ export default function FinanceAltegioWorkspace(){
   setDashboard(d.data);setAccounts(arr(a.data));setPartners(arr(p.data));setTypes(arr(t.data));setPayments(arr(pm.data));setOperations(arr(o.data));setDocuments(arr(docs.data));setReport(r.data);setPnl(pl.data);setOnline(on.data);
  }catch(e:any){setError(e?.response?.data?.message||"A pénzügyi adminisztráció adatai nem tölthetők be.")}finally{setLoading(false)}}
  useEffect(()=>{void loadAll()},[]);
- const filter=(rows:AnyRow[])=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase()));
- const filteredAccounts=useMemo(()=>filter(dashboard?.accounts||accounts),[dashboard,accounts,q]);
+ const filter=useCallback((rows:AnyRow[])=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())),[q]);
+ const filteredAccounts=useMemo(()=>filter(dashboard?.accounts||accounts),[dashboard,accounts,filter]);
  async function post(path:string,body:any){setLoading(true);setError("");setNotice("");try{await api.post(`/api/transactions/finance-operations/altegio${path}`,body);setNotice("Mentve.");setShowForm("");await loadAll()}catch(e:any){setError(e?.response?.data?.message||"A mentés nem sikerült.")}finally{setLoading(false)}}
  async function saveOnline(){setLoading(true);try{await api.put(`/api/transactions/finance-operations/altegio/online-settings?${qs()}`,online);setNotice("Online fizetési és számlázási beállítások mentve.");await loadAll()}catch(e:any){setError(e?.response?.data?.message||"A beállítások nem menthetők.")}finally{setLoading(false)}}
  function exportCsv(name:string,rows:AnyRow[]){if(!rows.length)return;const keys=Array.from(new Set(rows.flatMap(Object.keys)));const esc=(v:any)=>`"${String(v??"").replace(/"/g,'""')}"`;const csv="\ufeff"+[keys.join(";"),...rows.map(r=>keys.map(k=>esc(r[k])).join(";"))].join("\n");const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));a.download=name;a.click();URL.revokeObjectURL(a.href)}

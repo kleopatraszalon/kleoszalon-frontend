@@ -33,7 +33,7 @@ export default function WorkOrderDashboardPanel(){
   }
 
   useEffect(()=>{void load()},[]);
-  const recent=useMemo(()=>Array.isArray(data?.recent)?data!.recent!.slice(0,5):[],[data?.recent]);
+  const recent=useMemo(()=>(data?.recent||[]).slice(0,5),[data]);
   const stats=data?.stats||{};
 
   return <section style={{margin:"0 24px 18px",border:"1px solid #e7e0d6",borderRadius:18,background:"#fff",overflow:"hidden"}}>

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, ChevronDown, ChevronRight, Clock3, Plus, Search, SlidersHorizontal, Tag, X, Save, CalendarDays, Settings2, UsersRound } from "lucide-react";
 import withBase from "../utils/apiBase";
 import ServiceNewModal from "../components/ServiceNewModal";
@@ -18,7 +18,7 @@ const money = (v: number | null | undefined, locale:string) => v == null ? "—"
 
 export default function ServicesCatalogPage() {
   const {language,locale,t}=useLanguage();
-  const text=(hu:string,en:string)=>language==="en"?en:hu;
+  const text=useCallback((hu:string,en:string)=>language==="en"?en:hu,[language]);
   const [services,setServices]=useState<Service[]>([]); const [types,setTypes]=useState<ServiceType[]>([]);
   const [loading,setLoading]=useState(true); const [error,setError]=useState("");
   const [name,setName]=useState(""); const [typeId,setTypeId]=useState(""); const [salonId,setSalonId]=useState("");
@@ -40,7 +40,7 @@ export default function ServicesCatalogPage() {
     if(typeId&&String(s.service_type_id)!==typeId)return false; if(salonId&&!(s.locations||[]).some(l=>String(l.id)===salonId))return false;
     if(minPrice&&price<Number(minPrice))return false; if(maxPrice&&price>Number(maxPrice))return false; if(minTime&&time<Number(minTime))return false; if(maxTime&&time>Number(maxTime))return false; return true;
   }),[services,name,typeId,salonId,minPrice,maxPrice,minTime,maxTime,locale]);
-  const grouped=useMemo(()=>{ const order=new Map(types.map((typeItem,i)=>[String(typeItem.id),i])); const m=new Map<string,{id:string;name:string;items:Service[]}>(); filtered.forEach(s=>{const key=String(s.service_type_id||"none");if(!m.has(key))m.set(key,{id:key,name:s.service_type_name||text("Egyéb / kategória nélkül","Other / uncategorized"),items:[]});m.get(key)!.items.push(s);}); return Array.from(m.values()).sort((a,b)=>(order.get(a.id)??9999)-(order.get(b.id)??9999)||a.name.localeCompare(b.name,locale)); },[filtered,types,locale,language]);
+  const grouped=useMemo(()=>{ const order=new Map(types.map((typeItem,i)=>[String(typeItem.id),i])); const m=new Map<string,{id:string;name:string;items:Service[]}>(); filtered.forEach(s=>{const key=String(s.service_type_id||"none");if(!m.has(key))m.set(key,{id:key,name:s.service_type_name||text("Egyéb / kategória nélkül","Other / uncategorized"),items:[]});m.get(key)!.items.push(s);}); return Array.from(m.values()).sort((a,b)=>(order.get(a.id)??9999)-(order.get(b.id)??9999)||a.name.localeCompare(b.name,locale)); },[filtered,types,locale,text]);
   const reset=()=>{setName("");setTypeId("");setSalonId("");setMinPrice("");setMaxPrice("");setMinTime("");setMaxTime("");};
 
   return <div style={{padding:"18px 22px 36px",maxWidth:1680,margin:"0 auto"}}>
