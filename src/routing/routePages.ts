@@ -22,6 +22,7 @@ export const LoyaltyProgramPage = lazy(() => import("../pages/LoyaltyProgramPage
 export const LoyaltyModulePage = lazy(() => import("../pages/LoyaltyModulePage"));
 export const EmployeeWorkContextPage = lazy(() => import("../pages/EmployeeWorkContextPage"));
 export const EmployeeSkillMatrixPage = lazy(() => import("../pages/EmployeeSkillMatrixPage"));
+export const EmployeeRoutesPage = lazy(() => import("../pages/EmployeeRoutesPage"));
 export const AppointmentsCalendar = lazy(() => import("../pages/AppointmentsCalendar"));
 export const Login = lazy(() => import("../pages/Login"));
 export const RoleDashboardPage = lazy(() => import("../pages/RoleDashboardPage"));
