@@ -37,14 +37,12 @@ jobs:
           replace('src/pages/FitnessLockerPanel.tsx',
                   "const lockers:Locker[]=data?.lockers||[];const summary=data?.summary||{};",
                   "const lockers=useMemo<Locker[]>(()=>data?.lockers||[],[data?.lockers]);const summary=data?.summary||{};")
-
           replace('src/pages/WorkOrderDetail.tsx',
                   "const clients=editor?.clients||[];const employees=editor?.employees||[];",
                   "const clients=useMemo(()=>editor?.clients||[],[editor?.clients]);const employees=editor?.employees||[];")
-
           replace('src/pages/dashboard/WorkOrderDashboardPanel.tsx',
                   "const recent=useMemo(()=>Array.isArray(data?.recent)?data!.recent!.slice(0,5):[],[data?.recent]);",
-                  "const recent=useMemo(()=>Array.isArray(data?.recent)?data.recent.slice(0,5):[],[data]);")
+                  "const recent=useMemo(()=>(data?.recent||[]).slice(0,5),[data]);")
 
           replace('src/pages/finance/FinanceAltegioWorkspace.tsx',
                   'import React,{useEffect,useMemo,useState} from "react";',
@@ -81,9 +79,7 @@ jobs:
           new_review="""const serviceIds=useMemo(()=>services.map(x=>String(x.id)),[services]);\n const serviceIdsKey=useMemo(()=>serviceIds.join(','),[serviceIds]);\n useEffect(()=>{let alive=true;if(!locationId||!serviceIdsKey){setRequirements([]);setLoadError('');setLoading(false);return()=>{alive=false}}setLoading(true);setLoadError('');const q=new URLSearchParams({location_id:locationId,service_ids:serviceIdsKey});apiFetch<{requirements?:Requirement[]}>(`/api/transactions/workorder-materials/plan?${q.toString()}`).then(data=>{if(alive)setRequirements(Array.isArray(data.requirements)?data.requirements:[])}).catch((e:any)=>{if(alive){setRequirements([]);setLoadError(e?.message||'Az anyag-előírások ellenőrzése nem sikerült.')}}).finally(()=>{if(alive)setLoading(false)});return()=>{alive=false}},[locationId,serviceIdsKey]);"""
           replace('src/pages/workorders/WorkOrderReviewPanel.tsx',old_review,new_review)
 
-          replace('scripts/run-release-lint.js',
-                  'process.env.ESLINT_WARNING_BASELINE || 53',
-                  'process.env.ESLINT_WARNING_BASELINE || 43')
+          replace('scripts/run-release-lint.js','process.env.ESLINT_WARNING_BASELINE || 53','process.env.ESLINT_WARNING_BASELINE || 43')
           PY
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
