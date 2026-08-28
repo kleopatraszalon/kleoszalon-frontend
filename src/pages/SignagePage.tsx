@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./signage.css";
 import "./signageDeals.css";
 import "./signagePros.css";
@@ -90,9 +90,9 @@ export const SignagePage: React.FC = () => {
   })();
 
   const API_ORIGIN = ENV_API_ORIGIN || AUTO_API_ORIGIN;
-  const apiUrl = (path: string) => (API_ORIGIN ? `${API_ORIGIN}${path}` : path);
+  const apiUrl = useCallback((path: string) => (API_ORIGIN ? `${API_ORIGIN}${path}` : path), [API_ORIGIN]);
 
-  async function fetchJson(path: string) {
+  const fetchJson = useCallback(async (path: string) => {
     const url = apiUrl(path);
     const res = await fetch(url, { cache: "no-store", credentials: "include" });
     const text = await res.text();
@@ -106,7 +106,7 @@ export const SignagePage: React.FC = () => {
       // tipikusan itt látszik: "<!doctype html>..."
       throw new Error(`API nem JSON @ ${url}. Első 200 karakter: ${text.slice(0, 200)}`);
     }
-  }
+  }, [apiUrl]);
 
   useEffect(() => {
     const applyScale = () => {
@@ -151,7 +151,7 @@ export const SignagePage: React.FC = () => {
     return list[idx];
   }, [playlist, videos, videoIdx]);
 
-  async function loadAll() {
+  const loadAll = useCallback(async () => {
     try {
       setErr("");
       const [s, d, p, da, v] = await Promise.all([
@@ -172,15 +172,15 @@ export const SignagePage: React.FC = () => {
     } catch (e: any) {
       setErr(String(e?.message || e));
     }
-  }
+  }, [fetchJson]);
 
-  useEffect(() => { loadAll(); }, []);
+  useEffect(() => { loadAll(); }, [loadAll]);
 
   useEffect(() => {
     const tRefresh = setInterval(loadAll, 60_000);
     const tSvc = setInterval(() => setSvcPage(p => (p + 1) % svcPages.length), 12_000);
     return () => { clearInterval(tRefresh); clearInterval(tSvc); };
-  }, [svcPages.length]);
+  }, [svcPages.length, loadAll]);
 
   useEffect(() => {
     const enabled = (videos || []).filter(v => v.youtube_id);
