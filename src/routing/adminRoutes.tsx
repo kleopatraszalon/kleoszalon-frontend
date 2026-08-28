@@ -41,7 +41,6 @@ import {
   WebsitePagesAdminPage,
   MenuLayoutPage,
 } from "./routePages";
-import { FallbackRedirect } from "./routeAccess";
 
 export const adminRoutes: RouteObject[] = [
   { path: "/admin/system-health", element: R(MANAGEMENT, <SystemHealthPage />) },
@@ -119,5 +118,5 @@ export const adminRoutes: RouteObject[] = [
   },
   { path: "/spec/:moduleKey", element: A(<ModulePlaceholderPage />) },
   { path: "/modules/:moduleKey/*", element: A(<ModuleRoutesPage />) },
-  { path: "*", element: <FallbackRedirect /> },
+  { path: "*", element: <ModuleRoutesPage /> },
 ];
