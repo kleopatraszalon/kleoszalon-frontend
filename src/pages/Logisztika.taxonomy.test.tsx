@@ -20,6 +20,6 @@ describe("Logisztika product taxonomy UI", () => {
   });
 
   test("search includes taxonomy text", () => {
-    expect(page).toContain('${x.product_type_name || ""} ${x.product_group_name || ""} ${x.product_category_name || ""}');
+    expect(page).toContain(`\${x.product_type_name || ""} \${x.product_group_name || ""} \${x.product_category_name || ""}`);
   });
 });

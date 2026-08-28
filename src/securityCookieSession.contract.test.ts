@@ -40,7 +40,7 @@ describe("browser session security contract", () => {
     expect(source).toMatch(/credentials:\s*["']include["']/);
     expect(source).toContain("markAuthenticatedSession()");
     expect(source).toContain("getSessionBearerToken");
-    expect(source).toContain("headers.Authorization = `Bearer ${bearer}`");
+    expect(source).toContain(`headers.Authorization = \`Bearer \${bearer}\``);
     expect(source).not.toMatch(/localStorage\.getItem\(\s*["'](?:token|kleo_token)["']/);
   });
 
