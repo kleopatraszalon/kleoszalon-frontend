@@ -20,16 +20,16 @@ export default function FinanceAltegioWorkspace(){
  const[accounts,setAccounts]=useState<AnyRow[]>([]),[partners,setPartners]=useState<AnyRow[]>([]),[types,setTypes]=useState<AnyRow[]>([]),[payments,setPayments]=useState<AnyRow[]>([]),[operations,setOperations]=useState<AnyRow[]>([]),[documents,setDocuments]=useState<AnyRow[]>([]),[dashboard,setDashboard]=useState<any>(null),[report,setReport]=useState<any>(null),[pnl,setPnl]=useState<any>(null),[online,setOnline]=useState<any>(null);
  const[q,setQ]=useState(""),[from,setFrom]=useState(yearStart()),[to,setTo]=useState(today()),[showForm,setShowForm]=useState<string>("");
  const locationId=localStorage.getItem("kleo_location_id")||"";const loc=locationId?`location_id=${encodeURIComponent(locationId)}`:"";
- const qs=(extra="")=>[loc,extra].filter(Boolean).join("&");
- async function loadAll(){setLoading(true);setError("");try{
+ const qs=useCallback((extra="")=>[loc,extra].filter(Boolean).join("&"),[loc]);
+ const loadAll=useCallback(async()=>{setLoading(true);setError("");try{
   const base="/api/transactions/finance-operations/altegio";
   const[d,a,p,t,pm,o,docs,r,pl,on]=await Promise.all([
    api.get(`${base}/dashboard?${qs(`from=${from}&to=${to}`)}`),api.get(`/api/transactions/finance-operations/accounts?${loc}`),api.get(`${base}/partners?${qs()}`),api.get(`${base}/document-types?${qs()}`),api.get(`${base}/payment-methods?${qs()}`),
    api.get(`${base}/operations?${qs(`from=${from}&to=${to}&status=all`)}`),api.get(`${base}/documents?${qs(`from=${from}&to=${to}`)}`),api.get(`${base}/reports/summary?${qs(`from=${from}&to=${to}`)}`),api.get(`${base}/reports/pnl?${qs(`year=${new Date().getFullYear()}`)}`),api.get(`${base}/online-settings?${qs()}`)
   ]);
   setDashboard(d.data);setAccounts(arr(a.data));setPartners(arr(p.data));setTypes(arr(t.data));setPayments(arr(pm.data));setOperations(arr(o.data));setDocuments(arr(docs.data));setReport(r.data);setPnl(pl.data);setOnline(on.data);
- }catch(e:any){setError(e?.response?.data?.message||"A pénzügyi adminisztráció adatai nem tölthetők be.")}finally{setLoading(false)}}
- useEffect(()=>{void loadAll()},[]);
+ }catch(e:any){setError(e?.response?.data?.message||"A pénzügyi adminisztráció adatai nem tölthetők be.")}finally{setLoading(false)}},[from,to,loc,qs]);
+ useEffect(()=>{void loadAll()},[loadAll]);
  const filter=useCallback((rows:AnyRow[])=>rows.filter(r=>JSON.stringify(r).toLowerCase().includes(q.toLowerCase())),[q]);
  const filteredAccounts=useMemo(()=>filter(dashboard?.accounts||accounts),[dashboard,accounts,filter]);
  async function post(path:string,body:any){setLoading(true);setError("");setNotice("");try{await api.post(`/api/transactions/finance-operations/altegio${path}`,body);setNotice("Mentve.");setShowForm("");await loadAll()}catch(e:any){setError(e?.response?.data?.message||"A mentés nem sikerült.")}finally{setLoading(false)}}

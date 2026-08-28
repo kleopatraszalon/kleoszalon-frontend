@@ -1,4 +1,4 @@
-import React,{useEffect,useState}from'react';
+import React,{useCallback,useEffect,useState}from'react';
 import api from'../../api';
 
 const money=(v:any)=>`${Number(v||0).toLocaleString('hu-HU')} Ft`;
@@ -7,7 +7,7 @@ const emptyBilling:Billing={name:'',vat_status:'PRIVATE_PERSON',tax_number:'',co
 
 export default function WorkOrderInvoicePanel({workOrderId,locked,email}:{workOrderId:string;locked:boolean;email?:string}){
  const[invoice,setInvoice]=useState<any>(null),[readiness,setReadiness]=useState<any>(null),[submission,setSubmission]=useState<any>(null),[billing,setBilling]=useState<Billing>(emptyBilling),[busy,setBusy]=useState(false),[msg,setMsg]=useState(''),[err,setErr]=useState('');
- async function load(){
+ const load=useCallback(async()=>{
   if(!workOrderId)return;
   try{
    const[ir,rr]=await Promise.all([api.get(`/api/transactions/workorder-invoice/workorders/${workOrderId}`),api.get(`/api/transactions/workorder-invoice/workorders/${workOrderId}/readiness`)]);
@@ -15,8 +15,8 @@ export default function WorkOrderInvoicePanel({workOrderId,locked,email}:{workOr
    if(rr.data?.billing)setBilling({...emptyBilling,...rr.data.billing});
    if(inv?.id){const sr=await api.get(`/api/transactions/nav-online-invoice/invoices/${inv.id}/submissions`);setSubmission(sr.data?.[0]||null)}else setSubmission(null);
   }catch(e:any){setErr(e?.response?.data?.message||'A számlázási állapot nem tölthető be.')}
- }
- useEffect(()=>{void load()},[workOrderId]);
+ },[workOrderId]);
+ useEffect(()=>{void load()},[load]);
  const fail=(e:any,fallback:string)=>setErr((e?.response?.data?.errors||[]).map((x:any)=>x.message||x).join(' · ')||e?.response?.data?.message||fallback);
  async function run(fn:()=>Promise<void>){setBusy(true);setErr('');setMsg('');try{await fn()}finally{setBusy(false)}}
  async function saveBilling(){await run(async()=>{try{await api.put(`/api/transactions/workorder-invoice/workorders/${workOrderId}/billing`,billing);setMsg('Számlázási adatok mentve.');await load()}catch(e:any){fail(e,'A számlázási adatok nem menthetők.') }})}
