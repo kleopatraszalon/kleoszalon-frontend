@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   flex: 0 0 auto;
-  min-height: 34px;
+  min-height: 36px;
   padding: 3px;
   gap: 2px;
   border: 1px solid rgba(80, 59, 47, .16);
@@ -15,14 +15,14 @@
 .font-scale-button {
   display: grid;
   place-items: center;
-  min-width: 31px;
-  height: 28px;
+  min-width: 32px;
+  height: 30px;
   padding: 0 6px;
   border: 0;
   border-radius: 7px;
   background: transparent;
   color: inherit;
-  font-size: 11px;
+  font-size: .8125rem;
   font-weight: 800;
   line-height: 1;
   cursor: pointer;
@@ -43,9 +43,9 @@
 }
 
 .font-scale-value {
-  min-width: 39px;
+  min-width: 42px;
   text-align: center;
-  font-size: 10px;
+  font-size: .75rem;
   font-weight: 750;
   line-height: 1;
 }
@@ -56,11 +56,11 @@
   }
 
   .font-scale-button {
-    min-width: 27px;
+    min-width: 28px;
     padding: 0 4px;
   }
 
   .font-scale-value {
-    min-width: 35px;
+    min-width: 38px;
   }
 }
