@@ -2,16 +2,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 describe('SaaS / Franchise admin wiring', () => {
-  const app = fs.readFileSync(path.join(__dirname, 'App.tsx'), 'utf8');
+  const adminRoutes = fs.readFileSync(path.join(__dirname, 'routing/adminRoutes.tsx'), 'utf8');
+  const routePages = fs.readFileSync(path.join(__dirname, 'routing/routePages.ts'), 'utf8');
   const sidebar = fs.readFileSync(path.join(__dirname, 'components/Sidebar.tsx'), 'utf8');
   const page = fs.readFileSync(path.join(__dirname, 'pages/SaasFranchiseAdminPage.tsx'), 'utf8');
   const core = fs.readFileSync(path.join(__dirname, 'pages/SaasFranchiseAdminCorePage.tsx'), 'utf8');
   const settlements = fs.readFileSync(path.join(__dirname, 'pages/FranchiseSettlementPanel.tsx'), 'utf8');
 
   test('admin-only route is registered', () => {
-    expect(app).toContain('const SaasFranchiseAdminPage = lazy');
-    expect(app).toContain('path: "/admin/saas"');
-    expect(app).toContain('R(ADMIN, <SaasFranchiseAdminPage />)');
+    expect(routePages).toContain('export const SaasFranchiseAdminPage = lazy');
+    expect(adminRoutes).toContain('path: "/admin/saas"');
+    expect(adminRoutes).toContain('R(ADMIN, <SaasFranchiseAdminPage />)');
   });
 
   test('privileged menu entries are backend-driven while location-scoped extras stay restricted', () => {
