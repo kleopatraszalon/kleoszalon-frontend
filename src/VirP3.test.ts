@@ -1,0 +1,5 @@
+import fs from 'fs';
+const page=fs.readFileSync('src/pages/VirP3Page.tsx','utf8');const api=fs.readFileSync('src/api/virP3.ts','utf8');const routes=fs.readFileSync('src/routing/adminRoutes.tsx','utf8');const cockpit=fs.readFileSync('src/pages/VirManagerCockpitPage.tsx','utf8');
+test('P3 exposes all four requested modules',()=>{expect(page).toContain('Client Churn Radar');expect(page).toContain('Next Visit Engine');expect(page).toContain('Smart Pricing');expect(page).toContain('Membership Intelligence')});
+test('P3 uses governed relative VIR APIs',()=>{expect(api).toContain('/vir/p3/churn-radar');expect(api).toContain('/vir/p3/next-visit');expect(api).toContain('/vir/p3/smart-pricing');expect(api).toContain('/vir/p3/membership-intelligence');expect(api).not.toContain('onrender.com')});
+test('P3 route is management protected and linked from cockpit',()=>{expect(routes).toContain('/admin/vir/p3');expect(routes).toContain('R(MANAGEMENT, <VirP3Page />)');expect(cockpit).toContain('VIR Intelligence P3')});
