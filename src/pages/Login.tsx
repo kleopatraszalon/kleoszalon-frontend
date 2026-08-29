@@ -94,22 +94,7 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [diagnostic, setDiagnostic] = useState<string | null>(null);
   const idleLogout = searchParams.get("reason") === "idle";
-
-  const browserDiagnostic = () => {
-    const ua = typeof navigator !== "undefined" ? navigator.userAgent : "unknown";
-    const storage = (() => {
-      try {
-        sessionStorage.setItem("kleo_diag_probe", "1");
-        sessionStorage.removeItem("kleo_diag_probe");
-        return "sessionStorage=OK";
-      } catch {
-        return "sessionStorage=BLOCKED";
-      }
-    })();
-    return `${storage}; ua=${ua}`;
-  };
 
   const persistAuthAndGoHome = (body: LoginResponse) => {
     try {
@@ -137,11 +122,9 @@ const LoginPage: React.FC = () => {
       if (body.account_type) localStorage.setItem("kleo_account_type", String(body.account_type));
       else localStorage.removeItem("kleo_account_type");
 
-      setDiagnostic(`LOGIN_OK; role=${String(role ?? "unknown")}; route=/; ${browserDiagnostic()}`);
       navigate("/", { replace: true });
-    } catch (err: any) {
+    } catch (err) {
       console.error("Auth persist error:", err);
-      setDiagnostic(`PERSIST_ERROR; ${String(err?.message || err || "unknown")}; ${browserDiagnostic()}`);
       setError(t("login.persist_error"));
     }
   };
@@ -149,26 +132,21 @@ const LoginPage: React.FC = () => {
   const handleLogin = async (ev: React.FormEvent) => {
     ev.preventDefault();
     setError(null);
-    setDiagnostic(`START; ${browserDiagnostic()}`);
     if (!identifier.trim() || !password) {
       setError(t("login.required"));
-      setDiagnostic(`FORM_INVALID; ${browserDiagnostic()}`);
       return;
     }
 
     setLoading(true);
     setSessionBearerToken("");
     try {
-      setDiagnostic(`LOGIN_REQUEST; ${browserDiagnostic()}`);
       const response = await api.post<LoginResponse>("/login", {
         identifier: identifier.trim(),
         password,
       });
       const body = response.data || {};
-      setDiagnostic(`LOGIN_RESPONSE; HTTP=${response.status}; success=${String(body.success)}; ok=${String(body.ok)}; token=${body.token ? "YES" : "NO"}; ${browserDiagnostic()}`);
       if (body.success === false || body.ok === false) {
         setError(body.error || t("login.unexpected"));
-        setDiagnostic(`LOGIN_REJECTED; HTTP=${response.status}; error=${String(body.error || "unknown")}; ${browserDiagnostic()}`);
         return;
       }
 
@@ -177,10 +155,8 @@ const LoginPage: React.FC = () => {
 
       let merged: LoginResponse = body;
       try {
-        setDiagnostic(`ME_REQUEST; token=${token ? "YES" : "NO"}; ${browserDiagnostic()}`);
         const sessionCheck = await api.get<LoginResponse>("/me");
         const verified = sessionCheck.data || {};
-        setDiagnostic(`ME_RESPONSE; HTTP=${sessionCheck.status}; user=${verified.user ? "YES" : "NO"}; ${browserDiagnostic()}`);
         if (verified.user) {
           const verifiedUser = verified.user;
           merged = {
@@ -193,31 +169,32 @@ const LoginPage: React.FC = () => {
             email: verifiedUser.email ?? body.email,
           };
         }
-      } catch (sessionError: any) {
-        const sessionStatus = sessionError?.response?.status;
-        const sessionMessage = sessionError?.message || sessionError?.code || "unknown";
-        setDiagnostic(`ME_ERROR; HTTP=${String(sessionStatus || "none")}; token=${token ? "YES" : "NO"}; message=${String(sessionMessage)}; ${browserDiagnostic()}`);
+      } catch (sessionError) {
         if (!token) throw sessionError;
-        console.warn("Safari/session readback unavailable; continuing with signed Bearer session.");
+        console.warn("Session cookie readback unavailable; continuing with the signed bearer session.");
       }
 
       persistAuthAndGoHome(merged);
     } catch (err: any) {
-      console.error("Login error:", err);
-      const status = err?.response?.status;
+      console.error("Login error:", {
+        status: err?.response?.status ?? null,
+        code: err?.code ?? null,
+      });
+      const status = Number(err?.response?.status || 0);
       const body = err?.response?.data as LoginResponse | undefined;
-      const code = err?.code || "none";
-      const message = err?.message || "unknown";
       setSessionBearerToken("");
-      setDiagnostic(`LOGIN_ERROR; HTTP=${String(status || "none")}; code=${String(code)}; message=${String(message)}; server=${String(body?.error || "none")}; ${browserDiagnostic()}`);
-      setError(
-        body?.error ||
-          (status
-            ? language === "en"
-              ? `Sign-in failed (HTTP ${status}).`
-              : `Sikertelen belépés (HTTP ${status}).`
-            : t("login.unexpected")),
-      );
+
+      if (status === 400 || status === 401 || status === 403 || status === 409) {
+        setError(body?.error || (language === "en" ? "Sign-in failed." : "Sikertelen bejelentkezés."));
+      } else if (status === 429) {
+        setError(language === "en" ? "Too many sign-in attempts. Please try again shortly." : "Túl sok belépési kísérlet. Kérjük, próbálja újra rövidesen.");
+      } else {
+        setError(
+          language === "en"
+            ? "The server is temporarily unavailable. Please try again shortly."
+            : "A szerver átmenetileg nem elérhető. Kérjük, próbálja újra rövidesen.",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -257,26 +234,6 @@ const LoginPage: React.FC = () => {
             </div>
           )}
           {error && <div className="login-error">{error}</div>}
-          {diagnostic && (
-            <div
-              role="status"
-              aria-live="polite"
-              style={{
-                marginBottom: 12,
-                border: "1px solid #b8b8b8",
-                borderRadius: 8,
-                padding: "9px 11px",
-                background: "rgba(255,255,255,0.88)",
-                color: "#333",
-                fontSize: 11,
-                lineHeight: 1.35,
-                textAlign: "left",
-                overflowWrap: "anywhere",
-              }}
-            >
-              <strong>Belépési diagnosztika:</strong> {diagnostic}
-            </div>
-          )}
 
           <form onSubmit={handleLogin}>
             <div className="login-field">
