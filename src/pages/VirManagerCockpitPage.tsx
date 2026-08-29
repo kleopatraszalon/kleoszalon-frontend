@@ -30,7 +30,8 @@ export default function VirManagerCockpitPage(){
       <label className="vir-field"><span>Dátum</span><input type="date" value={date} onChange={e=>setDate(e.target.value)}/></label>
       <label className="vir-field"><span>Telephely</span><select value={locationId} onChange={e=>setLocationId(e.target.value)}><option value="">Összes telephely</option>{locations.map(l=><option key={l.id} value={l.id}>{l.name}</option>)}</select></label>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/dashboard")}>Részletes VIR</button>
-      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/intelligence")}>VIR Intelligence</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/intelligence")}>VIR Intelligence P0</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p1")}>VIR Intelligence P1</button>
       <button className="vir-button" onClick={()=>navigate("/admin/vir/actions")}>Akcióközpont {openActions?`(${openActions})`:""}</button>
     </div></div>
     {error&&<div className="vir-error">{error}</div>}{loading&&!data?<div className="vir-spinner">Vezetői adatok betöltése…</div>:null}
