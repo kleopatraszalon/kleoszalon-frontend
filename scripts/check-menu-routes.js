@@ -33,7 +33,7 @@ const routeOwners=new Map();
 for(const {file,source} of routeSources){for(const match of source.matchAll(/\bpath\s*:\s*["']([^"']+)["']/g)){const route=match[1];const owners=routeOwners.get(route)||[];owners.push(file);routeOwners.set(route,owners)}}
 for(const [route,owners] of routeOwners)if(owners.length>1)failures.push(`Duplikált router útvonal (${owners.length}x): ${route} -> ${owners.join(', ')}`);
 const routeMatches=[...routeOwners.keys()];
-if(routeMatches.length!==182)failures.push(`A moduláris router route-száma megváltozott: várt 182, aktuális ${routeMatches.length}. Ellenőrizd, hogy route nem veszett-e el.`);
+if(routeMatches.length!==183)failures.push(`A moduláris router route-száma megváltozott: várt 183, aktuális ${routeMatches.length}. Ellenőrizd, hogy route nem veszett-e el.`);
 if(!app.includes('from "./routing/routes"'))failures.push('Az App.tsx nem a routing/routes aggregátort használja.');
 if(/\bpath\s*:\s*["']/.test(app))failures.push('Route deklaráció került vissza az App.tsx-be; tedd a megfelelő domain route modulba.');
 if(/\blazy\s*\(/.test(app))failures.push('Lazy page-regisztráció került vissza az App.tsx-be; használd a routing/routePages modult.');
