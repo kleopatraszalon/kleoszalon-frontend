@@ -48,6 +48,8 @@ export const HrAttendancePage = lazy(() => import("../pages/HrAttendancePage"));
 export const PayrollPage = lazy(() => import("../pages/PayrollPage"));
 export const AccessControlPage = lazy(() => import("../pages/AccessControlPage"));
 export const VirDashboardPage = lazy(() => import("../pages/VirDashboardPage"));
+export const VirManagerCockpitPage = lazy(() => import("../pages/VirManagerCockpitPage"));
+export const VirActionCenterPage = lazy(() => import("../pages/VirActionCenterPage"));
 export const VirStaffDetailPage = lazy(() => import("../pages/VirStaffDetailPage"));
 export const VirServiceDetailPage = lazy(() => import("../pages/VirServiceDetailPage"));
 export const VirReportsAdminPage = lazy(() => import("../pages/VirReportsAdminPage"));

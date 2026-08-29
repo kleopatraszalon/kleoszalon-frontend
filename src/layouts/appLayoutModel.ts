@@ -30,6 +30,8 @@ const PAGE_NAMES: Record<string, string> = {
   "/admin/booking-v4": "VIR Autopilot",
   "/modules/vir-autopilot": "VIR Autopilot",
   "/modules/vir-autopilot/dashboard": "VIR Autopilot",
+  "/admin/vir/cockpit": "VIR Manager Cockpit",
+  "/admin/vir/actions": "Egységes VIR Akcióközpont",
 };
 
 const ACCOUNTING_ROLES = ["accounting", "bookkeeper", "konyveles", "könyvelés"];
