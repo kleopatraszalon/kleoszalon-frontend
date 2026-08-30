@@ -66,6 +66,7 @@ export const VirP12Page = lazy(() => import("../pages/VirP12Page"));
 export const VirP13Page = lazy(() => import("../pages/VirP13Page"));
 export const VirP14Page = lazy(() => import("../pages/VirP14Page"));
 export const VirP15Page = lazy(() => import("../pages/VirP15Page"));
+export const VirP16Page = lazy(() => import("../pages/VirP16Page"));
 export const ReceptionGuestActionsPage = lazy(() => import("../pages/ReceptionGuestActionsPage"));
 export const VirRevenueLeakagePage = lazy(() => import("../pages/VirRevenueLeakagePage"));
 export const VirStaffDetailPage = lazy(() => import("../pages/VirStaffDetailPage"));
