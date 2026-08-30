@@ -8,7 +8,7 @@ const expectedPages = [
 
 describe("VIR magyar üzleti magyarázatok", () => {
   it("minden vezetői VIR Intelligence oldalhoz ad magyar címet és rövid Mire jó magyarázatot", () => {
-    expect(Object.keys(VIR_HUNGARIAN_GUIDES)).toEqual(expect.arrayContaining(expectedPages));
+    expect(Object.keys(VIR_HUNGARIAN_GUIDES)).toEqual(expect.arrayContaining([...expectedPages]));
     for (const page of expectedPages) {
       const guide = VIR_HUNGARIAN_GUIDES[page];
       expect(guide.title).toMatch(/^VIR/);
