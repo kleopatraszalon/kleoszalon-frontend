@@ -50,9 +50,5 @@ export function rolesFromStoredToken():string[]{
 export function hasStoredRole(allowed: readonly string[]):boolean{
   const wanted=new Set(allowed.map(normalizeRole));
   const actual=rolesFromStoredToken();
-  if(actual.some(role=>wanted.has(role)))return true;
-  // A könyvelő átmehet az admin/management route guardon, ha az oldal könyvelési eszköz.
-  // Az AccessBoundary könyvelői whitelistje és az API RBAC együtt akadályozza meg a globális adminhozzáférést.
-  if(actual.includes("accounting")&&(wanted.has("manager")||wanted.has("admin")))return true;
-  return false;
+  return actual.some(role=>wanted.has(role));
 }
