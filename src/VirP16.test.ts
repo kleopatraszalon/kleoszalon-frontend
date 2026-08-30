@@ -1,0 +1,16 @@
+import fs from 'fs';
+import {describe,it,expect} from 'vitest';
+const page=fs.readFileSync('src/pages/VirP16Page.tsx','utf8');
+const api=fs.readFileSync('src/api/virP16.ts','utf8');
+const routes=fs.readFileSync('src/routing/adminRoutes.tsx','utf8');
+const pages=fs.readFileSync('src/routing/routePages.ts','utf8');
+const sidebar=fs.readFileSync('src/components/Sidebar.tsx','utf8');
+const audit=fs.readFileSync('scripts/check-menu-routes.js','utf8');
+describe('VIR P16 Executive Intelligence 2.0',()=>{
+ it('registers P16 route and lazy page',()=>{expect(pages).toContain('VirP16Page');expect(routes).toContain('/admin/vir/p16');expect(routes).toContain('R(MANAGEMENT, <VirP16Page />)')});
+ it('exposes executive exception and decision APIs',()=>{for(const x of ['/vir/p16/status','/vir/p16/exception-brief','/vir/p16/decision-inbox/sync','/vir/p16/decision-inbox','/vir/p16/morning-brief'])expect(api).toContain(x)});
+ it('keeps P16 non autonomous',()=>{expect(page).toContain('Automatikus végrehajtás');expect(page).toContain('nem indít automatikus foglalást, kampányt, kedvezményt, pénzügyi műveletet vagy beosztásmódosítást')});
+ it('places P9-P16 in a dedicated VIR Intelligence sidebar group',()=>{for(const x of ['VIR Intelligence','Marketing Automation P9','Revenue Autopilot P10','AI Reception & Journey P11','Customer Journey P12','Revenue Protection P13','Operations Autopilot P14','Executive Autopilot P15','Executive Intelligence P16'])expect(sidebar).toContain(x)});
+ it('keeps receptionist guest actions and salon P14 shortcut visible',()=>{expect(sidebar).toContain("name:'Vendégakciók'");expect(sidebar).toContain("route:'/admin/reception/guest-actions'");expect(sidebar).toContain("name:'Operations Autopilot P14'")});
+ it('advances route invariant to 201',()=>expect(audit).toContain('routeMatches.length!==201'));
+});
