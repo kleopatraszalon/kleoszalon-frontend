@@ -18,7 +18,20 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
     secure: false,
   }]);
 
+  // A valódi login ugyanígy jelöli a böngészőben az aktív cookie-sessiont.
+  // Ez csak UI-hint; a tényleges auth/RBAC továbbra is az HttpOnly JWT cookie és
+  // a backend /api/me ellenőrzése. Nem teszt-bypassként állítjuk be.
   await page.addInitScript(({ locationId, employeeId }) => {
+    localStorage.setItem('kleo_cookie_session', 'active');
+    localStorage.setItem('kleo_role', 'admin');
+    localStorage.setItem('kleo_location_id', locationId);
+    localStorage.setItem('kleo_location_name', 'E2E Szalon');
+    localStorage.setItem('kleo_full_name', 'E2E Recepciós');
+    localStorage.setItem('kleo_account_type', 'employee');
+    localStorage.setItem('email', 'e2e.reception@test.local');
+    localStorage.setItem('userId', employeeId);
+    localStorage.setItem('kleo_last_activity_at', String(Date.now()));
+    localStorage.setItem('kleo_selected_location_id', locationId);
     localStorage.setItem('kleo_user', JSON.stringify({
       id: employeeId,
       employee_id: employeeId,
@@ -27,7 +40,6 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
       role: ['admin'],
       location_id: locationId,
     }));
-    localStorage.setItem('kleo_selected_location_id', locationId);
   }, { locationId: fixture.location_id, employeeId: fixture.employee_id });
 
   const failedCoreResponses: string[] = [];
