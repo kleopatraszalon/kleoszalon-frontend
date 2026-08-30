@@ -1,4 +1,4 @@
-import React,{useEffect,useMemo,useState}from"react";
+import React,{useEffect,useMemo,useRef,useState}from"react";
 import{Banknote,CheckCircle2,CreditCard,FileText,Gift,RefreshCw,RotateCcw,Search,WalletCards}from"lucide-react";
 import api from"../api";
 import FinanceOperationsPanel from"./finance/FinanceOperationsPanel";
@@ -35,7 +35,8 @@ export default function Penzugy(){
 
  async function loadPaymentHistory(id:string|number){try{const r=await api.get(`/api/transactions/cashier/workorders/${id}/payments`);setPaymentHistory(Array.isArray(r.data)?r.data:[])}catch{setPaymentHistory([])}}
  async function load(){setLoading(true);setError("");try{const[o,s,pm,acc]=await Promise.all([api.get(`/api/transactions/cashier/workorders${suffix}`),api.get(`/api/transactions/cashier/daily-summary?date=${today}${locationId?`&location_id=${encodeURIComponent(locationId)}`:""}`),api.get(`/api/transactions/cashier/altegio/payment-methods${suffix}`).catch(()=>({data:fallbackMethods})),api.get(`/api/transactions/cashier/altegio/accounts${suffix}`).catch(()=>({data:[]}))]);const rows:WorkOrder[]=o.data||[];setOrders(rows);setSummary(s.data||null);setPaymentMethods(Array.isArray(pm.data)&&pm.data.length?pm.data:fallbackMethods);setAccounts(Array.isArray(acc.data)?acc.data:[]);const target=new URLSearchParams(window.location.search).get("workorder");if(target){const hit=rows.find(x=>String(x.id)===String(target)||String(x.work_order_number||"")===String(target));if(hit)choose(hit)}}catch(e:any){setError(e?.response?.data?.message||"A pénztár adatai nem tölthetők be.")}finally{setLoading(false)}}
- useEffect(()=>{void load()},[]);
+ const initialLoadRef=useRef(load);
+ useEffect(()=>{void initialLoadRef.current()},[]);
  const refreshDashboard=()=>setDashboardRefresh(x=>x+1);
  async function refreshAll(){await load();if(selected)await loadPaymentHistory(selected.id);refreshDashboard()}
  const filtered=useMemo(()=>orders.filter(o=>`${o.work_order_number||o.id} ${o.client_name||""} ${o.status} ${o.payment_status||""}`.toLowerCase().includes(query.toLowerCase())),[orders,query]);
