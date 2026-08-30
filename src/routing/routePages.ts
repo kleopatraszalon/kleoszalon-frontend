@@ -43,7 +43,7 @@ export const EmployeesList = lazy(() => import("../pages/EmployeesList"));
 export const ServicesList = lazy(() => import("../pages/ServicesList"));
 export const SignageAdmin = lazy(() => import("../pages/SignageAdmin"));
 export const SignageAppearanceAdmin = lazy(() => import("../pages/SignageAppearanceAdmin"));
-export const KioskAdmin = lazy(() => import("../pages/KioskAdmin"));
+export const KioskAdmin = lazy(() => import("../pages/KioskAdminEnhanced"));
 export const RoleTimetablePage = lazy(() => import("../pages/RoleTimetablePage"));
 export const HrAttendancePage = lazy(() => import("../pages/HrAttendancePage"));
 export const PayrollPage = lazy(() => import("../pages/PayrollPage"));
