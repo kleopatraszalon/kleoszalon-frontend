@@ -18,6 +18,7 @@ export const RECEPTION_DAILY_MENU: ReceptionMenuItem[] = [
 ];
 
 export const RECEPTION_SUPPORT_MENU: ReceptionMenuItem[] = [
+  { label: "Vendégakciók", to: "/admin/reception/guest-actions", icon: Sparkles },
   { label: "Új értékesítés", to: "/finance/product-sale", icon: ShoppingBag },
   { label: "Pénztár", to: "/finance/cashier", icon: WalletCards },
   { label: "Ellenőrzőlisták", to: "/knowledge-base/checklists", icon: ClipboardCheck },
