@@ -1,6 +1,6 @@
 import axios from "axios";
 import { idempotencyKeyFor } from "../utils/financialIdempotency";
-import { getSessionBearerToken } from "../utils/authSession";
+import { clearLocalAuthenticatedSession, getSessionBearerToken, hasStoredAuthToken } from "../utils/authSession";
 
 function norm(v?: string) {
   return (v ?? "")
@@ -176,6 +176,14 @@ api.interceptors.response.use(
   async (error) => {
     if (error?.response?.status === 401) {
       console.warn("API 401: a böngészős munkamenet lejárt vagy hiányzik.");
+      const requestUrl=urlOf(error?.config);
+      const isLoginRequest=/\/login(?:\?|$)/i.test(requestUrl);
+      if(!isLoginRequest&&!isPublicBookingPage()&&hasStoredAuthToken()){
+        clearLocalAuthenticatedSession();
+        if(typeof window!=="undefined"&&window.location.pathname!=="/login"){
+          window.location.replace("/login?reason=session-expired");
+        }
+      }
     }
 
     redirectInventoryLotWorkflow(error);
