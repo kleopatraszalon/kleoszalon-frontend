@@ -1,0 +1,17 @@
+import api from './api';
+export const getP9Campaigns=(params:any)=>api.get('/vir/p9/campaigns',{params}).then(r=>r.data);
+export const createP9Campaign=(body:any)=>api.post('/vir/p9/campaigns',body).then(r=>r.data);
+export const previewP9Campaign=(id:string)=>api.post(`/vir/p9/campaigns/${id}/preview`).then(r=>r.data);
+export const approveP9Campaign=(id:string)=>api.post(`/vir/p9/campaigns/${id}/approve`).then(r=>r.data);
+export const executeP9Campaign=(id:string)=>api.post(`/vir/p9/campaigns/${id}/execute`).then(r=>r.data);
+export const getP9Segments=(params:any)=>api.get('/vir/p9/segments',{params}).then(r=>r.data);
+export const getP9ChannelOptimizer=(params:any)=>api.get('/vir/p9/channel-optimizer-v2',{params}).then(r=>r.data);
+export const getP9Funnel=(params:any)=>api.get('/vir/p9/conversion-funnel',{params}).then(r=>r.data);
+export const getP9Roi=(params:any)=>api.get('/vir/p9/campaign-roi',{params}).then(r=>r.data);
+export const getP9NextBestActions=(params:any)=>api.get('/vir/p9/next-best-actions',{params}).then(r=>r.data);
+export const getP9AbTests=(params:any)=>api.get('/vir/p9/ab-tests',{params}).then(r=>r.data);
+export const getP9Attribution=(params:any)=>api.get('/vir/p9/attribution-v3',{params}).then(r=>r.data);
+export const getP9Suggestions=(params:any)=>api.get('/vir/p9/suggestions',{params}).then(r=>r.data);
+export const getP9Compliance=(params:any)=>api.get('/vir/p9/compliance',{params}).then(r=>r.data);
+export const updateP9Compliance=(id:string,body:any)=>api.patch(`/vir/p9/compliance/${id}`,body).then(r=>r.data);
+export const getReceptionGuestActions=(params:any)=>api.get('/vir/reception/guest-actions',{params}).then(r=>r.data);
