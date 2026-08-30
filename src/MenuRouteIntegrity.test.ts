@@ -15,7 +15,7 @@ describe('VIR menu route integrity',()=>{
   const routes=routeFiles.map(read).join('\n');
   const pages=read('src/routing/routePages.ts');
   const calendar=read('src/pages/AppointmentsCalendar.tsx');
-  const waitlist=read('src/pages/BookingWaitlistPage.tsx');
+  const smartWaitlist=read('src/pages/booking/SmartWaitlistPanel.tsx');
 
   it('routes appointment menu views to their implemented screens',()=>{
     expect(routes).toContain('path: "/appointments/list"');
@@ -24,9 +24,10 @@ describe('VIR menu route integrity',()=>{
     expect(calendar).toContain('"group-bookings": "/modules/appointments/group-bookings"');
     expect(calendar).toContain('notifications: "/modules/appointments/notifications"');
     expect(calendar).toContain('"no-show": "/modules/appointments/attendance"');
-    expect(calendar).toContain('if(view==="waitlist") return <BookingWaitlistPage/>');
-    expect(waitlist).toContain('/transactions/booking-operations/waitlist');
-    expect(waitlist).toContain('Intelligens várólista');
+    expect(calendar).toContain('waitlist: "/modules/appointments/waitlist"');
+    expect(smartWaitlist).toContain('/transactions/booking-operations/smart-waitlist');
+    expect(smartWaitlist).toContain('Smart Waitlist');
+    expect(smartWaitlist).toContain('Új várólista-bejegyzés');
   });
 
   it('keeps legacy operational menu links on functional pages',()=>{
