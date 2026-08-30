@@ -6,6 +6,7 @@ import HrSidebar from "../components/HrSidebar";
 import AccountingSidebar from "../components/AccountingSidebar";
 import AccessBoundary from "../components/AccessBoundary";
 import AppTopbar from "../components/AppTopbar";
+import { VirHungarianPageGuide, resolveVirGuidePage } from "../components/VirHungarianPageGuide";
 import { translateMenuLabel, useLanguage } from "../i18n/LanguageProvider";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useSessionIdleGuard } from "../hooks/useSessionIdleGuard";
@@ -13,8 +14,6 @@ import { deriveRoleFlags, resolveCurrentPageHu } from "./appLayoutModel";
 import { resolveBackFallback } from "./appLayoutModel";
 import "./AppLayout.css";
 
-// A korábbi részleges menüválaszok böngésző-cache-e nem írhatja felül a friss
-// backend menüt. A cache csak gyorsító réteg, ezért új shell betöltéskor töröljük.
 try {
   for (let i = localStorage.length - 1; i >= 0; i -= 1) {
     const key = localStorage.key(i);
@@ -119,6 +118,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   if (isMasterServices && serviceView === "staff") pageContent = <EmployeeServicesPage />;
   if (isMasterServices && serviceView === "services") pageContent = <ServicesCatalogPage />;
   if (isProducts) pageContent = <ProductCatalogPage />;
+  const virGuidePage = resolveVirGuidePage(location.pathname);
+  if (virGuidePage) pageContent = <VirHungarianPageGuide page={virGuidePage}>{pageContent}</VirHungarianPageGuide>;
 
   const showImport = !isStaff
     && !isAccounting
