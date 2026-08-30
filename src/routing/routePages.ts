@@ -33,6 +33,7 @@ export const Logisztika = lazy(() => import("../pages/Logisztika"));
 export const CentralSupplyPage = lazy(() => import("../pages/CentralSupplyPage"));
 export const CentralMasterDataPage = lazy(() => import("../pages/CentralMasterDataPage"));
 export const SystemSettingsPage = lazy(() => import("../pages/SystemSettingsPage"));
+export const SecuritySettingsPage = lazy(() => import("../pages/SecuritySettingsPage"));
 export const MenuLayoutPage = lazy(() => import("../pages/MenuLayoutPage"));
 export const GdprCenterPage = lazy(() => import("../pages/GdprCenterPage"));
 export const Register = lazy(() => import("../pages/Register"));
