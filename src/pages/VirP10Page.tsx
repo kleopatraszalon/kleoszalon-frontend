@@ -1,4 +1,4 @@
-import React,{useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useState} from 'react';
 import {getP10DynamicOffers,getP10EmptySlotAutopilot,getP10RevenueGuard,getP10NextBestOffers,simulateP10Promotion} from '../api/virP10';
 
 type Tab='offers'|'slots'|'guard'|'next'|'sim';
@@ -6,8 +6,8 @@ const tabs:[Tab,string][]=[['offers','51. Dynamic Offer Engine'],['slots','52. E
 export default function VirP10Page(){
  const [tab,setTab]=useState<Tab>('offers');const [locationId,setLocationId]=useState('');const [data,setData]=useState<any>(null);const [loading,setLoading]=useState(false);
  const [sim,setSim]=useState({audience:100,expected_response_percent:8,avg_ticket:15000,discount_percent:10,communication_cost:0});
- async function load(){setLoading(true);try{const p=locationId?{locationId}:{};const d=tab==='offers'?await getP10DynamicOffers(p):tab==='slots'?await getP10EmptySlotAutopilot(p):tab==='guard'?await getP10RevenueGuard(p):tab==='next'?await getP10NextBestOffers(p):await simulateP10Promotion({...sim,locationId:locationId||undefined});setData(d)}finally{setLoading(false)}}
- useEffect(()=>{void load()},[tab]);
+ const load=useCallback(async()=>{setLoading(true);try{const p=locationId?{locationId}:{};const d=tab==='offers'?await getP10DynamicOffers(p):tab==='slots'?await getP10EmptySlotAutopilot(p):tab==='guard'?await getP10RevenueGuard(p):tab==='next'?await getP10NextBestOffers(p):await simulateP10Promotion({...sim,locationId:locationId||undefined});setData(d)}finally{setLoading(false)}},[locationId,sim,tab]);
+ useEffect(()=>{void load()},[load]);
  return <div style={{padding:24,maxWidth:1500,margin:'0 auto'}}><h1>VIR P10 · Revenue Autopilot</h1><p>Bevételnövelő döntéstámogatás automatikus kedvezmény, foglalás vagy kampányindítás nélkül. Minden végrehajtható akció jóváhagyást igényel.</p>
  <div style={{display:'flex',gap:8,flexWrap:'wrap',margin:'16px 0'}}>{tabs.map(([k,l])=><button key={k} onClick={()=>setTab(k)} style={{fontWeight:tab===k?800:500}}>{l}</button>)}</div>
  <div style={{display:'flex',gap:8,marginBottom:16}}><input value={locationId} onChange={e=>setLocationId(e.target.value)} placeholder="Telephely UUID (opcionális; Empty Slothoz kötelező)" style={{minWidth:390}}/><button onClick={()=>void load()} disabled={loading}>{loading?'Betöltés...':'Frissítés'}</button></div>
