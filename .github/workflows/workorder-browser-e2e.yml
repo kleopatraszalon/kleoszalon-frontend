@@ -98,7 +98,7 @@ jobs:
 
       - name: Start frontend preview
         run: |
-          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/workorder-e2e-web.log 2>&1 &
+          npm run preview:vite -- --host 127.0.0.1 --port 4173 > /tmp/workorder-e2e-web.log 2>&1 &
           echo $! > /tmp/workorder-e2e-web.pid
           for i in {1..30}; do
             if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
