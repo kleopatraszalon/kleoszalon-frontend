@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { Navigate, type RouteObject } from "react-router-dom";
 import {
   KIOSK_MANAGER_ROLES as KIOSK_MANAGERS,
@@ -15,6 +16,8 @@ import {
   ProductsList,
   ServicesList,
 } from "./routePages";
+
+const ReceptionServicesPage = lazy(() => import("../pages/ReceptionServicesPage"));
 
 export const inventoryRoutes: RouteObject[] = [
   { path: "/logisztika", element: A(<Logisztika />) },
@@ -69,8 +72,8 @@ export const inventoryRoutes: RouteObject[] = [
   { path: "/masters", element: R(MANAGEMENT, <ServicesList />) },
   { path: "/masterdata/services", element: R(MANAGEMENT, <ServicesList />) },
   { path: "/masterdata/services/*", element: R(MANAGEMENT, <ServicesList />) },
-  { path: "/services", element: R(MANAGEMENT, <ServicesList />) },
-  { path: "/services/*", element: R(MANAGEMENT, <ServicesList />) },
+  { path: "/services", element: A(<ReceptionServicesPage />) },
+  { path: "/services/*", element: A(<ReceptionServicesPage />) },
   {
     path: "/spec/inventory-orders",
     element: <Navigate to="/warehouse/central-supply" replace />,

@@ -1,7 +1,7 @@
 import { Navigate, type RouteObject } from "react-router-dom";
 import {
   ADMIN_ROLES as ADMIN,
-  MANAGEMENT_ROLES as MANAGEMENT,
+  HR_ROLES as HR,
   authenticated as A,
   roleProtected as R,
 } from "./routeAccess";
@@ -22,10 +22,10 @@ import {
 
 export const hrRoutes: RouteObject[] = [
   { path: "/dashboard/shift", element: A(<HrAttendancePage />) },
-  { path: "/hr/positions", element: R(MANAGEMENT, <HrPositionsPage />) },
-  { path: "/hr/applications", element: R(MANAGEMENT, <HrDevelopmentPage />) },
-  { path: "/spec/training", element: R(MANAGEMENT, <HrDevelopmentPage />) },
-  { path: "/hr/evaluations", element: R(MANAGEMENT, <HrDevelopmentPage />) },
+  { path: "/hr/positions", element: R(HR, <HrPositionsPage />) },
+  { path: "/hr/applications", element: R(HR, <HrDevelopmentPage />) },
+  { path: "/spec/training", element: R(HR, <HrDevelopmentPage />) },
+  { path: "/hr/evaluations", element: R(HR, <HrDevelopmentPage />) },
   {
     path: "/modules/team/recruitment",
     element: <Navigate to="/hr/applications" replace />,
@@ -38,9 +38,9 @@ export const hrRoutes: RouteObject[] = [
     path: "/modules/team/evaluations",
     element: <Navigate to="/hr/evaluations" replace />,
   },
-  { path: "/modules/team/payroll", element: R(MANAGEMENT, <PayrollPage />) },
+  { path: "/modules/team/payroll", element: R(HR, <PayrollPage />) },
   { path: "/modules/team/roles", element: R(ADMIN, <AccessControlPage />) },
-  { path: "/modules/team/import", element: R(MANAGEMENT, <StaffImportPage />) },
+  { path: "/modules/team/import", element: R(HR, <StaffImportPage />) },
   { path: "/hr", element: A(<EmployeesList />) },
   { path: "/employees", element: A(<EmployeesList />) },
   { path: "/team", element: <Navigate to="/employees" replace /> },

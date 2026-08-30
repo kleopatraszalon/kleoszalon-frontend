@@ -1,4 +1,5 @@
-import { Navigate, type RouteObject } from "react-router-dom";
+import { lazy } from "react";
+import { Navigate, useLocation, type RouteObject } from "react-router-dom";
 import { MANAGEMENT_ROLES as MANAGEMENT, authenticated as A, roleProtected as R } from "./routeAccess";
 import {
   AppointmentsCalendar,
@@ -13,6 +14,14 @@ import {
   WorkOrderNewModalPage,
   WorkOrdersList,
 } from "./routePages";
+
+const AppointmentCreatePage = lazy(() => import("../pages/AppointmentCreatePage"));
+
+function AppointmentFallback() {
+  const { pathname } = useLocation();
+  if (pathname === "/appointments/new") return <AppointmentCreatePage />;
+  return <Navigate to="/appointments/calendar" replace />;
+}
 
 export const bookingRoutes: RouteObject[] = [
   { path: "/", element: A(<RoleDashboardPage />) },
@@ -37,7 +46,7 @@ export const bookingRoutes: RouteObject[] = [
   },
   {
     path: "/appointments/*",
-    element: <Navigate to="/appointments/calendar" replace />,
+    element: A(<AppointmentFallback />),
   },
   { path: "/workorders", element: A(<WorkOrdersList />) },
   { path: "/workorders/list", element: A(<WorkOrdersList />) },
