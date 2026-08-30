@@ -87,6 +87,16 @@ jobs:
             id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
             name text NOT NULL
           );
+          CREATE TABLE IF NOT EXISTS menus(
+            id bigserial PRIMARY KEY,
+            code text NOT NULL UNIQUE,
+            name text NOT NULL,
+            parent_id bigint,
+            route text,
+            feature_key text,
+            is_active boolean NOT NULL DEFAULT true,
+            order_index integer NOT NULL DEFAULT 0
+          );
           ALTER TABLE appointment_services ADD COLUMN IF NOT EXISTS discount_percent numeric(7,3) NOT NULL DEFAULT 0;
           ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS pdf_generated_at timestamptz;
           ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_status text;
