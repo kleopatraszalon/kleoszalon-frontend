@@ -12,7 +12,7 @@ describe('legacy fetch client parity',()=>{
 
   it('supports the current-tab bearer fallback without reintroducing localStorage authorization headers',()=>{
     expect(source).toContain('getSessionBearerToken');
-    expect(source).toContain('headers.set("Authorization",`Bearer '+ '${bearer}' +'`)');
+    expect(source).toMatch(/headers\.set\("Authorization",`Bearer \$\{bearer\}`\)/);
     expect(source).toContain('export function authHeaders(): Record<string, string>');
     expect(source).toContain('return {};');
   });
