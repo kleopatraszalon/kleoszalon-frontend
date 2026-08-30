@@ -35,7 +35,7 @@ describe('VIR role route access integrity',()=>{
     ]){
       const line=finance.split('\n').find(candidate=>candidate.includes(`path: "${route}"`));
       expect(line).toBeTruthy();
-      if(line?.includes('element:')) expect(line).toContain('R(FINANCE,');
+      expect(line?.includes('element:') ? line.includes('R(FINANCE,') : true).toBe(true);
     }
     expect(finance).toContain('element: R(FINANCE, <NavOnlineInvoicePage />)');
   });
