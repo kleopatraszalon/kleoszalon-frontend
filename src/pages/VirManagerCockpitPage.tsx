@@ -38,6 +38,7 @@ export default function VirManagerCockpitPage(){
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p5")}>VIR Intelligence P5</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p6")}>VIR Intelligence P6</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p7")}>VIR Intelligence P7</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p8")}>VIR Intelligence P8</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p3/revenue-leakage")}>Revenue Leakage</button>
       <button className="vir-button" onClick={()=>navigate("/admin/vir/actions")}>Akcióközpont {openActions?`(${openActions})`:""}</button>
     </div></div>
