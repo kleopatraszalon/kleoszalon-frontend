@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import fs from 'node:fs/promises';
 
-const apiBase = process.env.E2E_API_URL || 'http://127.0.0.1:4010';
+const apiBase = process.env.E2E_API_URL || 'http://localhost:5000';
 
 test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiválás → PDF', async ({ page, context, request }) => {
   const fixtureResponse = await request.get(`${apiBase}/__e2e/fixture`);
@@ -11,8 +11,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   await context.addCookies([{
     name: 'token',
     value: fixture.token,
-    domain: '127.0.0.1',
-    path: '/',
+    url: 'http://localhost:5000',
     httpOnly: true,
     sameSite: 'Lax',
     secure: false,
@@ -43,6 +42,8 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   }, { locationId: fixture.location_id, employeeId: fixture.employee_id });
 
   const failedCoreResponses: string[] = [];
+  const failedRequests: string[] = [];
+  page.on('requestfailed', requestItem => failedRequests.push(`${requestItem.method()} ${requestItem.url()} ${requestItem.failure()?.errorText || ''}`));
   page.on('response', response => {
     if (response.url().includes('/api/') && response.status() >= 400 && (
       response.url().includes('/booking-workorder/') ||
@@ -107,5 +108,6 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   expect(state.movementCount).toBe(1);
   expect(state.archive?.pdf_generated_at).toBeTruthy();
 
+  expect(failedRequests, `Hálózati hibák: ${failedRequests.join(', ')}`).toEqual([]);
   expect(failedCoreResponses, `Core API hibák: ${failedCoreResponses.join(', ')}`).toEqual([]);
 });
