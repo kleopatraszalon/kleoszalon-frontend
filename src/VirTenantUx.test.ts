@@ -11,7 +11,7 @@ const p13=fs.readFileSync('src/pages/VirP13Page.tsx','utf8');
 const p15=fs.readFileSync('src/pages/VirP15Page.tsx','utf8');
 
 describe('VIR searchable data selection and understandable UX',()=>{
- it('provides tenant scoped lookup clients',()=>{for(const x of ['/vir/lookups/clients','/vir/lookups/locations','/vir/lookups/work-orders'])expect(api).toContain(x)});
+ it('provides tenant scoped lookup client kinds through one generic endpoint',()=>{expect(api).toContain("'clients'|'locations'|'work-orders'");expect(api).toContain('/vir/lookups/${kind}');expect(api).toContain('/vir/lookups/context')});
  it('has reusable searchable dropdown behavior',()=>{expect(picker).toContain('searchVirLookup');expect(picker).toContain('Kezdj el gépelni');expect(picker).toContain('vir-search-menu')});
  it('replaces raw location inputs with searchable location selectors',()=>{for(const page of [p8,p9,p10,p11,p15])expect(page).toContain('kind="locations"')});
  it('replaces raw client UUID inputs with searchable client selectors',()=>{for(const page of [p11,p12,p13])expect(page).toContain('kind="clients"');expect(p11).toContain('kind="work-orders"')});
