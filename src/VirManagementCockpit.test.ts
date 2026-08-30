@@ -11,7 +11,7 @@ test("Manager Cockpit is the primary management VIR route",()=>{
 
 test("Manager Cockpit exposes business KPIs and executive action signals",()=>{
   const page=read("src/pages/VirManagerCockpitPage.tsx");
-  for(const marker of ["VIR Manager Cockpit","Mai árbevétel","Időpontok","Átlagos kosár","No-show","Kritikus akciók","Lejárt / jóváhagyás","Ami ma vezetői figyelmet kér","Források terheltsége"])expect(page).toContain(marker);
+  for(const marker of ["VIR vezetői irányítópult","VIR Management Cockpit","Mai árbevétel","Időpontok","Átlagos kosár","No-show","Kritikus akciók","Lejárt / jóváhagyás","Ami ma vezetői figyelmet kér","Források terheltsége"])expect(page).toContain(marker);
   expect(page).toContain("getVirManagerCockpit");
   expect(page).toContain('/admin/vir/actions');
 });
