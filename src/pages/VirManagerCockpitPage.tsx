@@ -42,6 +42,10 @@ export default function VirManagerCockpitPage(){
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p9")}>Marketing automatizálás P9</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p10")}>Revenue Autopilot P10</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p11")}>AI Reception & Journey P11</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p12")}>Journey Orchestration P12</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p13")}>Revenue Protection P13</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p14")}>Operations Autopilot P14</button>
+      <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p15")}>Executive Autopilot P15</button>
       <button className="vir-button secondary" onClick={()=>navigate("/admin/vir/p3/revenue-leakage")}>Revenue Leakage</button>
       <button className="vir-button" onClick={()=>navigate("/admin/vir/actions")}>Akcióközpont {openActions?`(${openActions})`:""}</button>
     </div></div>
