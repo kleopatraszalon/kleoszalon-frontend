@@ -16,14 +16,14 @@ describe('SaaS / Franchise admin wiring', () => {
   });
 
   test('privileged menu entries are backend-driven while location-scoped extras stay restricted', () => {
-    expect(sidebar).toContain('axios.get(');
-    expect(sidebar).toContain('/menus');
+    expect(sidebar).toContain("import api from'../api'");
+    expect(sidebar).toContain("api.get('/menus')");
     expect(sidebar).toContain('tree=buildTree');
     expect(sidebar).toContain('if(isCustomer||isAccounting||isLocationScoped||isStaff||isHr||isManager)return');
     expect(sidebar).toContain('const RECEIPT_COMPLIANCE');
     expect(sidebar).toContain('const FITNESS_GYONGYOS');
     expect(sidebar).toContain('...(fitnessAllowed?[FITNESS_GYONGYOS]:[])');
-    expect(sidebar).toContain('/vir/fitness/access');
+    expect(sidebar).toContain("api.get('/vir/fitness/access')");
     const locationMenu=sidebar.split('const LOCATION')[1]?.split('const ACCOUNTING')[0]||'';
     expect(locationMenu).not.toContain('/admin/saas');
   });
