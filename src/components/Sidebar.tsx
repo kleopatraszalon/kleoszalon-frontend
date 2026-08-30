@@ -56,6 +56,7 @@ const VIR_INTELLIGENCE_TOOLS:MenuItem={id:99411,code:'vir.intelligence',name:'VI
  {id:994116,name:'Működési autopilóta',route:'/admin/vir/p14',children:[]},
  {id:994117,name:'Vezetői autopilóta',route:'/admin/vir/p15',children:[]},
  {id:994118,name:'Vezetői intelligencia',route:'/admin/vir/p16',children:[]},
+ {id:994119,name:'Autonóm működésvezérlés',route:'/admin/vir/p17',children:[]},
 ]};
 const VIR_MENU_LABELS:Record<string,{hu:string;en:string}>={
  '/admin/vir/p1':{hu:'Üzleti intelligencia',en:'Business Intelligence'},
@@ -74,6 +75,7 @@ const VIR_MENU_LABELS:Record<string,{hu:string;en:string}>={
  '/admin/vir/p14':{hu:'Működési autopilóta',en:'Operations Autopilot'},
  '/admin/vir/p15':{hu:'Vezetői autopilóta',en:'Executive Autopilot'},
  '/admin/vir/p16':{hu:'Vezetői intelligencia',en:'Executive Intelligence'},
+ '/admin/vir/p17':{hu:'Autonóm működésvezérlés',en:'Autonomous Operations Control'},
 };
 const SAAS_ADMIN_TOOLS:MenuItem={id:99408,code:'saas.admin',name:'SaaS admin',icon:'Database',children:[{id:994081,code:'saas.platform',name:'SaaS platform és franchise',route:'/admin/saas',children:[]},{id:994082,code:'saas.migration',name:'VIR Migrációs Központ v18',route:'/admin/saas?workspace=migration-center',children:[]},{id:994083,code:'saas.revenue',name:'SaaS Revenue Engine',route:'/admin/saas',children:[]}]};
 const FRANCHISE_ADMIN_TOOLS:MenuItem={id:99410,code:'franchise.admin',name:'Franchise',icon:'Building2',children:[{id:994101,name:'Franchise központ',route:'/admin/saas?workspace=franchise',children:[]},{id:994102,name:'Franchise érdeklődők és Mailchimp',route:'/admin/franchise-leads',children:[]},{id:994103,name:'SaaS platform és franchise',route:'/admin/saas',children:[]}]};
