@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
 import ReceptionSidebar from "../components/ReceptionSidebar";
+import HrSidebar from "../components/HrSidebar";
 import AccountingSidebar from "../components/AccountingSidebar";
 import AccessBoundary from "../components/AccessBoundary";
 import AppTopbar from "../components/AppTopbar";
@@ -60,7 +61,7 @@ function IdleAiHelpChat({ pageTitle }: { pageTitle: string }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
   const { language, locale } = useLanguage();
-  const { isAccounting, isElevated, isReceptionist, isStaff } = useMemo(
+  const { isAccounting, isElevated, isReceptionist, isHr, isStaff } = useMemo(
     () => deriveRoleFlags(user?.role),
     [user?.role],
   );
@@ -76,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     language,
   );
   const fullName = localStorage.getItem("kleo_full_name")
-    || (isAccounting ? "Könyvelés" : isStaff ? "Munkatárs" : "Adminisztrátor");
+    || (isAccounting ? "Könyvelés" : isHr ? "HR" : isStaff ? "Munkatárs" : "Adminisztrátor");
   const salon = localStorage.getItem("kleo_location_name")
     || (isAccounting
       ? language === "en" ? "All locations" : "Minden telephely"
@@ -110,11 +111,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const showImport = !isStaff
     && !isAccounting
+    && !isHr
     && (location.pathname === "/services" || (isMasterServices && serviceView === "services"));
+
+  const sidebar = isAccounting
+    ? <AccountingSidebar />
+    : isReceptionist
+      ? <ReceptionSidebar />
+      : isHr
+        ? <HrSidebar />
+        : <Sidebar user={user} />;
 
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""}`}>
-      {isAccounting ? <AccountingSidebar /> : isReceptionist ? <ReceptionSidebar /> : <Sidebar user={user} />}
+      {sidebar}
       <button
         className="sidebar-backdrop"
         type="button"
