@@ -1,7 +1,6 @@
 import { Navigate, type RouteObject } from "react-router-dom";
 import {
-  ADMIN_ROLES as ADMIN,
-  MANAGEMENT_ROLES as MANAGEMENT,
+  FINANCE_ROLES as FINANCE,
   authenticated as A,
   roleProtected as R,
 } from "./routeAccess";
@@ -19,19 +18,19 @@ export const financeRoutes: RouteObject[] = [
   { path: "/finance", element: A(<Penzugy />) },
   {
     path: "/finance/nav-online-invoice",
-    element: R(ADMIN, <NavOnlineInvoicePage />),
+    element: R(FINANCE, <NavOnlineInvoicePage />),
   },
   { path: "/finance/*", element: A(<Penzugy />) },
   { path: "/reports", element: <Navigate to="/reports/top-metrics" replace /> },
-  { path: "/reports/top", element: R(MANAGEMENT, <VirTopMetricsExtendedPage />) },
-  { path: "/reports/top-metrics", element: R(MANAGEMENT, <VirTopMetricsExtendedPage />) },
-  { path: "/reports/profit", element: R(MANAGEMENT, <Penzugy />) },
-  { path: "/reports/inventory-movement", element: R(MANAGEMENT, <InventoryOperationsPage />) },
-  { path: "/reports/inventory-movements", element: R(MANAGEMENT, <InventoryOperationsPage />) },
-  { path: "/reports/expected-revenue", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
-  { path: "/reports/custom", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
-  { path: "/reports/builder", element: R(MANAGEMENT, <VirSupplementaryReportsPage />) },
-  { path: "/reports/management-tools", element: R(MANAGEMENT, <ManagementToolsPage />) },
+  { path: "/reports/top", element: R(FINANCE, <VirTopMetricsExtendedPage />) },
+  { path: "/reports/top-metrics", element: R(FINANCE, <VirTopMetricsExtendedPage />) },
+  { path: "/reports/profit", element: R(FINANCE, <Penzugy />) },
+  { path: "/reports/inventory-movement", element: R(FINANCE, <InventoryOperationsPage />) },
+  { path: "/reports/inventory-movements", element: R(FINANCE, <InventoryOperationsPage />) },
+  { path: "/reports/expected-revenue", element: R(FINANCE, <VirSupplementaryReportsPage />) },
+  { path: "/reports/custom", element: R(FINANCE, <VirSupplementaryReportsPage />) },
+  { path: "/reports/builder", element: R(FINANCE, <VirSupplementaryReportsPage />) },
+  { path: "/reports/management-tools", element: R(FINANCE, <ManagementToolsPage />) },
   {
     path: "/reports/vir",
     element: <Navigate to="/reports/top-metrics" replace />,
