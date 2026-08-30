@@ -33,13 +33,10 @@ jobs:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/kleo_workorder_e2e
       PGSSL: off
       JWT_SECRET: workorder-browser-e2e-secret
-      E2E_API_URL: http://127.0.0.1:4010
-      E2E_FRONTEND_URL: http://127.0.0.1:4173
-      FRONTEND_ORIGIN: http://127.0.0.1:4173
-      CORS_ORIGINS: http://127.0.0.1:4173
-      REACT_APP_API_ORIGIN: http://127.0.0.1:4010
-      REACT_APP_API_URL: http://127.0.0.1:4010
-      VITE_API_URL: http://127.0.0.1:4010
+      E2E_API_URL: http://localhost:5000
+      E2E_FRONTEND_URL: http://localhost:4173
+      FRONTEND_ORIGIN: http://localhost:4173
+      CORS_ORIGINS: http://localhost:4173
       NODE_ENV: test
       SMTP_HOST: ""
       SMTP_USER: ""
@@ -95,10 +92,10 @@ jobs:
 
       - name: Start real work-order API harness
         run: |
-          PORT=4010 KLEO_BACKEND_DIR="$GITHUB_WORKSPACE/backend" node e2e/workorder-e2e-server.cjs > /tmp/workorder-e2e-api.log 2>&1 &
+          PORT=5000 KLEO_BACKEND_DIR="$GITHUB_WORKSPACE/backend" node e2e/workorder-e2e-server.cjs > /tmp/workorder-e2e-api.log 2>&1 &
           echo $! > /tmp/workorder-e2e-api.pid
           for i in {1..60}; do
-            if curl -fsS http://127.0.0.1:4010/__e2e/fixture >/dev/null; then exit 0; fi
+            if curl -fsS http://localhost:5000/__e2e/fixture >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/workorder-e2e-api.log
@@ -109,7 +106,7 @@ jobs:
           npm run preview:vite -- --host 127.0.0.1 --port 4173 > /tmp/workorder-e2e-web.log 2>&1 &
           echo $! > /tmp/workorder-e2e-web.pid
           for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then exit 0; fi
+            if curl -fsS http://localhost:4173/ >/dev/null; then exit 0; fi
             sleep 1
           done
           cat /tmp/workorder-e2e-web.log
