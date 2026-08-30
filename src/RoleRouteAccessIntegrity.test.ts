@@ -34,7 +34,7 @@ describe('VIR role route access integrity',()=>{
       '/reports/management-tools',
     ]){
       const line=finance.split('\n').find(candidate=>candidate.includes(`path: "${route}"`));
-      expect(line, `${route} route missing`).toBeTruthy();
+      expect(line).toBeTruthy();
       if(line?.includes('element:')) expect(line).toContain('R(FINANCE,');
     }
     expect(finance).toContain('element: R(FINANCE, <NavOnlineInvoicePage />)');
