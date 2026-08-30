@@ -13,8 +13,20 @@ describe('Smart Waitlist integration', () => {
 
   it('uses the authenticated Smart Waitlist API and operational actions', () => {
     expect(panel).toContain('/transactions/booking-operations/smart-waitlist');
+    expect(panel).toContain('/setup-options');
+    expect(panel).toContain('/entries');
+    expect(panel).toContain('method: "PATCH"');
     expect(panel).toContain('Ajánlat küldése');
     expect(panel).toContain('Foglalásba emelés');
     expect(panel).toContain('matchable_vacancies');
+  });
+
+  it('supports receptionist entry creation, filtering and lifecycle actions', () => {
+    expect(panel).toContain('Új várólista-bejegyzés');
+    expect(panel).toContain('Minden állapot');
+    expect(panel).toContain('Visszavár');
+    expect(panel).toContain('Lezárás');
+    expect(panel).toContain('/appointments/calendar');
+    expect(panel).toContain('/appointments/new');
   });
 });
