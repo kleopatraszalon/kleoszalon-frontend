@@ -12,7 +12,7 @@ import {
   AccessControlPage, ChecklistsPage, DailyActionsPage, GdprCenterPage, KioskAdmin, KnowledgeBasePage,
   LoyaltyAutomationPage, LoyaltyModulePage, LoyaltyPage, LoyaltyProgramPage, LoyaltySalesRulesPage,
   ManagementImprovementPage, MobileAppAdminPage, ModulePlaceholderPage, ModuleRoutesPage, NewsletterPage,
-  OperationsQualityPage, SaasFranchiseAdminPage, SignageAdmin, SignageAppearanceAdmin, SystemHealthPage,
+  OperationsQualityPage, SaasFranchiseAdminPage, SecuritySettingsPage, SignageAdmin, SignageAppearanceAdmin, SystemHealthPage,
   SystemSettingsPage, UatTestCenterPage, VirActionCenterPage, VirDashboardPage, VirIntelligencePage,
   VirManagerCockpitPage, VirP1Page, VirP2Page, VirP3Page, VirP4Page, VirP5Page, VirP6Page, VirP7Page,
   VirP8Page, VirP9Page, VirP10Page, VirP11Page, VirP12Page, VirP13Page, VirP14Page, VirP15Page, VirP16Page,
@@ -26,6 +26,7 @@ const V = (page: Parameters<typeof VirHungarianPageGuide>[0]["page"], child: Rea
 );
 
 export const adminRoutes: RouteObject[] = [
+  { path: "/admin/security-settings", element: R(ADMIN, <SecuritySettingsPage />) },
   { path: "/admin/system-health", element: R(MANAGEMENT, <SystemHealthPage />) },
   { path: "/admin/uat", element: R(MANAGEMENT, <UatTestCenterPage />) },
   { path: "/admin/saas", element: R(ADMIN, <SaasFranchiseAdminPage />) },
@@ -96,6 +97,7 @@ export const adminRoutes: RouteObject[] = [
   { path: "/marketing", element: <Navigate to="/modules/marketing/campaigns" replace /> },
   { path: "/extras", element: <Navigate to="/extra/tasks" replace /> },
   { path: "/settings", element: R(MANAGEMENT, <SystemSettingsPage />) },
+  { path: "/settings/security", element: <Navigate to="/admin/security-settings" replace /> },
   { path: "/settings/menu-order", element: <Navigate to="/admin/menu-layout" replace /> },
   { path: "/settings/system-health", element: <Navigate to="/admin/system-health" replace /> },
   { path: "/settings/uat", element: <Navigate to="/admin/uat" replace /> },
