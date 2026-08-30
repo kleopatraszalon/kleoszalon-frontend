@@ -18,6 +18,7 @@ const finalizationFast = backendRequire('./dist/routes/workOrderFinalizationFast
 const finalization = backendRequire('./dist/routes/workOrderFinalization').default;
 const workordersScoped = backendRequire('./dist/routes/workordersScoped').default;
 const me = backendRequire('./dist/routes/me').default;
+const accessControl = backendRequire('./dist/routes/accessControl').default;
 
 const PORT = Number(process.env.PORT || 4010);
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || 'http://127.0.0.1:4173';
@@ -89,8 +90,6 @@ async function seedFixture() {
     VALUES($1,$2,45,10000,0,0)
   `, [f.appointment_id, f.service_id]);
 
-  // Optional material requirement: it participates in real inventory consumption,
-  // but does not block the review UI because it is not a mandatory stock gate.
   await q(`
     INSERT INTO service_material_requirements(service_id,product_id,default_quantity,unit,required,active,note)
     VALUES($1,$2,1,'db',false,true,'Browser E2E anyagnorma')
@@ -129,9 +128,10 @@ async function main() {
   app.use(express.json({ limit: '8mb' }));
   app.use(cookieParser());
 
-  // Actual production route modules. Only outer feature/menu gates are omitted here;
-  // authentication, RBAC inside the bridge and all work-order business logic remain real.
+  // Ugyanazok a production route modulok futnak, mint az éles szerveren.
+  // A globális UI access boundary is a valódi access-control capability API-t használja.
   app.use('/api/me', me);
+  app.use('/api/access-control', accessControl);
   app.use('/api/transactions/booking-workorder', bookingWorkOrderBridge);
   app.use('/api/transactions/workorder-editor', workOrderEditorFast);
   app.use('/api/transactions/workorder-editor', workOrderEditor);
