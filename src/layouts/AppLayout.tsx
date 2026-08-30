@@ -9,7 +9,7 @@ import AppTopbar from "../components/AppTopbar";
 import { translateMenuLabel, useLanguage } from "../i18n/LanguageProvider";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useSessionIdleGuard } from "../hooks/useSessionIdleGuard";
-import { deriveRoleFlags, resolveCurrentPageHu } from "./appLayoutModel";
+import { deriveRoleFlags, resolveBackFallback, resolveCurrentPageHu } from "./appLayoutModel";
 import "./AppLayout.css";
 
 // A korábbi részleges menüválaszok böngésző-cache-e nem írhatja felül a friss
@@ -98,6 +98,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     && ["/", "/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(location.pathname);
   const isSettingsArea = location.pathname === "/settings" || location.pathname === "/settings/legal-entities";
   const canViewLegalEntities = isElevated || isAccounting;
+  const showBack = location.pathname !== "/";
+
+  const goBack = () => {
+    const historyIndex = Number(window.history.state?.idx);
+    if (Number.isFinite(historyIndex) && historyIndex > 1) {
+      navigate(-1);
+      return;
+    }
+    navigate(resolveBackFallback(location.pathname), { replace: true });
+  };
 
   let pageContent = location.pathname === "/dashboard/notifications" ? <NotificationsPage /> : children;
   if (location.pathname === "/settings/legal-entities" && canViewLegalEntities) pageContent = <LegalEntitiesSettingsPage />;
@@ -140,7 +150,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           isAccounting={isAccounting}
           isStaff={isStaff}
           salon={salon}
+          showBack={showBack}
           today={today}
+          onBack={goBack}
           onLogout={logout}
           onToggleSidebar={toggleSidebar}
         />
