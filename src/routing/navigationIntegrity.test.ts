@@ -30,13 +30,13 @@ describe("role navigation integrity", () => {
 
   it("has a concrete route behind every reception menu item", () => {
     for (const item of [...RECEPTION_DAILY_MENU, ...RECEPTION_SUPPORT_MENU]) {
-      expect(hasRoute(item.to), `${item.label}: ${item.to}`).toBe(true);
+      expect(hasRoute(item.to)).toBe(true);
     }
   });
 
   it("has a concrete route behind every HR menu item", () => {
     for (const item of [...HR_CORE_MENU, ...HR_DEVELOPMENT_MENU]) {
-      expect(hasRoute(item.to), `${item.label}: ${item.to}`).toBe(true);
+      expect(hasRoute(item.to)).toBe(true);
     }
   });
 
