@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { appointmentOperationalStatus } from "../utils/appointmentOperationalStatus";
 import BookingNotificationAutomation from "./booking/BookingNotificationAutomation";
+import SmartWaitlistPanel from "./booking/SmartWaitlistPanel";
 import "./AppointmentsModulePage.css";
 import "./AppointmentsListCalendarToggle.css";
 
@@ -32,6 +33,7 @@ const viewConfig: Record<string, { title: string; subtitle: string }> = {
   "group-bookings": { title: "Csoportos foglalások és események", subtitle: "Létszám, várólista és csoportos órarend kezelése" },
   notifications: { title: "Foglalási értesítések", subtitle: "Automatikus e-mail szabályok, kommunikációs sor és küldési állapot" },
   attendance: { title: "Lemondások és meg nem jelenések", subtitle: "Kiesések követése és visszatérési szabályok" },
+  waitlist: { title: "Intelligens várólista", subtitle: "Felszabadult időpontok automatikus párosítása és betöltése" },
 };
 
 function isoDate(date: Date) { return date.toISOString().slice(0, 10); }
@@ -113,6 +115,7 @@ export default function AppointmentsModulePage() {
 
       {view === "list" && <>{toolbar}<section className="ap-kpis"><article><CalendarDays/><div><strong>{appointments.length}</strong><span>Összes időpont</span></div></article><article><Check/><div><strong>{appointments.filter(a => operational(a, statusNow).closed).length}</strong><span>Lezárt munkalap</span></div></article><article><CircleAlert/><div><strong>{cancelled.length}</strong><span>Lemondás / kiesés</span></div></article><article><Clock3/><div><strong>{formatMoney(revenue)}</strong><span>Napi foglalási érték</span></div></article></section><AppointmentTable items={filtered} loading={loading} statusNow={statusNow}/></>}
       {view === "attendance" && <>{toolbar}<section className="ap-kpis"><article><X/><div><strong>{cancelled.filter(a => operational(a, statusNow).key === "cancelled").length}</strong><span>Lemondva</span></div></article><article><CircleAlert/><div><strong>{cancelled.filter(a => operational(a, statusNow).key === "no_show").length}</strong><span>Nem jelent meg</span></div></article><article><Users/><div><strong>{appointments.length ? Math.round(cancelled.length / appointments.length * 100) : 0}%</strong><span>Kiesési arány</span></div></article><article><BellRing/><div><strong>0</strong><span>Automatikus visszahívás</span></div></article></section><AppointmentTable items={filtered.filter(a => ["cancelled", "no_show"].includes(operational(a, statusNow).key))} loading={loading} statusNow={statusNow}/></>}
+      {view === "waitlist" && <SmartWaitlistPanel />}
       {view === "online-booking" && <OnlineBooking channels={channels} setChannels={setChannels} toast={toast}/>} 
       {view === "notifications" && <BookingNotificationAutomation toast={toast}/>} 
       {view === "complex-services" && <ServiceSetup complex toast={toast}/>} 
