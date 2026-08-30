@@ -33,6 +33,7 @@ const VOICE_ORIGIN_TTL_MS=30*60*1000;
 const READ_RETRY_MAX_ATTEMPTS=3;
 const READ_RETRY_BASE_DELAY_MS=750;
 const READ_RETRY_MAX_WINDOW_MS=60_000;
+const INVENTORY_LOT_REDIRECT_NOTICE_KEY="kleo_inventory_lot_redirect_notice_v1";
 
 type VoiceOrigin={id:string;created_at:number};
 type RetryableConfig={
@@ -61,6 +62,49 @@ function clearVoiceOrigin(){try{sessionStorage.removeItem(VOICE_ORIGIN_KEY);}cat
 function urlOf(config:any){return String(config?.url||"");}
 function isInterpretUrl(url:string){return url.includes("/public/marketing/booking/voice/interpret");}
 function isFinalPublicBookingUrl(url:string){return url.includes("/public/marketing/booking/book")||url.includes("/public/marketing/booking/waitlist");}
+
+function requestDataOf(config:any){
+  const raw=config?.data;
+  if(raw&&typeof raw==="object")return raw;
+  if(typeof raw==="string"){try{return JSON.parse(raw)}catch{return{}}}
+  return{};
+}
+
+/**
+ * LOT/expiry tracked stock cannot be completed on the generic operation form.
+ * Route the user to the dedicated sarzs workflow instead of leaving them on a
+ * form that can never satisfy the backend invariants.
+ */
+export function inventoryLotRedirectTarget(error:any):string|null{
+  if(typeof window==="undefined")return null;
+  const code=String(error?.response?.data?.code||"");
+  const url=urlOf(error?.config);
+  const operationCodes=new Set(["INVENTORY_LOT_REQUIRED","INVENTORY_EXPIRY_REQUIRED","INVENTORY_LOT_OPERATION_REQUIRED"]);
+  if(url.includes("/transactions/inventory/ops/operations")&&operationCodes.has(code)){
+    const data=requestDataOf(error?.config);
+    const first=Array.isArray(data?.items)?data.items[0]:null;
+    const qs=new URLSearchParams();
+    if(data?.warehouse_id)qs.set("warehouse_id",String(data.warehouse_id));
+    if(first?.product_id)qs.set("product_id",String(first.product_id));
+    qs.set("from","operations");
+    return `/warehouse/lots?${qs.toString()}`;
+  }
+  if(code==="INVENTORY_LOT_STOCKTAKE_RECONCILIATION_REQUIRED"&&/\/transactions\/inventory\/ops\/stocktakes\/[^/]+\/approve/.test(url)){
+    const match=url.match(/\/stocktakes\/([^/]+)\/approve/);
+    const qs=new URLSearchParams();
+    if(match?.[1])qs.set("stocktake_id",match[1]);
+    qs.set("from","stocktake");
+    return `/warehouse/lots?${qs.toString()}`;
+  }
+  return null;
+}
+
+function redirectInventoryLotWorkflow(error:any){
+  const target=inventoryLotRedirectTarget(error);
+  if(!target||typeof window==="undefined"||window.location.pathname==="/warehouse/lots")return;
+  try{sessionStorage.setItem(INVENTORY_LOT_REDIRECT_NOTICE_KEY,String(error?.response?.data?.message||"A művelet sarzsszintű készletkezelést igényel."));}catch{}
+  window.location.assign(target);
+}
 
 export function isRetryableReadFailure(error:any){
   const method=String(error?.config?.method||"get").toLowerCase();
@@ -133,6 +177,8 @@ api.interceptors.response.use(
     if (error?.response?.status === 401) {
       console.warn("API 401: a böngészős munkamenet lejárt vagy hiányzik.");
     }
+
+    redirectInventoryLotWorkflow(error);
 
     if(isRetryableReadFailure(error)&&error?.config){
       const config=error.config as typeof error.config&RetryableConfig;
