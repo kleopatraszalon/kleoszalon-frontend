@@ -12,5 +12,5 @@ describe('VIR P16 Executive Intelligence 2.0',()=>{
  it('keeps P16 non autonomous',()=>{expect(page).toContain('Automatikus végrehajtás');expect(page).toContain('nem indít automatikus foglalást, kampányt, kedvezményt, pénzügyi műveletet vagy beosztásmódosítást')});
  it('places P9-P16 in a dedicated VIR Intelligence sidebar group',()=>{for(const x of ['VIR Intelligence','Marketing Automation P9','Revenue Autopilot P10','AI Reception & Journey P11','Customer Journey P12','Revenue Protection P13','Operations Autopilot P14','Executive Autopilot P15','Executive Intelligence P16'])expect(sidebar).toContain(x)});
  it('keeps receptionist guest actions and salon P14 shortcut visible',()=>{expect(sidebar).toContain("name:'Vendégakciók'");expect(sidebar).toContain("route:'/admin/reception/guest-actions'");expect(sidebar).toContain("name:'Operations Autopilot P14'")});
- it('advances route invariant to 201',()=>expect(audit).toContain('routeMatches.length!==201'));
+ it('tracks the current route invariant',()=>expect(audit).toContain('routeMatches.length!==203'));
 });
