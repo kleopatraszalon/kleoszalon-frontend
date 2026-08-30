@@ -1,0 +1,10 @@
+import api from './api';
+export const getP8LayerStatus=(params:any)=>api.get('/vir/p8/layer-status',{params}).then(r=>r.data);
+export const getP8IdentityHub=(params:any)=>api.get('/vir/p8/identity-hub',{params}).then(r=>r.data);
+export const upsertP8Identity=(body:any)=>api.post('/vir/p8/identity-hub',body).then(r=>r.data);
+export const getP8Inbox=(params:any)=>api.get('/vir/p8/inbox',{params}).then(r=>r.data);
+export const ingestP8Inbox=(body:any)=>api.post('/vir/p8/inbox/ingest',body).then(r=>r.data);
+export const createP8Handoff=(body:any)=>api.post('/vir/p8/ai-receptionist/handoff',body).then(r=>r.data);
+export const getP8EmptySlotRecovery=(params:any)=>api.get('/vir/p8/empty-slot-recovery',{params}).then(r=>r.data);
+export const getP8ChannelOptimizer=(params:any)=>api.get('/vir/p8/channel-optimizer',{params}).then(r=>r.data);
+export const getP8RevenueAttribution=(params:any)=>api.get('/vir/p8/revenue-attribution',{params}).then(r=>r.data);
