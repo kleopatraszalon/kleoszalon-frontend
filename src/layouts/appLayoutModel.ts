@@ -25,7 +25,13 @@ const PAGE_NAMES: Record<string, string> = {
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
   "/modules/settings/chat-supervision": "Munkatársi chat felügyelet",
   "/knowledge-base/checklists": "Check listák",
-  "/modules/team/timetable": "Saját beosztás",
+  "/modules/team/timetable": "Beosztás és munkaidő",
+  "/modules/team/attendance": "Jelenlét",
+  "/modules/team/payroll": "Bér és jutalék",
+  "/hr/positions": "Munkakörök",
+  "/hr/applications": "Toborzás",
+  "/spec/training": "Képzések",
+  "/hr/evaluations": "Értékelések",
   "/staff/chat": "Munkatársi chat",
   "/admin/booking-v4": "VIR Autopilot",
   "/modules/vir-autopilot": "VIR Autopilot",
@@ -37,6 +43,7 @@ const PAGE_NAMES: Record<string, string> = {
 const ACCOUNTING_ROLES = ["accounting", "bookkeeper", "konyveles", "könyvelés"];
 const ELEVATED_ROLES = ["admin", "administrator", "rendszergazda", "superadmin", "super_admin", "manager", "vezető", "vezeto"];
 const RECEPTION_ROLES = ["receptionist", "reception", "recepciós", "recepcios"];
+const HR_ROLES = ["hr", "hr_manager", "human_resources", "személyügy", "szemelyugy"];
 const STAFF_ROLES = ["employee", "staff", "munkatárs", "munkatars", "professional", "specialist"];
 
 export function parseRoleList(raw: unknown): string[] {
@@ -59,8 +66,9 @@ export function deriveRoleFlags(raw: unknown) {
   const isAccounting = roles.some((role) => ACCOUNTING_ROLES.includes(role));
   const isElevated = roles.some((role) => ELEVATED_ROLES.includes(role));
   const isReceptionist = roles.some((role) => RECEPTION_ROLES.includes(role));
-  const isStaff = isReceptionist || (!isAccounting && !isElevated && roles.some((role) => STAFF_ROLES.includes(role)));
-  return { roles, isAccounting, isElevated, isReceptionist, isStaff };
+  const isHr = roles.some((role) => HR_ROLES.includes(role));
+  const isStaff = isReceptionist || (!isAccounting && !isElevated && !isHr && roles.some((role) => STAFF_ROLES.includes(role)));
+  return { roles, isAccounting, isElevated, isReceptionist, isHr, isStaff };
 }
 
 export function resolveCurrentPageHu(pathname: string, serviceView: string): string {
