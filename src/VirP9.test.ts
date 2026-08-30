@@ -1,0 +1,19 @@
+import fs from 'fs';
+import {describe,it,expect} from 'vitest';
+const page=fs.readFileSync('src/pages/VirP9Page.tsx','utf8');
+const reception=fs.readFileSync('src/pages/ReceptionGuestActionsPage.tsx','utf8');
+const api=fs.readFileSync('src/api/virP9.ts','utf8');
+const routes=fs.readFileSync('src/routing/adminRoutes.tsx','utf8');
+const access=fs.readFileSync('src/routing/routeAccess.tsx','utf8');
+const sidebar=fs.readFileSync('src/components/ReceptionSidebar.tsx','utf8');
+const cockpit=fs.readFileSync('src/pages/VirManagerCockpitPage.tsx','utf8');
+const audit=fs.readFileSync('scripts/check-menu-routes.js','utf8');
+
+describe('P9 Marketing & Communication Automation',()=>{
+ it('contains all ten management capabilities',()=>{for(const x of ['51. Kampánykezelő','52. AI Channel Optimizer 2.0','53. Conversion Funnel','54. Campaign ROI','55. Vendégszegmensek','56. Next Best Action','57. A/B tesztelés','58. Attribution 3.0','59. Kampányjavaslatok','60. Compliance Center'])expect(page).toContain(x)});
+ it('uses paid revenue and controlled campaign execution wording',()=>{expect(page).toContain('Preview → Approval → Execute');expect(page).toContain('paid revenue');expect(page).toContain('Automatikus kiküldés: NEM');});
+ it('exposes every P9 API surface',()=>{for(const x of ['/vir/p9/campaigns','/vir/p9/channel-optimizer-v2','/vir/p9/conversion-funnel','/vir/p9/campaign-roi','/vir/p9/segments','/vir/p9/next-best-actions','/vir/p9/ab-tests','/vir/p9/attribution-v3','/vir/p9/suggestions','/vir/p9/compliance'])expect(api).toContain(x)});
+ it('registers management P9 and restricted receptionist routes',()=>{expect(routes).toContain('/admin/vir/p9');expect(routes).toContain('R(MANAGEMENT, <VirP9Page />)');expect(routes).toContain('/admin/reception/guest-actions');expect(routes).toContain('R(RECEPTION, <ReceptionGuestActionsPage />)');expect(access).toContain('RECEPTION_ROLES');expect(access).toContain('"receptionist"');});
+ it('places receptionist guest actions in daily navigation',()=>{expect(sidebar).toContain('Vendégakciók');expect(sidebar).toContain('/admin/reception/guest-actions');expect(reception).toContain('Kampányindítás és vezetői jóváhagyás innen nem érhető el.');});
+ it('links P9 from manager cockpit and keeps route invariant',()=>{expect(cockpit).toContain('/admin/vir/p9');expect(cockpit).toContain('Marketing automatizálás P9');expect(audit).toContain('routeMatches.length!==194');});
+});
