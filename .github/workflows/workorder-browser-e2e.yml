@@ -83,6 +83,11 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/src/sql/20260808_WORK_ORDER_OFFICIAL_NUMBER_ARCHIVE_V1.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
           ALTER TABLE appointment_services ADD COLUMN IF NOT EXISTS discount_percent numeric(7,3) NOT NULL DEFAULT 0;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS pdf_generated_at timestamptz;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_status text;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_recipients jsonb;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_error text;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_sent_at timestamptz;
           SQL
 
       - name: Start real work-order API harness
