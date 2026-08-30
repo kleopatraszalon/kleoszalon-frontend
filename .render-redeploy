@@ -1,6 +1,6 @@
 Render redeploy trigger
-2026-08-24T17:24:00+02:00
-Force production redeploy from current main after API stage.
-Reason: explicit deploy-all request.
-Deploy order: VIR frontend second.
+2026-08-31
+Force production redeploy from current main.
+Reason: publish VIR Kiosk product administration with photo upload, price/name editing, grouping, badges, featured state and kiosk/VIR removal controls.
+Target application commit: 35e834a125ffe4285cfdd48c8e4bf53b605a3b40
 Expected service: kleoszalon-frontend.onrender.com
