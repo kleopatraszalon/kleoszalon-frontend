@@ -7,7 +7,6 @@ import {
   authenticated as A,
   roleProtected as R,
 } from "./routeAccess";
-import { VirHungarianPageGuide } from "../components/VirHungarianPageGuide";
 import {
   AccessControlPage, ChecklistsPage, DailyActionsPage, GdprCenterPage, KioskAdmin, KnowledgeBasePage,
   LoyaltyAutomationPage, LoyaltyModulePage, LoyaltyPage, LoyaltyProgramPage, LoyaltySalesRulesPage,
@@ -20,10 +19,6 @@ import {
   VirSpecParityPage, VirStaffDetailPage, WallBoardDailyActionPage, WebshopAdmin, WebsiteAdminPage,
   WebsitePagesAdminPage, MenuLayoutPage,
 } from "./routePages";
-
-const V = (page: Parameters<typeof VirHungarianPageGuide>[0]["page"], child: React.ReactNode) => (
-  <VirHungarianPageGuide page={page}>{child}</VirHungarianPageGuide>
-);
 
 export const adminRoutes: RouteObject[] = [
   { path: "/admin/security-settings", element: R(ADMIN, <SecuritySettingsPage />) },
@@ -60,28 +55,28 @@ export const adminRoutes: RouteObject[] = [
   { path: "/admin/access-control", element: R(ADMIN, <AccessControlPage />) },
   { path: "/modules/settings/audit-log", element: R(MANAGEMENT, <ModulePlaceholderPage />) },
   { path: "/modules/settings/chat-supervision", element: R(MANAGEMENT, <ModulePlaceholderPage />) },
-  { path: "/admin/vir", element: R(MANAGEMENT, V("cockpit", <VirManagerCockpitPage />)) },
-  { path: "/admin/vir/cockpit", element: R(MANAGEMENT, V("cockpit", <VirManagerCockpitPage />)) },
+  { path: "/admin/vir", element: R(MANAGEMENT, <VirManagerCockpitPage />) },
+  { path: "/admin/vir/cockpit", element: R(MANAGEMENT, <VirManagerCockpitPage />) },
   { path: "/admin/vir/dashboard", element: R(MANAGEMENT, <VirDashboardPage />) },
-  { path: "/admin/vir/actions", element: R(MANAGEMENT, V("actions", <VirActionCenterPage />)) },
-  { path: "/admin/vir/intelligence", element: R(MANAGEMENT, V("p0", <VirIntelligencePage />)) },
-  { path: "/admin/vir/p1", element: R(MANAGEMENT, V("p1", <VirP1Page />)) },
-  { path: "/admin/vir/p2", element: R(MANAGEMENT, V("p2", <VirP2Page />)) },
-  { path: "/admin/vir/p3", element: R(MANAGEMENT, V("p3", <VirP3Page />)) },
-  { path: "/admin/vir/p3/revenue-leakage", element: R(MANAGEMENT, V("revenue-leakage", <VirRevenueLeakagePage />)) },
-  { path: "/admin/vir/p4", element: R(MANAGEMENT, V("p4", <VirP4Page />)) },
-  { path: "/admin/vir/p5", element: R(MANAGEMENT, V("p5", <VirP5Page />)) },
-  { path: "/admin/vir/p6", element: R(MANAGEMENT, V("p6", <VirP6Page />)) },
-  { path: "/admin/vir/p7", element: R(MANAGEMENT, V("p7", <VirP7Page />)) },
-  { path: "/admin/vir/p8", element: R(MANAGEMENT, V("p8", <VirP8Page />)) },
-  { path: "/admin/vir/p9", element: R(MANAGEMENT, V("p9", <VirP9Page />)) },
-  { path: "/admin/vir/p10", element: R(MANAGEMENT, V("p10", <VirP10Page />)) },
-  { path: "/admin/vir/p11", element: R(MANAGEMENT, V("p11", <VirP11Page />)) },
-  { path: "/admin/vir/p12", element: R(MANAGEMENT, V("p12", <VirP12Page />)) },
-  { path: "/admin/vir/p13", element: R(MANAGEMENT, V("p13", <VirP13Page />)) },
-  { path: "/admin/vir/p14", element: R(MANAGEMENT, V("p14", <VirP14Page />)) },
-  { path: "/admin/vir/p15", element: R(MANAGEMENT, V("p15", <VirP15Page />)) },
-  { path: "/admin/vir/p16", element: R(MANAGEMENT, V("p16", <VirP16Page />)) },
+  { path: "/admin/vir/actions", element: R(MANAGEMENT, <VirActionCenterPage />) },
+  { path: "/admin/vir/intelligence", element: R(MANAGEMENT, <VirIntelligencePage />) },
+  { path: "/admin/vir/p1", element: R(MANAGEMENT, <VirP1Page />) },
+  { path: "/admin/vir/p2", element: R(MANAGEMENT, <VirP2Page />) },
+  { path: "/admin/vir/p3", element: R(MANAGEMENT, <VirP3Page />) },
+  { path: "/admin/vir/p3/revenue-leakage", element: R(MANAGEMENT, <VirRevenueLeakagePage />) },
+  { path: "/admin/vir/p4", element: R(MANAGEMENT, <VirP4Page />) },
+  { path: "/admin/vir/p5", element: R(MANAGEMENT, <VirP5Page />) },
+  { path: "/admin/vir/p6", element: R(MANAGEMENT, <VirP6Page />) },
+  { path: "/admin/vir/p7", element: R(MANAGEMENT, <VirP7Page />) },
+  { path: "/admin/vir/p8", element: R(MANAGEMENT, <VirP8Page />) },
+  { path: "/admin/vir/p9", element: R(MANAGEMENT, <VirP9Page />) },
+  { path: "/admin/vir/p10", element: R(MANAGEMENT, <VirP10Page />) },
+  { path: "/admin/vir/p11", element: R(MANAGEMENT, <VirP11Page />) },
+  { path: "/admin/vir/p12", element: R(MANAGEMENT, <VirP12Page />) },
+  { path: "/admin/vir/p13", element: R(MANAGEMENT, <VirP13Page />) },
+  { path: "/admin/vir/p14", element: R(MANAGEMENT, <VirP14Page />) },
+  { path: "/admin/vir/p15", element: R(MANAGEMENT, <VirP15Page />) },
+  { path: "/admin/vir/p16", element: R(MANAGEMENT, <VirP16Page />) },
   { path: "/admin/reception/guest-actions", element: R(RECEPTION, <ReceptionGuestActionsPage />) },
   { path: "/admin/finance", element: R(MANAGEMENT, <VirDashboardPage />) },
   { path: "/admin/reports", element: R(MANAGEMENT, <VirReportsAdminPage />) },
