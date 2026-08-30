@@ -1,3 +1,4 @@
+import { lazy } from "react";
 import { Navigate, type RouteObject } from "react-router-dom";
 import { MANAGEMENT_ROLES as MANAGEMENT, authenticated as A, roleProtected as R } from "./routeAccess";
 import {
@@ -13,6 +14,8 @@ import {
   WorkOrderNewModalPage,
   WorkOrdersList,
 } from "./routePages";
+
+const AppointmentCreatePage = lazy(() => import("../pages/AppointmentCreatePage"));
 
 export const bookingRoutes: RouteObject[] = [
   { path: "/", element: A(<RoleDashboardPage />) },
@@ -30,6 +33,7 @@ export const bookingRoutes: RouteObject[] = [
     element: <Navigate to="/appointments/calendar" replace />,
   },
   { path: "/appointments/calendar", element: A(<AppointmentsCalendar />) },
+  { path: "/appointments/new", element: A(<AppointmentCreatePage />) },
   { path: "/appointments/list", element: <Navigate to="/modules/appointments/list" replace /> },
   {
     path: "/appointments/voice-booking-stats",
