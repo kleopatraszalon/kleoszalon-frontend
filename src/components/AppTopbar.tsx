@@ -1,5 +1,5 @@
 import React, { lazy, Suspense } from "react";
-import { Building2, ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
+import { ArrowLeft, Building2, ChevronRight, LogOut, PanelLeftClose, PanelLeftOpen, Search } from "lucide-react";
 import LanguageSwitcher from "./LanguageSwitcher";
 import { useLanguage } from "../i18n/LanguageProvider";
 
@@ -12,7 +12,9 @@ export type AppTopbarProps = {
   isAccounting: boolean;
   isStaff: boolean;
   salon: string;
+  showBack: boolean;
   today: string;
+  onBack: () => void;
   onLogout: () => void;
   onToggleSidebar: () => void;
 };
@@ -24,13 +26,16 @@ export default function AppTopbar({
   isAccounting,
   isStaff,
   salon,
+  showBack,
   today,
+  onBack,
   onLogout,
   onToggleSidebar,
 }: AppTopbarProps) {
   const { language, t } = useLanguage();
   const shellTitle = isAccounting ? "Könyvelési VIR" : isStaff ? t("shell.staff") : t("shell.vir");
   const menuLabel = language === "en" ? "Open or close menu" : "Menü nyitása vagy bezárása";
+  const backLabel = language === "en" ? "Back" : "Vissza";
   const initials = fullName
     .split(/\s+/)
     .slice(0, 2)
@@ -56,6 +61,17 @@ export default function AppTopbar({
             {collapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
           </span>
         </button>
+        {showBack && (
+          <button
+            className="topbar-collapse topbar-back"
+            type="button"
+            onClick={onBack}
+            title={backLabel}
+            aria-label={backLabel}
+          >
+            <ArrowLeft size={19} />
+          </button>
+        )}
         <div className="topbar-breadcrumb">
           <span>{shellTitle}</span>
           <ChevronRight size={13} />
