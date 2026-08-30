@@ -27,14 +27,29 @@ async function q(sql, params = []) { return pool.query(sql, params); }
 
 async function seedFixture() {
   await ensureWorkOrderWorkflow(pool);
+  await q(`
+    CREATE TABLE IF NOT EXISTS service_material_requirements(
+      id bigserial PRIMARY KEY,
+      service_id uuid NOT NULL REFERENCES services(id) ON DELETE CASCADE,
+      product_id uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      default_quantity numeric(14,3) NOT NULL DEFAULT 1,
+      unit text NOT NULL DEFAULT 'db',
+      required boolean NOT NULL DEFAULT true,
+      active boolean NOT NULL DEFAULT true,
+      note text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      UNIQUE(service_id,product_id)
+    )
+  `);
   const seeded = await q(`
     WITH l AS (
       INSERT INTO locations(name,city,address)
       VALUES('E2E Recepció Szalon','Budapest','E2E teszt utca 1')
       RETURNING id
     ), e AS (
-      INSERT INTO employees(full_name,email,login_name,location_id,active)
-      SELECT 'E2E Recepciós','e2e.reception@test.local','e2e-reception',id,true FROM l
+      INSERT INTO employees(full_name,email,location_id,active)
+      SELECT 'E2E Recepciós','e2e.reception@test.local',id,true FROM l
       RETURNING id,location_id
     ), c AS (
       INSERT INTO clients(name,full_name,email,phone,location_id)
@@ -75,7 +90,7 @@ async function seedFixture() {
   `, [f.appointment_id, f.service_id]);
 
   // Optional material requirement: it participates in real inventory consumption,
-  // but does not block the review UI because the appointment itself does not carry product lines.
+  // but does not block the review UI because it is not a mandatory stock gate.
   await q(`
     INSERT INTO service_material_requirements(service_id,product_id,default_quantity,unit,required,active,note)
     VALUES($1,$2,1,'db',false,true,'Browser E2E anyagnorma')
