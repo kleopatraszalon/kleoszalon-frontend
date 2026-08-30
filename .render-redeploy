@@ -1,6 +1,7 @@
 Render redeploy trigger
 2026-08-31
 Force production redeploy from current main.
-Reason: publish VIR Kiosk product administration with photo upload, price/name editing, grouping, badges, featured state and kiosk/VIR removal controls.
-Target application commit: 35e834a125ffe4285cfdd48c8e4bf53b605a3b40
+Reason: publish VIR Kiosk Mapping & Hair admin.
+Target application commit: 17d43d36cba20fcd6b932f4c45423e1a7e7d26bf
 Expected service: kleoszalon-frontend.onrender.com
+Deploy scope: Face / Body Mapping appearance and per-view image administration; Hair Mirror camera/photo controls; real PNG/WebP hair overlay library with position, scale, rotation, ordering and enable/disable controls.
