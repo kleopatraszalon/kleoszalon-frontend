@@ -9,7 +9,8 @@ import AppTopbar from "../components/AppTopbar";
 import { translateMenuLabel, useLanguage } from "../i18n/LanguageProvider";
 import { useCurrentUser } from "../hooks/useCurrentUser";
 import { useSessionIdleGuard } from "../hooks/useSessionIdleGuard";
-import { deriveRoleFlags, resolveBackFallback, resolveCurrentPageHu } from "./appLayoutModel";
+import { deriveRoleFlags, resolveCurrentPageHu } from "./appLayoutModel";
+import { resolveBackFallback } from "./appLayoutModel";
 import "./AppLayout.css";
 
 // A korábbi részleges menüválaszok böngésző-cache-e nem írhatja felül a friss
