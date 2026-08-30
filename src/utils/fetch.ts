@@ -1,17 +1,29 @@
 // src/utils/fetch.ts
 import { idempotencyKeyFor } from "./financialIdempotency";
+import {
+  clearLocalAuthenticatedSession,
+  getSessionBearerToken,
+  hasStoredAuthToken,
+} from "./authSession";
 
-const rawBase =
-  (process.env.REACT_APP_API_BASE as string | undefined) ||
-  (process.env.REACT_APP_API_URL as string | undefined) ||
-  "";
+function normalizeBase(value?: string): string {
+  return String(value || "").trim().replace(/\/+$/, "");
+}
 
-const defaultBase =
-  typeof window !== "undefined" && window.location && window.location.origin
-    ? window.location.origin
-    : "";
+function detectApiBase(): string {
+  const configured =
+    normalizeBase(process.env.REACT_APP_API_ORIGIN as string | undefined) ||
+    normalizeBase(process.env.REACT_APP_API_BASE as string | undefined) ||
+    normalizeBase(process.env.REACT_APP_API_URL as string | undefined);
+  if (configured) return configured;
+  if (typeof window === "undefined") return "";
+  const host = window.location.hostname;
+  if (host === "kleoszalon-frontend.onrender.com") return "https://kleoszalon-api-1.onrender.com";
+  if (host === "localhost" || host === "127.0.0.1") return "http://localhost:5000";
+  return normalizeBase(window.location.origin);
+}
 
-const API_BASE = (rawBase || defaultBase || "").replace(/\/+$/, "");
+const API_BASE = detectApiBase();
 
 export function getBaseUrl(): string {
   return API_BASE;
@@ -35,8 +47,9 @@ export function withBase(path: string): string {
   return base + p;
 }
 
-// Kept as a compatibility export for legacy callers. Browser authentication is
-// cookie-only, therefore this helper must never expose an Authorization header.
+// Kept as a compatibility export for legacy callers. Long-lived/localStorage
+// Authorization headers remain forbidden; the canonical request helper may attach
+// only the current-tab session bearer when cross-site cookies are unavailable.
 export function authHeaders(): Record<string, string> {
   return {};
 }
@@ -44,6 +57,21 @@ export function authHeaders(): Record<string, string> {
 function parsedBody(init:RequestInit){
   if(typeof init.body!=="string")return null;
   try{return JSON.parse(init.body)}catch{return null}
+}
+
+function isPublicBookingPage(){
+  if(typeof window==="undefined")return false;
+  return /^\/(booking|foglalas|idopontfoglalas)(?:\/|$)/.test(window.location.pathname);
+}
+
+function isLoginRequest(url:string){return /\/login(?:\?|$)/i.test(url)}
+
+function recoverExpiredSession(requestUrl:string,status:number){
+  if(status!==401||isLoginRequest(requestUrl)||isPublicBookingPage()||!hasStoredAuthToken())return;
+  clearLocalAuthenticatedSession();
+  if(typeof window!=="undefined"&&window.location.pathname!=="/login"){
+    window.location.replace("/login?reason=session-expired");
+  }
 }
 
 export async function apiFetch(
@@ -55,7 +83,12 @@ export async function apiFetch(
   const headers = new Headers(typeof input === "string" ? undefined : input.headers);
   new Headers(init.headers).forEach((value,key)=>headers.set(key,value));
   const requestMethod=init.method||(typeof input === "string" ? "GET" : input.method);
-  const idempotencyKey=idempotencyKeyFor(typeof url === "string" ? url : url.url,requestMethod);
+  const requestUrl=typeof url==="string"?url:String((url as Request)?.url||"");
+  if(!isLoginRequest(requestUrl)&&!headers.has("Authorization")){
+    const bearer=getSessionBearerToken();
+    if(bearer)headers.set("Authorization",`Bearer ${bearer}`);
+  }
+  const idempotencyKey=idempotencyKeyFor(requestUrl,requestMethod);
   if(idempotencyKey&&!headers.has("Idempotency-Key"))headers.set("Idempotency-Key",idempotencyKey);
 
   const res = await fetch(url as RequestInfo, {
@@ -65,6 +98,7 @@ export async function apiFetch(
   });
 
   if (!res.ok) {
+    recoverExpiredSession(requestUrl,res.status);
     let msg = `${res.status} ${res.statusText}`;
     let data:any=null;
     try {
@@ -81,7 +115,6 @@ export async function apiFetch(
     // A pénztári műszak hiánya nem teheti használhatatlanná a végleges munkalaplezárást.
     // A normál pénztári útvonal marad az elsődleges; kizárólag a 409-es műszakblokkolásnál,
     // és csak close_financially=true esetén használjuk az auditált recovery végpontot.
-    const requestUrl=typeof url==="string"?url:String((url as Request)?.url||"");
     const match=requestUrl.match(/\/transactions\/(?:loyalty-)?cashier\/workorders\/([^/?]+)\/settle/i);
     const body=parsedBody(init);
     const shiftBlocked=res.status===409&&/(pénztár|műszak|nyitópénz|átadás)/i.test(String(msg));
