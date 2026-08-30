@@ -15,7 +15,7 @@ describe('Smart Waitlist integration', () => {
     expect(panel).toContain('/transactions/booking-operations/smart-waitlist');
     expect(panel).toContain('/setup-options');
     expect(panel).toContain('/entries');
-    expect(panel).toContain('method: "PATCH"');
+    expect(panel).toContain('"PATCH", { status }');
     expect(panel).toContain('Ajánlat küldése');
     expect(panel).toContain('Foglalásba emelés');
     expect(panel).toContain('matchable_vacancies');
