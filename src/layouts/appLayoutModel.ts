@@ -82,3 +82,35 @@ export function resolveCurrentPageHu(pathname: string, serviceView: string): str
     || pathname.split("/").filter(Boolean).slice(-1)[0]?.replace(/-/g, " ")
     || "Irányítópult";
 }
+
+export function resolveBackFallback(pathname: string): string {
+  if (pathname === "/") return "/";
+  if (["/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(pathname)) return "/";
+
+  if (pathname === "/appointments" || pathname === "/appointments/calendar") return "/";
+  if (pathname.startsWith("/appointments/") || pathname.startsWith("/modules/appointments/")) return "/appointments/calendar";
+
+  if (pathname === "/workorders") return "/";
+  if (pathname.startsWith("/workorders/")) return "/workorders";
+
+  if (pathname === "/employees") return "/";
+  if (pathname.startsWith("/employees/") || pathname.startsWith("/hr/") || pathname.startsWith("/modules/team/") || pathname.startsWith("/spec/training")) return "/employees";
+
+  if (pathname === "/finance") return "/";
+  if (pathname.startsWith("/finance/")) return "/finance";
+
+  if (pathname === "/warehouse") return "/";
+  if (pathname.startsWith("/warehouse/")) return "/warehouse";
+
+  if (pathname === "/settings") return "/";
+  if (pathname.startsWith("/settings/") || pathname.startsWith("/modules/settings/")) return "/settings";
+
+  if (pathname.startsWith("/masterdata/")) return "/masters";
+  if (pathname.startsWith("/modules/customers/")) return "/";
+  if (pathname.startsWith("/knowledge-base/")) return "/";
+  if (pathname.startsWith("/services")) return "/";
+  if (pathname.startsWith("/products")) return "/warehouse";
+  if (pathname.startsWith("/admin/") || pathname.startsWith("/modules/vir-autopilot")) return "/";
+
+  return "/";
+}
