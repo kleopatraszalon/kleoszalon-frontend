@@ -19,6 +19,7 @@ export const HR_ROLES = [
   "személyügy",
   "szemelyugy",
 ] as const;
+export const RECEPTION_ROLES = ["admin", "manager", "receptionist"] as const;
 export const KIOSK_MANAGER_ROLES = [
   "admin",
   "manager",

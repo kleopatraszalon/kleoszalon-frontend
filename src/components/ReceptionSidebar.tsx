@@ -13,6 +13,7 @@ export const RECEPTION_DAILY_MENU: ReceptionMenuItem[] = [
   { label: "Naptár", to: "/appointments/calendar?mode=days", icon: CalendarDays },
   { label: "Új időpont", to: "/appointments/new", icon: CalendarDays },
   { label: "Vendégek", to: "/modules/customers/clients", icon: Users },
+  { label: "Vendégakciók", to: "/admin/reception/guest-actions", icon: Sparkles },
   { label: "Szolgáltatások", to: "/services", icon: Sparkles },
   { label: "Munkalap / elszámolás", to: "/workorders", icon: ClipboardCheck },
 ];
