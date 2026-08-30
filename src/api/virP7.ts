@@ -1,0 +1,11 @@
+import api from './api';
+export const getP7RevenueProtection=(params:any)=>api.get('/vir/p7/revenue-protection',{params}).then(r=>r.data);
+export const getP7MembershipRevenue=(params:any)=>api.get('/vir/p7/membership-revenue',{params}).then(r=>r.data);
+export const getP7Communications=(params:any)=>api.get('/vir/p7/communications',{params}).then(r=>r.data);
+export const queueP7Communication=(body:any)=>api.post('/vir/p7/communications/queue',body).then(r=>r.data);
+export const getP7OfflineSnapshot=(params:any)=>api.get('/vir/p7/offline-snapshot',{params}).then(r=>r.data);
+export const getP7OpenApi=(params:any)=>api.get('/vir/p7/open-api/capabilities',{params}).then(r=>r.data);
+export const createP7Webhook=(body:any)=>api.post('/vir/p7/open-api/webhooks',body).then(r=>r.data);
+export const previewP7Execute=(body:any)=>api.post('/vir/p7/execute/preview',body).then(r=>r.data);
+export const getP6IntegrationStatus=(params:any)=>api.get('/vir/p6/integration-status',{params}).then(r=>r.data);
+export const queueP6BookingHandoff=(body:any)=>api.post('/vir/p6/booking-handoff',body).then(r=>r.data);
