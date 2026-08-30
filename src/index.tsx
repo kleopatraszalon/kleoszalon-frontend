@@ -10,6 +10,7 @@ import BookingV4TaxonomyOptimizerPage from "./pages/BookingV4TaxonomyOptimizerPa
 import { hasStoredAuthToken } from "./utils/authSession";
 import { initializeFontScale } from "./utils/fontScale";
 import { hasStoredRole } from "./utils/roles";
+import "./config/adminMenuSecurityPatch";
 
 import "./styles/kleo-theme.css";
 import "./styles/vir-altegio.css";
