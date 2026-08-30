@@ -1,6 +1,7 @@
 import React, { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "../components/Sidebar";
+import ReceptionSidebar from "../components/ReceptionSidebar";
 import AccountingSidebar from "../components/AccountingSidebar";
 import AccessBoundary from "../components/AccessBoundary";
 import AppTopbar from "../components/AppTopbar";
@@ -59,7 +60,7 @@ function IdleAiHelpChat({ pageTitle }: { pageTitle: string }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
   const { language, locale } = useLanguage();
-  const { isAccounting, isElevated, isStaff } = useMemo(
+  const { isAccounting, isElevated, isReceptionist, isStaff } = useMemo(
     () => deriveRoleFlags(user?.role),
     [user?.role],
   );
@@ -113,7 +114,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`altegio-page-shell app-layout-shell ${collapsed ? "is-sidebar-collapsed" : ""}`}>
-      {isAccounting ? <AccountingSidebar /> : <Sidebar user={user} />}
+      {isAccounting ? <AccountingSidebar /> : isReceptionist ? <ReceptionSidebar /> : <Sidebar user={user} />}
       <button
         className="sidebar-backdrop"
         type="button"
