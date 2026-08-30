@@ -31,6 +31,7 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/kleo_workorder_e2e
+      PGSSL: off
       JWT_SECRET: workorder-browser-e2e-secret
       E2E_API_URL: http://127.0.0.1:4010
       E2E_FRONTEND_URL: http://127.0.0.1:4173
@@ -75,7 +76,14 @@ jobs:
         run: |
           npm ci
           npm run build
-          npm run migrate
+
+      - name: Create deterministic integration schema
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/tests/workorder_stage8_integration_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/src/sql/20260808_WORK_ORDER_OFFICIAL_NUMBER_ARCHIVE_V1.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER TABLE appointment_services ADD COLUMN IF NOT EXISTS discount_percent numeric(7,3) NOT NULL DEFAULT 0;
+          SQL
 
       - name: Start real work-order API harness
         run: |
