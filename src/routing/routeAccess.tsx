@@ -10,6 +10,7 @@ export const HOME_PATH = "/";
 
 export const ADMIN_ROLES = ["admin"] as const;
 export const MANAGEMENT_ROLES = ["admin", "manager"] as const;
+export const HR_ROLES = ["admin", "manager", "hr"] as const;
 export const KIOSK_MANAGER_ROLES = [
   "admin",
   "manager",
