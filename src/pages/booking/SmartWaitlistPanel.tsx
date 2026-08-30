@@ -66,13 +66,15 @@ export default function SmartWaitlistPanel() {
   const [setup, setSetup] = useState<SetupOptions>(emptySetup);
   const [loading, setLoading] = useState(false);
   const [setupLoading, setSetupLoading] = useState(false);
-  const [busy, setBusy] = useState<string | null>(null);
+  const [busy, setBusy] = useState<Record<string, boolean>>({});
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState<EntryForm>(emptyForm);
+
+  const isBusy = (key: string) => Boolean(busy[key]);
 
   const load = useCallback(async () => {
     setLoading(true); setError("");
@@ -108,7 +110,9 @@ export default function SmartWaitlistPanel() {
 
   const toast = (m: string) => { setNotice(m); window.setTimeout(() => setNotice(""), 3200); };
   const mutate = async (key: string, url: string, method: "POST" | "PATCH", body?: any) => {
-    setBusy(key); setError("");
+    if (isBusy(key)) return undefined;
+    setBusy(current => ({ ...current, [key]: true }));
+    setError("");
     try {
       const r = await fetch(url, {
         method, credentials: "include", headers: authHeaders(true),
@@ -119,51 +123,67 @@ export default function SmartWaitlistPanel() {
       await load();
       return result;
     } catch (e: any) { setError(e?.message || "A művelet sikertelen."); throw e; }
-    finally { setBusy(null); }
+    finally {
+      setBusy(current => {
+        const next = { ...current };
+        delete next[key];
+        return next;
+      });
+    }
   };
 
   const offerTop = async (v: Vacancy) => {
     const c = v.candidates?.[0];
-    if (!c) return;
+    if (!c || isBusy(`offer:${v.id}`)) return;
     if (!window.confirm(`${c.client_name} kapja meg a felszabadult időpont ajánlatát?`)) return;
     try {
       const result = await mutate(`offer:${v.id}`, `${SMART_API}/vacancies/${v.id}/offer`, "POST", { waitlist_id: c.id, expires_minutes: 15, send_notification: true });
-      toast(result.notification_status === "sent" ? "Ajánlat elküldve a vendégnek." : "Ajánlat létrejött; a kommunikáció státusza ellenőrzendő.");
+      if (result) toast(result.notification_status === "sent" ? "Ajánlat elküldve a vendégnek." : "Ajánlat létrejött; a kommunikáció státusza ellenőrzendő.");
     } catch { /* hiba fent */ }
   };
 
   const book = async (offer: Offer) => {
+    if (isBusy(`book:${offer.id}`)) return;
     if (!window.confirm("A vendég visszaigazolta az időpontot? A rendszer létrehozza a foglalást és a munkalapot.")) return;
     try {
       const result = await mutate(`book:${offer.id}`, `${SMART_API}/offers/${offer.id}/book`, "POST");
-      toast(`Foglalás létrejött${result.work_order_number ? ` – ${result.work_order_number}` : ""}.`);
+      if (result) toast(`Foglalás létrejött${result.work_order_number ? ` – ${result.work_order_number}` : ""}.`);
     } catch { /* hiba fent */ }
   };
 
   const decline = async (offer: Offer) => {
-    try { await mutate(`decline:${offer.id}`, `${SMART_API}/offers/${offer.id}/decline`, "POST"); toast("Ajánlat elutasítva; a következő jelölt felajánlható."); }
-    catch { /* hiba fent */ }
+    if (isBusy(`decline:${offer.id}`)) return;
+    try {
+      const result = await mutate(`decline:${offer.id}`, `${SMART_API}/offers/${offer.id}/decline`, "POST");
+      if (result) toast("Ajánlat elutasítva; a következő jelölt felajánlható.");
+    } catch { /* hiba fent */ }
   };
 
   const updateEntryStatus = async (entry: WaitlistEntry, status: "waiting" | "contacted" | "cancelled") => {
+    const key = `status:${entry.id}`;
+    if (isBusy(key)) return;
     const labels = { waiting: "Visszaállítva várakozó állapotba.", contacted: "A vendég megkeresett állapotba került.", cancelled: "A várólista-bejegyzés lezárva." };
     if (status === "cancelled" && !window.confirm(`${entry.client_name} várólista-bejegyzése lezárható?`)) return;
     try {
-      await mutate(`status:${entry.id}`, `${SMART_API}/entries/${entry.id}`, "PATCH", { status });
-      toast(labels[status]);
+      const result = await mutate(key, `${SMART_API}/entries/${entry.id}`, "PATCH", { status });
+      if (result) toast(labels[status]);
     } catch { /* hiba fent */ }
   };
 
   const createEntry = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBusy("create")) return;
     if (!form.location_id || !form.client_name.trim() || !form.service_id) {
       setError("Telephely, vendégnév és szolgáltatás kötelező."); return;
+    }
+    if (!form.phone.trim() && !form.email.trim()) {
+      setError("Telefonszám vagy e-mail cím megadása kötelező."); return;
     }
     if (form.preferred_from && form.preferred_to && new Date(form.preferred_to) < new Date(form.preferred_from)) {
       setError("A preferált időablak vége nem lehet korábbi a kezdeténél."); return;
     }
     try {
-      await mutate("create", `${SMART_API}/entries`, "POST", {
+      const result = await mutate("create", `${SMART_API}/entries`, "POST", {
         location_id: form.location_id,
         client_name: form.client_name.trim(),
         phone: form.phone.trim() || null,
@@ -177,7 +197,11 @@ export default function SmartWaitlistPanel() {
         accept_short_notice: form.accept_short_notice,
         auto_offer: form.auto_offer,
       });
-      setForm(emptyForm()); setShowCreate(false); toast("Új várólista-bejegyzés létrehozva.");
+      if (result) {
+        setForm(emptyForm());
+        setShowCreate(false);
+        toast("Új várólista-bejegyzés létrehozva.");
+      }
     } catch { /* hiba fent */ }
   };
 
@@ -207,12 +231,12 @@ export default function SmartWaitlistPanel() {
     </section>
 
     {showCreate && <form className="ap-card sw-create" onSubmit={createEntry}>
-      <div className="sw-create-head"><div><h2>Új várólista-bejegyzés</h2><p>A kötelező mezők: telephely, vendégnév és szolgáltatás.</p></div><button type="button" className="sw-icon-button" onClick={() => setShowCreate(false)} aria-label="Bezárás"><X size={18}/></button></div>
+      <div className="sw-create-head"><div><h2>Új várólista-bejegyzés</h2><p>Kötelező: telephely, vendégnév, szolgáltatás és legalább egy elérhetőség.</p></div><button type="button" className="sw-icon-button" onClick={() => setShowCreate(false)} aria-label="Bezárás"><X size={18}/></button></div>
       <div className="sw-form-grid">
         <label><span>Telephely *</span><select value={form.location_id} disabled={setupLoading} onChange={e => setForm({ ...form, location_id: e.target.value, preferred_employee_id: "" })}><option value="">Válasszon telephelyet</option>{setup.locations.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
         <label><span>Vendég neve *</span><input value={form.client_name} onChange={e => setForm({ ...form, client_name: e.target.value })} placeholder="Teljes név" /></label>
-        <label><span>Telefon</span><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+36…" /></label>
-        <label><span>E-mail</span><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="vendeg@email.hu" /></label>
+        <label><span>Telefon *</span><input value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+36…" aria-describedby="sw-contact-help" /></label>
+        <label><span>E-mail *</span><input type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="vendeg@email.hu" aria-describedby="sw-contact-help" /></label>
         <label><span>Szolgáltatás *</span><select value={form.service_id} disabled={setupLoading} onChange={e => setForm({ ...form, service_id: e.target.value })}><option value="">Válasszon szolgáltatást</option>{setup.services.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
         <label><span>Preferált munkatárs</span><select value={form.preferred_employee_id} disabled={setupLoading} onChange={e => setForm({ ...form, preferred_employee_id: e.target.value })}><option value="">Bármely munkatárs</option>{locationEmployees.map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
         <label><span>Preferált időablak kezdete</span><input type="datetime-local" value={form.preferred_from} onChange={e => setForm({ ...form, preferred_from: e.target.value })} /></label>
@@ -220,8 +244,9 @@ export default function SmartWaitlistPanel() {
         <label><span>Prioritás</span><select value={form.priority_level} onChange={e => setForm({ ...form, priority_level: e.target.value })}>{[0,1,2,3,4,5].map(x => <option key={x} value={x}>P{x}{x === 0 ? " – normál" : ""}</option>)}</select></label>
         <label className="sw-note"><span>Megjegyzés</span><textarea value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} placeholder="Recepciós megjegyzés, vendég kérése…" /></label>
       </div>
+      <p id="sw-contact-help">A telefon és az e-mail közül legalább az egyik megadása kötelező az ajánlat kézbesítéséhez.</p>
       <div className="sw-form-options"><label><input type="checkbox" checked={form.accept_short_notice} onChange={e => setForm({ ...form, accept_short_notice: e.target.checked })}/><span>Rövid határidős ajánlatot is elfogad</span></label><label><input type="checkbox" checked={form.auto_offer} onChange={e => setForm({ ...form, auto_offer: e.target.checked })}/><span>Automatikus ajánlat engedélyezve</span></label></div>
-      <div className="sw-form-actions"><button type="button" onClick={() => { setForm(emptyForm()); setShowCreate(false); }}>Mégse</button><button className="primary" type="submit" disabled={busy === "create" || setupLoading}><Save size={16}/> {busy === "create" ? "Mentés…" : "Várólistára teszem"}</button></div>
+      <div className="sw-form-actions"><button type="button" onClick={() => { setForm(emptyForm()); setShowCreate(false); }}>Mégse</button><button className="primary" type="submit" disabled={isBusy("create") || setupLoading}><Save size={16}/> {isBusy("create") ? "Mentés…" : "Várólistára teszem"}</button></div>
     </form>}
 
     {error && <div className="sw-alert error">{error}</div>}
@@ -238,12 +263,12 @@ export default function SmartWaitlistPanel() {
           <p className="sw-services">{v.service_names || "Szolgáltatás nincs megadva"}</p>
           {v.active_offer ? <div className="sw-active-offer">
             <div><UserRoundCheck size={18}/><span><b>{v.active_offer.client_name || "Várólistás vendég"}</b><small>{minutesLeft(v.active_offer.expires_at)} perc van hátra · {v.active_offer.notification_status || "kommunikáció folyamatban"}</small></span></div>
-            <div className="sw-actions"><button className="primary" disabled={busy === `book:${v.active_offer.id}`} onClick={() => book(v.active_offer!)}><CheckCircle2 size={16}/> Foglalásba emelés</button><button disabled={busy === `decline:${v.active_offer.id}`} onClick={() => decline(v.active_offer!)}><XCircle size={16}/> Elutasította</button></div>
+            <div className="sw-actions"><button className="primary" disabled={isBusy(`book:${v.active_offer.id}`)} onClick={() => book(v.active_offer!)}><CheckCircle2 size={16}/> Foglalásba emelés</button><button disabled={isBusy(`decline:${v.active_offer.id}`)} onClick={() => decline(v.active_offer!)}><XCircle size={16}/> Elutasította</button></div>
           </div> : v.candidates?.length ? <>
             <div className="sw-top-candidate">
               <div className="sw-score">{v.candidates[0].score}<small>/100</small></div>
               <div><b>{v.candidates[0].client_name}</b><span>{v.candidates[0].service_names || "Kért szolgáltatás"}</span><small>{v.candidates[0].phone || v.candidates[0].email || "Nincs elérhetőség"}</small></div>
-              <button className="primary" disabled={busy === `offer:${v.id}`} onClick={() => offerTop(v)}><BellRing size={16}/> Ajánlat küldése</button>
+              <button className="primary" disabled={isBusy(`offer:${v.id}`)} onClick={() => offerTop(v)}><BellRing size={16}/> Ajánlat küldése</button>
             </div>
             {v.candidates.length > 1 && <details className="sw-more"><summary>További {v.candidates.length - 1} kompatibilis jelölt</summary>{v.candidates.slice(1).map(c => <div className="sw-candidate" key={c.id}><span><b>{c.client_name}</b><small>{c.service_names}</small></span><strong>{c.score}/100</strong></div>)}</details>}
           </> : <div className="sw-empty"><Clock3 size={22}/><span>Nincs jelenleg kompatibilis várólistás vendég.</span></div>}
@@ -260,7 +285,7 @@ export default function SmartWaitlistPanel() {
         <span><b>{w.employee_name || "Bármely munkatárs"}</b><small>{w.preferred_from ? `${fmt(w.preferred_from)}${w.preferred_to ? ` – ${fmt(w.preferred_to)}` : ""}` : "Rugalmas időpont"}</small></span>
         <span><b>P{Number(w.priority_level || 0)}</b><small>{w.accept_short_notice ? "Rövid határidő: igen" : "Rövid határidő: nem"}</small></span>
         <span><em className={`sw-pill ${w.status}`}>{w.status === "contacted" ? "Megkeresve" : "Várakozik"}</em><small>{Number(w.offer_count || 0)} ajánlat · {w.auto_offer === false ? "kézi" : "automata"}</small></span>
-        <span className="sw-row-actions">{w.status === "waiting" ? <button disabled={busy === `status:${w.id}`} onClick={() => updateEntryStatus(w, "contacted")}>Megkeresve</button> : <button disabled={busy === `status:${w.id}`} onClick={() => updateEntryStatus(w, "waiting")}>Visszavár</button>}<button onClick={() => navigate("/appointments/calendar")}><CalendarDays size={14}/> Naptár</button><button onClick={() => navigate("/appointments/new")}><Plus size={14}/> Időpont</button><button className="danger" disabled={busy === `status:${w.id}`} onClick={() => updateEntryStatus(w, "cancelled")}><XCircle size={14}/> Lezárás</button></span>
+        <span className="sw-row-actions">{w.status === "waiting" ? <button disabled={isBusy(`status:${w.id}`)} onClick={() => updateEntryStatus(w, "contacted")}>Megkeresve</button> : <button disabled={isBusy(`status:${w.id}`)} onClick={() => updateEntryStatus(w, "waiting")}>Visszavár</button>}<button onClick={() => navigate("/appointments/calendar")}><CalendarDays size={14}/> Naptár</button><button onClick={() => navigate("/appointments/new")}><Plus size={14}/> Időpont</button><button className="danger" disabled={isBusy(`status:${w.id}`)} onClick={() => updateEntryStatus(w, "cancelled")}><XCircle size={14}/> Lezárás</button></span>
       </div>) : <div className="sw-empty large"><Users size={28}/><h3>Nincs találat az aktív várólistán</h3><p>{filter || statusFilter !== "all" ? "Módosítsa a keresést vagy az állapotszűrőt." : "Vegye fel az első várólistás vendéget."}</p>{!filter && statusFilter === "all" && <button className="primary" onClick={() => setShowCreate(true)}><Plus size={16}/> Új várólista-bejegyzés</button>}</div>}
     </section>
   </div>;
