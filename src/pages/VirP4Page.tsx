@@ -15,10 +15,10 @@ const allowedDays=(tab:Tab)=>tab==="21"||tab==="22"?[14,30]:tab==="23"?[14,30,60
 export default function VirP4Page(){
  const{language}=useLanguage();
  const en=language==='en';
- const t=(hu:string,enText:string)=>en?enText:hu;
+ const t=useCallback((hu:string,enText:string)=>en?enText:hu,[en]);
  const fmtDate=(v:unknown)=>v?new Intl.DateTimeFormat(en?'en-US':'hu-HU',{year:'numeric',month:'short',day:'2-digit'}).format(new Date(String(v))):"—";
- const money=(v:unknown)=>new Intl.NumberFormat(en?'en-US':'hu-HU',{style:'currency',currency:'HUF',maximumFractionDigits:0}).format(Number(v)||0);
- const number=(v:unknown)=>new Intl.NumberFormat(en?'en-US':'hu-HU',{maximumFractionDigits:1}).format(Number(v)||0);
+ const money=useCallback((v:unknown)=>new Intl.NumberFormat(en?'en-US':'hu-HU',{style:'currency',currency:'HUF',maximumFractionDigits:0}).format(Number(v)||0),[en]);
+ const number=useCallback((v:unknown)=>new Intl.NumberFormat(en?'en-US':'hu-HU',{maximumFractionDigits:1}).format(Number(v)||0),[en]);
 
  const tabs=useMemo<TabMeta[]>(()=>[
   {id:"21",label:t('Munkaerő-optimalizáló','Workforce Optimizer'),short:t('Kapacitás','Capacity'),description:t('Terhelés és publikált műszakok összevetése, létszámhiány és túlkapacitás korai jelzésével.','Compares demand with published shifts and flags staffing shortages or surplus early.')},
@@ -26,7 +26,7 @@ export default function VirP4Page(){
   {id:"23",label:t('Munkatársi bevételi coach','Employee Revenue Coach'),short:t('Bevételi coach','Revenue coach'),description:t('Nem büntető fejlesztési nézet bevétel/óra, visszafoglalás és kapacitás alapján.','Non-punitive coaching view based on revenue/hour, rebooking and capacity.')},
   {id:"24",label:t('Szolgáltatásportfólió-optimalizáló','Service Portfolio Optimizer'),short:t('Portfólió','Portfolio'),description:t('Kereslet és időarányos bevétel alapján mutat növelési, átárazási és felülvizsgálati lehetőségeket.','Highlights growth, repricing and review opportunities using demand and time-adjusted revenue.')},
   {id:"25",label:t('Kannibalizációfigyelő','Cannibalization Detector'),short:t('Hálózati átfedés','Network overlap'),description:t('Telephelyek közötti vendégáramlást és potenciális hálózati átfedést jelez.','Signals cross-location customer movement and potential network overlap.')},
- ],[en]);
+ ],[t]);
 
  const[locations,setLocations]=useState<LocationRow[]>([]);
  const[locationId,setLocationId]=useState('');
@@ -51,7 +51,7 @@ export default function VirP4Page(){
    setTechnicalError(String(detail));
    setError(t('Az adatok betöltése nem sikerült. Próbáld újra; ha a hiba megmarad, a technikai részletet továbbíthatod a fejlesztésnek.','The data could not be loaded. Try again; if the issue persists, the technical detail can be shared with development.'));
   }finally{setLoading(false);}
- },[locationId,days,tab,en]);
+ },[locationId,days,tab,t]);
  useEffect(()=>{void load();},[load]);
 
  const active=tabs.find(x=>x.id===tab)!;
@@ -98,7 +98,7 @@ export default function VirP4Page(){
    {label:t('Átfedő vendég','Shared customers'),value:number(shared),note:t('Összes jelzett kapcsolat','Across signaled relationships')},
    {label:t('Céloldali bevétel','Destination revenue'),value:money(rev),note:`${days} ${t('nap','days')}`},
   ];
- },[tab,data,rows,en,days,selectedLocation]);
+ },[tab,data,rows,days,selectedLocation,t,money,number]);
 
  const statusTone=(value:unknown)=>{const v=String(value||'').toUpperCase();if(v.includes('CRITICAL')||v==='HIGH')return'critical';if(v.includes('SHORTAGE')||v==='MEDIUM'||v==='REPRICE'||v==='REVIEW')return'warning';if(v==='BALANCED'||v==='GROW'||v==='LOW')return'good';return'neutral';};
  const statusLabel=(value:unknown)=>{const v=String(value||'');const map:Record<string,string>={CRITICAL_SHORTAGE:t('Kritikus hiány','Critical shortage'),SHORTAGE:t('Kapacitáshiány','Shortage'),SURPLUS:t('Többletkapacitás','Surplus'),BALANCED:t('Kiegyensúlyozott','Balanced'),GROW:t('Növelés','Grow'),REPRICE:t('Átárazás','Reprice'),REVIEW:t('Felülvizsgálat','Review'),HOLD:t('Tartás','Hold'),HIGH:t('Magas','High'),MEDIUM:t('Közepes','Medium'),LOW:t('Alacsony','Low')};return map[v]||v||'—';};
