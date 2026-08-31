@@ -17,6 +17,7 @@ const cashier = backendRequire('./dist/routes/cashier').default;
 const finalizationFast = backendRequire('./dist/routes/workOrderFinalizationFast').default;
 const finalization = backendRequire('./dist/routes/workOrderFinalization').default;
 const workordersScoped = backendRequire('./dist/routes/workordersScoped').default;
+const receiptCompliance = backendRequire('./dist/routes/receiptCompliance').default;
 const me = backendRequire('./dist/routes/me').default;
 const accessControl = backendRequire('./dist/routes/accessControl').default;
 
@@ -138,6 +139,7 @@ async function main() {
   app.use('/api/transactions/workorder-finalization', finalizationFast);
   app.use('/api/transactions/workorder-finalization', finalization);
   app.use('/api/workorders', workordersScoped);
+  app.use('/api/vir/receipt-compliance', receiptCompliance);
 
   app.get('/__e2e/fixture', (_req, res) => res.json(fixture));
   app.get('/__e2e/state/:workOrderId', async (req, res, next) => {
