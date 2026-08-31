@@ -104,6 +104,26 @@ jobs:
           ALTER TABLE appointment_services ADD COLUMN IF NOT EXISTS discount_percent numeric(7,4) NOT NULL DEFAULT 0;
           ALTER TABLE product_stock_balances ADD COLUMN IF NOT EXISTS min_quantity numeric(16,3) NOT NULL DEFAULT 0;
           ALTER TABLE product_stock_balances ADD COLUMN IF NOT EXISTS unit_cost numeric(16,4) NOT NULL DEFAULT 0;
+          CREATE TABLE IF NOT EXISTS inventory_movements(
+            id bigserial PRIMARY KEY,
+            product_id uuid NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+            location_id uuid,
+            work_order_id uuid,
+            movement_type varchar(32) NOT NULL,
+            quantity numeric(16,3) NOT NULL,
+            balance_after numeric(16,3),
+            unit_cost numeric(16,4) NOT NULL DEFAULT 0,
+            stock_value_after numeric(16,4) NOT NULL DEFAULT 0,
+            note text,
+            created_by text,
+            warehouse_id bigint,
+            destination_warehouse_id bigint,
+            supplier_id bigint,
+            document_number text,
+            operation_group_id uuid,
+            counterparty_name text,
+            created_at timestamptz NOT NULL DEFAULT now()
+          );
           ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS pdf_generated_at timestamptz;
           ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_status text;
           ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_recipients jsonb;
