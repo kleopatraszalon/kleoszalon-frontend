@@ -12,11 +12,8 @@ describe("VIR magyar üzleti magyarázatok", () => {
     expect(Object.keys(VIR_HUNGARIAN_GUIDES)).toEqual(expect.arrayContaining([...expectedPages]));
     for (const page of expectedPages) {
       const guide = VIR_HUNGARIAN_GUIDES[page];
-      if (prefixFreePages.has(page as "p3" | "revenue-leakage" | "p4" | "p5")) {
-        expect(guide.title).not.toMatch(/^VIR/);
-      } else {
-        expect(guide.title).toMatch(/^VIR/);
-      }
+      const shouldHaveVirPrefix = !prefixFreePages.has(page as "p3" | "revenue-leakage" | "p4" | "p5");
+      expect(guide.title.startsWith("VIR")).toBe(shouldHaveVirPrefix);
       expect(guide.purpose.length).toBeGreaterThan(80);
       expect(guide.features.length).toBeGreaterThanOrEqual(3);
     }
