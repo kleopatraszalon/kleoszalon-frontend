@@ -11,9 +11,10 @@ describe('Customer Intelligence / Next Best Action v19 contract',()=>{
   expect(crm).toContain('view==="intelligence"');
   expect(crm).toContain('CustomerIntelligencePage');
  });
- test('makes Migration Center visible under SaaS admin',()=>{
+ test('makes Migration Center visible under SaaS admin without a VIR prefix',()=>{
   expect(sidebar).toContain("name:'SaaS admin'");
-  expect(sidebar).toContain('VIR Migrációs Központ v18');
+  expect(sidebar).toContain('Migrációs Központ v18');
+  expect(sidebar).not.toContain('VIR Migrációs Központ v18');
   expect(sidebar).toContain('/admin/saas?workspace=migration-center');
  });
  test('shows explainable and consent-aware NBA controls',()=>{
