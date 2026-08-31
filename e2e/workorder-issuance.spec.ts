@@ -58,7 +58,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   await expect(page.getByRole('heading', { name: /munkalap/i }).first()).toBeVisible();
   await expect(page.getByText('Fizetésre kész')).toBeVisible({ timeout: 20_000 });
   await expect(page.getByText('E2E Vendég', { exact: true })).toBeVisible();
-  await expect(page.getByText('E2E hajkezelés')).toBeVisible();
+  await expect(page.getByText('E2E hajkezelés', { exact: true })).toBeVisible();
 
   await page.getByRole('button', { name: 'Hátralék kitöltése' }).click();
   const finalizeButton = page.getByRole('button', { name: 'Fizetés és munkalap végleges lezárása' });
