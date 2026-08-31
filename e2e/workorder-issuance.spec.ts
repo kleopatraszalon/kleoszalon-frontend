@@ -73,7 +73,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   await finalizeButton.click();
 
   await expect(page.getByText('Lezárt és archivált', { exact: true })).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText(/KLEO-ML-2026-\d{6}/)).toBeVisible();
+  await expect(page.getByRole('heading', { name: /^KLEO-ML-2026-\d{6}$/ })).toBeVisible();
 
   let stateResponse = await request.get(`${apiBase}/__e2e/state/${workOrderId}`);
   expect(stateResponse.ok()).toBeTruthy();
