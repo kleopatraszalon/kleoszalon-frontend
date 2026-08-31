@@ -96,7 +96,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const showChecklistDashboard = !isStaff
     && !isAccounting
     && ["/", "/dashboard", "/dashboard/summary", "/dashboard/quick"].includes(location.pathname);
-  const isSettingsArea = location.pathname === "/settings" || location.pathname === "/settings/legal-entities";
+  const isSettingsArea = ["/settings", "/settings/tenant", "/settings/legal-entities"].includes(location.pathname);
   const canViewLegalEntities = isElevated || isAccounting;
   const showBack = location.pathname !== "/";
 
@@ -168,6 +168,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               Rendszerbeállítások
             </button>
+            {isElevated && (
+              <button
+                type="button"
+                onClick={() => navigate("/settings/tenant")}
+                className={`settings-section-tab ${location.pathname === "/settings/tenant" ? "is-active" : ""}`}
+              >
+                Tenant beállítások
+              </button>
+            )}
             <button
               type="button"
               onClick={() => navigate("/settings/legal-entities")}
