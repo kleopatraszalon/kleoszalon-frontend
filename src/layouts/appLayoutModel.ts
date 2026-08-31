@@ -20,6 +20,7 @@ const PAGE_NAMES: Record<string, string> = {
   "/warehouse/products": "Termékek",
   "/dashboard/notifications": "Értesítési központ",
   "/settings": "Rendszerbeállítások",
+  "/settings/tenant": "Tenant beállítások",
   "/settings/legal-entities": "Cégek és könyvelési egységek",
   "/settings/roles": "Jogosultságok és hozzáférések",
   "/modules/settings/audit-log": "Audit és rendszeresemény-napló",
