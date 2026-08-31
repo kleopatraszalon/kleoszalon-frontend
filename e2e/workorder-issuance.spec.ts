@@ -3,6 +3,11 @@ import fs from 'node:fs/promises';
 
 const apiBase = process.env.E2E_API_URL || 'http://localhost:5000';
 
+// This flow intentionally mutates a single deterministic appointment through
+// finalization and archiving. Retrying against the same fixture would exercise
+// a different already-finalized state, so keep this test single-attempt.
+test.describe.configure({ retries: 0 });
+
 test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiválás → PDF', async ({ page, context, request }) => {
   const fixtureResponse = await request.get(`${apiBase}/__e2e/fixture`);
   expect(fixtureResponse.ok()).toBeTruthy();
@@ -67,7 +72,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   page.once('dialog', dialog => dialog.accept());
   await finalizeButton.click();
 
-  await expect(page.getByText('Lezárt és archivált')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByText('Lezárt és archivált', { exact: true })).toBeVisible({ timeout: 30_000 });
   await expect(page.getByText(/KLEO-ML-2026-\d{6}/)).toBeVisible();
 
   let stateResponse = await request.get(`${apiBase}/__e2e/state/${workOrderId}`);
