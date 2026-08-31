@@ -1,0 +1,154 @@
+name: Work order browser E2E
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  workorder-browser-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: kleo_workorder_e2e
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d kleo_workorder_e2e"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/kleo_workorder_e2e
+      PGSSL: off
+      JWT_SECRET: workorder-browser-e2e-secret
+      E2E_API_URL: http://localhost:5000
+      E2E_FRONTEND_URL: http://localhost:4173
+      FRONTEND_ORIGIN: http://localhost:4173
+      CORS_ORIGINS: http://localhost:4173
+      NODE_ENV: test
+      SMTP_HOST: ""
+      SMTP_USER: ""
+      SMTP_PASS: ""
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+
+      - name: Checkout current backend main
+        uses: actions/checkout@v4
+        with:
+          repository: kleopatraszalon/kleoszalon-api
+          ref: main
+          path: backend
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Install Playwright test runner
+        run: npm install --no-save --package-lock=false @playwright/test@1.55.0
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build frontend for isolated API
+        run: npm run build
+
+      - name: Install and build backend
+        working-directory: backend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create deterministic integration schema
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/tests/workorder_stage8_integration_schema.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f backend/src/sql/20260808_WORK_ORDER_OFFICIAL_NUMBER_ARCHIVE_V1.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          ALTER TABLE employees ADD COLUMN IF NOT EXISTS login_name text;
+          CREATE TABLE IF NOT EXISTS hr_positions(
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            name text NOT NULL
+          );
+          CREATE TABLE IF NOT EXISTS menus(
+            id bigserial PRIMARY KEY,
+            code text NOT NULL UNIQUE,
+            name text NOT NULL,
+            parent_id bigint,
+            route text,
+            feature_key text,
+            is_active boolean NOT NULL DEFAULT true,
+            order_index integer NOT NULL DEFAULT 0
+          );
+          ALTER TABLE appointments ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
+          ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booking_source text NOT NULL DEFAULT 'internal';
+          ALTER TABLE appointments ADD COLUMN IF NOT EXISTS notes text;
+          ALTER TABLE appointments ADD COLUMN IF NOT EXISTS title text;
+          ALTER TABLE appointment_services ADD COLUMN IF NOT EXISTS discount_percent numeric(7,4) NOT NULL DEFAULT 0;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS pdf_generated_at timestamptz;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_status text;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_recipients jsonb;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_error text;
+          ALTER TABLE work_order_archive ADD COLUMN IF NOT EXISTS email_sent_at timestamptz;
+          SQL
+
+      - name: Start real work-order API harness
+        run: |
+          PORT=5000 KLEO_BACKEND_DIR="$GITHUB_WORKSPACE/backend" node e2e/workorder-e2e-server.cjs > /tmp/workorder-e2e-api.log 2>&1 &
+          echo $! > /tmp/workorder-e2e-api.pid
+          for i in {1..60}; do
+            if curl -fsS http://localhost:5000/__e2e/fixture >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/workorder-e2e-api.log
+          exit 1
+
+      - name: Start frontend preview
+        run: |
+          npm run preview:vite -- --host 127.0.0.1 --port 4173 > /tmp/workorder-e2e-web.log 2>&1 &
+          echo $! > /tmp/workorder-e2e-web.pid
+          for i in {1..30}; do
+            if curl -fsS http://localhost:4173/ >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/workorder-e2e-web.log
+          exit 1
+
+      - name: Chromium work-order issuance E2E
+        run: npx playwright test e2e/workorder-issuance.spec.ts --config=playwright.config.ts
+
+      - name: Print service logs on failure
+        if: failure()
+        run: |
+          echo '--- API LOG ---'
+          cat /tmp/workorder-e2e-api.log || true
+          echo '--- FRONTEND LOG ---'
+          cat /tmp/workorder-e2e-web.log || true
+
+      - name: Upload Playwright evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workorder-browser-e2e-evidence
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 14
