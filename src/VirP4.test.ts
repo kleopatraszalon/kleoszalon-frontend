@@ -7,6 +7,10 @@ describe('VIR P4 workforce optimizer',()=>{
  });
  it('uses the P4 API, bilingual labels and keeps scheduling advisory',()=>{
   const api=fs.readFileSync('src/api/virP4.ts','utf8');const page=fs.readFileSync('src/pages/VirP4Page.tsx','utf8');
-  expect(api).toContain('/vir/p4/workforce-optimizer');for(const label of ['Workforce Optimizer','Smart Shift Generator','Employee Revenue Coach','Service Portfolio Optimizer','Cannibalization Detector','Munkaerő-optimalizáló'])expect(page).toContain(label);expect(page).toContain('Automatikus beosztás nélkül');expect(page).toContain('skill_coverage');
+  expect(api).toContain('/vir/p4/workforce-optimizer');
+  for(const label of ['Workforce Optimizer','Smart Shift Generator','Employee Revenue Coach','Service Portfolio Optimizer','Cannibalization Detector','Munkaerő-optimalizáló'])expect(page).toContain(label);
+  expect(page).toContain('Döntéstámogató mód');
+  expect(page).toContain('Nincs automatikus műszak-, HR-, ár- vagy katalógusmódosítás.');
+  expect(page).toContain('skill_coverage');
  });
 });
