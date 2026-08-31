@@ -76,7 +76,7 @@ export function parseRoleList(raw: unknown): string[] {
   }
   return text
     .split(",")
-    .map((value) => value.replace(/[[\]\"]/g, "").trim().toLowerCase())
+    .map((value) => value.replace(/[[\]"]/g, "").trim().toLowerCase())
     .filter(Boolean);
 }
 
