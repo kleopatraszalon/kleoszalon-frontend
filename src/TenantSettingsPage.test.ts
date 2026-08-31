@@ -21,6 +21,6 @@ describe("tenant settings control center",()=>{
   for(const label of["Általános","Telephelyek","Felhasználók","Szerepkörök","Modulok","Előfizetés","Biztonság"])expect(page).toContain(label);
  });
  it("keeps employee RBAC in the existing access control surface",()=>{
-  expect(page).toContain('/admin/access-control');
+  expect(page).toContain('/settings/roles');
  });
 });
