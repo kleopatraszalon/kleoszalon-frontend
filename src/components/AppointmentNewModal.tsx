@@ -454,11 +454,12 @@ export function AppointmentNewModal({
                       placeholder="Kezdje el beírni a vendég nevét, telefonját vagy e-mailjét..."
                       role="combobox"
                       aria-autocomplete="list"
+                      aria-controls="booking-client-options"
                       aria-expanded={clientDropdownOpen}
                     />
                   </label>
                   {clientDropdownOpen && clientQuery.trim() && (
-                    <div className="booking-client-dropdown" role="listbox">
+                    <div id="booking-client-options" className="booking-client-dropdown" role="listbox">
                       {visibleClients.length ? visibleClients.map((client) => (
                         <button
                           type="button"
