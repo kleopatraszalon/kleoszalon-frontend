@@ -1,0 +1,101 @@
+/* Production layout guard for the appointment editor.
+   Grid children use border-box sizing so their padding can never intrude into
+   the live-summary column. */
+.appointment-modal,
+.appointment-modal * {
+  box-sizing: border-box;
+}
+
+.appointment-modal {
+  width: min(1360px, calc(100vw - 40px));
+  max-width: 1360px;
+}
+
+.appointment-modal-body {
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 328px);
+  width: 100%;
+  min-width: 0;
+  isolation: isolate;
+}
+
+.appointment-modal-main,
+.appointment-modal-summary {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.appointment-modal-main {
+  overflow-x: hidden;
+}
+
+.appointment-modal-summary {
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  z-index: 1;
+}
+
+.appointment-card,
+.appointment-item-block,
+.appointment-service-picker,
+.appointment-product-picker,
+.booking-client-combobox,
+.booking-client-dropdown,
+.appointment-selected-client,
+.appointment-selected-services,
+.appointment-selected-products {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.appointment-modal input,
+.appointment-modal select,
+.appointment-modal textarea,
+.appointment-modal button {
+  max-width: 100%;
+}
+
+@media (max-width: 1180px) {
+  .appointment-modal {
+    width: min(1040px, calc(100vw - 28px));
+  }
+
+  .appointment-modal-body {
+    grid-template-columns: minmax(0, 1fr) minmax(276px, 296px);
+  }
+
+  .appointment-service-picker,
+  .appointment-product-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 900px) {
+  .appointment-modal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+  }
+
+  .appointment-modal-body {
+    grid-template-columns: minmax(0, 1fr) !important;
+    overflow-y: auto;
+  }
+
+  .appointment-modal-main,
+  .appointment-modal-summary {
+    overflow: visible;
+  }
+
+  .appointment-modal-summary {
+    position: static !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .appointment-service-picker,
+  .appointment-product-picker {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
