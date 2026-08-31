@@ -1,0 +1,111 @@
+.vir-guide-p3 > .vir-guide-hero .vir-badge-row,
+.vir-guide-p4 > .vir-guide-hero .vir-badge-row,
+.vir-guide-p5 > .vir-guide-hero .vir-badge-row {
+  display: none;
+}
+
+.vir-guide-p3 .vir-tabs,
+.vir-guide-p5 .vir-tabs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 8px;
+  padding: 8px;
+  margin: 0 0 16px;
+  border: 1px solid #e7eaf0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+}
+
+.vir-guide-p3 .vir-tabs button,
+.vir-guide-p5 .vir-tabs button {
+  min-height: 42px;
+  padding: 9px 12px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: #f5f7fa;
+  color: #334155;
+  font-weight: 700;
+  text-align: left;
+  transition: background .16s ease, color .16s ease, box-shadow .16s ease, transform .16s ease;
+}
+
+.vir-guide-p3 .vir-tabs button:hover,
+.vir-guide-p5 .vir-tabs button:hover {
+  background: #eef1f6;
+  transform: translateY(-1px);
+}
+
+.vir-guide-p3 .vir-tabs button.is-active,
+.vir-guide-p5 .vir-tabs button.is-active {
+  background: #17233f;
+  color: #fff;
+  box-shadow: 0 7px 16px rgba(23, 35, 63, .18);
+}
+
+.vir-guide-p3 .vir-management-header,
+.vir-guide-p5 .vir-management-header {
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  border: 1px solid #e7eaf0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .04);
+}
+
+.vir-guide-p3 .vir-management-actions,
+.vir-guide-p5 .vir-management-actions {
+  align-items: end;
+  gap: 10px;
+}
+
+.vir-guide-p3 .vir-field select,
+.vir-guide-p3 .vir-field input,
+.vir-guide-p5 .vir-field select,
+.vir-guide-p5 .vir-field input {
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.vir-guide-p3 .vir-kpi,
+.vir-guide-p5 .vir-kpi {
+  border-radius: 16px;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, .045);
+}
+
+.vir-guide-p4 .p4-control-copy {
+  display: block !important;
+  flex: 1 1 360px;
+  max-width: 720px;
+}
+
+.vir-guide-p4 .p4-control-copy small {
+  display: block;
+  color: #667085;
+  line-height: 1.5;
+}
+
+.vir-guide-p4 .p4-control-card {
+  gap: 16px;
+}
+
+.vir-guide-p4 .p4-tabs {
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .05);
+}
+
+@media (max-width: 760px) {
+  .vir-guide-p3 .vir-tabs,
+  .vir-guide-p5 .vir-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .vir-guide-p3 .vir-management-header,
+  .vir-guide-p5 .vir-management-header {
+    padding: 12px;
+  }
+
+  .vir-guide-p4 .p4-control-copy {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
