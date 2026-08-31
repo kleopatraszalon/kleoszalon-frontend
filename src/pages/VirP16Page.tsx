@@ -1,11 +1,11 @@
-import React,{useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useState} from 'react';
 import {decideP16,getP16DecisionInbox,getP16ExceptionBrief,getP16MorningBrief,getP16Status,syncP16DecisionInbox} from '../api/virP16';
 import {useLanguage} from '../i18n/LanguageProvider';
 import VirIntelligenceFlowNav from './VirIntelligenceFlowNav';
 import './VirWorkspace.css';
 const tone=(p:string)=>p==='CRITICAL'?'danger':p==='HIGH'?'warning':'';
 export default function VirP16Page(){const{language}=useLanguage();const en=language==='en';const[status,setStatus]=useState<any>(null),[data,setData]=useState<any>(null),[loading,setLoading]=useState(false),[error,setError]=useState('');
- const loadStatus=()=>getP16Status().then(setStatus).catch(e=>setError(e?.response?.data?.message||e?.message||(en?'Loading error':'Betöltési hiba')));useEffect(()=>{void loadStatus()},[en]);
+ const loadStatus=useCallback(async()=>{try{setStatus(await getP16Status())}catch(e:any){setError(e?.response?.data?.message||e?.message||(en?'Loading error':'Betöltési hiba'))}},[en]);useEffect(()=>{void loadStatus()},[loadStatus]);
  const run=async(kind:'brief'|'morning'|'sync'|'inbox')=>{setLoading(true);setError('');try{setData(kind==='brief'?await getP16ExceptionBrief():kind==='morning'?await getP16MorningBrief():kind==='sync'?await syncP16DecisionInbox():await getP16DecisionInbox());await loadStatus()}catch(e:any){setError(e?.response?.data?.message||e?.response?.data?.error||e?.message||(en?'Loading error':'Betöltési hiba'))}finally{setLoading(false)}};
  const decide=async(id:string,s:'accepted'|'dismissed')=>{setLoading(true);setError('');try{await decideP16(id,s);setData(await getP16DecisionInbox());await loadStatus()}catch(e:any){setError(e?.response?.data?.error||e?.message||(en?'Decision failed':'A döntés nem rögzíthető'))}finally{setLoading(false)}};const items=Array.isArray(data?.items)?data.items:[];
  return <div className="vir-workspace"><VirIntelligenceFlowNav current="signals" en={en}/><header className="vir-workspace-hero"><h1>{en?'Executive signals':'Vezetői jelzések'}</h1><p>{en?'Exception-driven inbox: focus only on business situations that need management attention.':'Kivételvezérelt döntési lista: csak azok az üzleti helyzetek kerülnek ide, amelyek vezetői figyelmet igényelnek.'}</p></header>
@@ -14,4 +14,5 @@ export default function VirP16Page(){const{language}=useLanguage();const en=lang
  {error&&<div className="vir-error-friendly">{error}</div>}{loading&&<div className="vir-help">{en?'Updating…':'Frissítés…'}</div>}
  {items.length>0&&<section className="vir-panel"><h2>{en?'Decisions requiring attention':'Figyelmet igénylő döntések'}</h2><div className="vir-result-list">{items.map((x:any)=><article key={x.id} className="vir-result-card"><span className={`vir-chip ${tone(x.priority)}`}>{x.priority}</span><h4>{x.title}</h4><p>{x.reason}</p><small>{x.area} · {x.status}</small>{x.status==='open'&&<div className="vir-toolbar"><button className="vir-btn success" disabled={loading} onClick={()=>void decide(x.id,'accepted')}>{en?'Accept':'Elfogadom'}</button><button className="vir-btn danger" disabled={loading} onClick={()=>void decide(x.id,'dismissed')}>{en?'Dismiss':'Elvetem'}</button></div>}</article>)}</div></section>}
  {data&&items.length===0&&<section className="vir-panel"><div className="vir-empty-state">{en?'No decisions require attention in this view.':'Ebben a nézetben nincs figyelmet igénylő döntés.'}</div></section>}
- <div className="vir-help"><strong>{en?'Governance:':'Irányítás:'}</strong> {en?'recording a decision never starts a booking, campaign, discount, financial operation or schedule change.':'a döntés rögzítése nem indít automatikus foglalást, kampányt, kedvezményt, pénzügyi műveletet vagy beosztásmódosítást.'}</div></div>}
+ <div className="vir-help"><strong>{en?'Governance:':'Irányítás:'}</strong> {en?'recording a decision never starts a booking, campaign, discount, financial operation or schedule change.':'a döntés rögzítése nem indít automatikus foglalást, kampányt, kedvezményt, pénzügyi műveletet vagy beosztásmódosítást.'}</div></div>;
+}
