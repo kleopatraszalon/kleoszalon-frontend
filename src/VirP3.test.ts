@@ -1,5 +1,6 @@
 import fs from 'fs';
 const page=fs.readFileSync('src/pages/VirP3Page.tsx','utf8');const api=fs.readFileSync('src/api/virP3.ts','utf8');const routes=fs.readFileSync('src/routing/adminRoutes.tsx','utf8');const cockpit=fs.readFileSync('src/pages/VirManagerCockpitPage.tsx','utf8');
-test('P3 exposes all four requested modules bilingually',()=>{for(const x of ['Client Churn Radar','Next Visit Engine','Smart Pricing','Membership Intelligence','Lemorzsolódási radar','Tagsági intelligencia'])expect(page).toContain(x)});
+test('P3 exposes all four requested modules bilingually',()=>{for(const x of ['Churn Radar','Next Visit Engine','Smart Pricing','Membership Intelligence','Lemorzsolódási radar','Tagsági intelligencia'])expect(page).toContain(x)});
+test('P3 keeps module labels in one tab navigation without duplicate panel headings',()=>{expect(page).toContain('className="vir-tabs"');expect(page).not.toContain('vir-panel-title')});
 test('P3 uses governed relative VIR APIs',()=>{expect(api).toContain('/vir/p3/churn-radar');expect(api).toContain('/vir/p3/next-visit');expect(api).toContain('/vir/p3/smart-pricing');expect(api).toContain('/vir/p3/membership-intelligence');expect(api).not.toContain('onrender.com')});
 test('P3 route is management protected and linked without visible P label',()=>{expect(routes).toContain('/admin/vir/p3');expect(routes).toContain('R(MANAGEMENT, <VirP3Page />)');expect(cockpit).toContain('/admin/vir/p3');expect(cockpit).toContain('Bevétel- és vendégmegtartási intelligencia');expect(cockpit).not.toContain('VIR Intelligence P3')});
