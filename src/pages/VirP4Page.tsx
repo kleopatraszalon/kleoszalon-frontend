@@ -56,7 +56,7 @@ export default function VirP4Page(){
 
  const active=tabs.find(x=>x.id===tab)!;
  const selectedLocation=locationId?locations.find(x=>String(x.id)===locationId)?.name:t('Minden telephely','All locations');
- const rows:any[]=tab==="22"?(data?.proposals||[]):(data?.items||[]);
+ const rows=useMemo<any[]>(()=>tab==="22"?(data?.proposals||[]):(data?.items||[]),[tab,data]);
  const kpis=useMemo<Kpi[]>(()=>{
   if(tab==="21")return[
    {label:t('Elemzett nap','Days analyzed'),value:number(data?.summary?.days_analyzed),note:selectedLocation},
