@@ -97,6 +97,30 @@ jobs:
             is_active boolean NOT NULL DEFAULT true,
             order_index integer NOT NULL DEFAULT 0
           );
+          CREATE TABLE IF NOT EXISTS cash_register_shifts (
+            id bigserial PRIMARY KEY,
+            location_id text NOT NULL,
+            location_name text,
+            business_date date NOT NULL DEFAULT CURRENT_DATE,
+            status varchar(24) NOT NULL DEFAULT 'open',
+            opening_cash numeric(14,2) NOT NULL DEFAULT 0,
+            opening_note text,
+            opened_by text NOT NULL DEFAULT 'workorder-e2e',
+            opened_at timestamptz NOT NULL DEFAULT now(),
+            current_cashier text NOT NULL DEFAULT 'workorder-e2e',
+            closed_by text,
+            closed_at timestamptz,
+            closing_id bigint,
+            report_no text,
+            close_note text,
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CHECK (status IN ('open','handover_pending','closed'))
+          );
+          CREATE INDEX IF NOT EXISTS cash_register_shifts_history_idx
+            ON cash_register_shifts (location_id,business_date DESC,opened_at DESC);
+          CREATE UNIQUE INDEX IF NOT EXISTS cash_register_shifts_one_open_uq
+            ON cash_register_shifts (location_id)
+            WHERE status IN ('open','handover_pending');
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booking_source text NOT NULL DEFAULT 'internal';
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS notes text;
