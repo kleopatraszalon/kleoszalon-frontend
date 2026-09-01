@@ -87,6 +87,14 @@ async function seedFixture() {
   const f = seeded.rows[0];
 
   await q(`
+    INSERT INTO cash_register_shifts(
+      location_id,location_name,business_date,status,opening_cash,opened_by,current_cashier
+    )
+    VALUES($1,'E2E Recepció Szalon',CURRENT_DATE,'open',0,'workorder-e2e','e2e.reception@test.local')
+    ON CONFLICT DO NOTHING
+  `, [String(f.location_id)]);
+
+  await q(`
     INSERT INTO appointment_services(appointment_id,service_id,duration_minutes,price,discount_percent,sort_order)
     VALUES($1,$2,45,10000,0,0)
   `, [f.appointment_id, f.service_id]);
