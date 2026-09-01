@@ -17,7 +17,7 @@ const isKiosk=(wo:WorkOrder)=>String(wo.source_snapshot?.source||'').toLowerCase
 export default function WorkOrdersList(){
   const roles=rolesFromStoredToken();
   const accounting=roles.includes('accounting');
-  const receptionCanCall=roles.some(role=>['admin','manager','receptionist'].includes(role));
+  const receptionCanCall=roles.some(role=>['admin','receptionist','location_manager'].includes(role));
   const[items,setItems]=useState<WorkOrder[]>([]);
   const[counts,setCounts]=useState<Counts>(EMPTY_COUNTS);
   const[scope,setScope]=useState<any>(null);
