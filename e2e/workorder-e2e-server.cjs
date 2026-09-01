@@ -68,6 +68,63 @@ async function seedFixture() {
     CREATE UNIQUE INDEX IF NOT EXISTS cash_register_shifts_one_open_uq
       ON cash_register_shifts (location_id)
       WHERE status IN ('open','handover_pending');
+
+    -- Production finance is fail-closed: a payment may only be recorded for a
+    -- work order that belongs to an active issuer company assigned to the salon.
+    -- The browser fixture therefore seeds the same canonical legal-entity master
+    -- data instead of disabling or bypassing that governance trigger.
+    CREATE TABLE IF NOT EXISTS legal_entities (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      entity_type text NOT NULL DEFAULT 'COMPANY' CHECK (entity_type IN ('COMPANY','SOLE_PROPRIETOR','OTHER')),
+      legal_name text NOT NULL,
+      short_name text,
+      legal_form text,
+      tax_number varchar(11) NOT NULL,
+      group_tax_number varchar(11),
+      eu_vat_number text,
+      company_register_number text,
+      sole_proprietor_registration_number text,
+      statistical_number text,
+      registered_country_code varchar(2) NOT NULL DEFAULT 'HU',
+      registered_postal_code text NOT NULL,
+      registered_city text NOT NULL,
+      registered_address_line text NOT NULL,
+      main_activity_code text,
+      main_activity_name text,
+      representative_name text,
+      representative_title text,
+      bank_account_number text,
+      iban text,
+      bic text,
+      official_email text,
+      phone text,
+      currency varchar(3) NOT NULL DEFAULT 'HUF',
+      default_vat_rate numeric(6,3) NOT NULL DEFAULT 27,
+      invoice_prefix text NOT NULL DEFAULT 'KLEO',
+      receipt_prefix text NOT NULL DEFAULT 'KLEO-NY',
+      accounting_ledger_code text NOT NULL,
+      active boolean NOT NULL DEFAULT true,
+      created_by text,
+      updated_by text,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CONSTRAINT legal_entities_hu_tax_number_chk CHECK (registered_country_code <> 'HU' OR tax_number ~ '^[0-9]{11}$'),
+      CONSTRAINT legal_entities_company_id_chk CHECK (entity_type <> 'COMPANY' OR NULLIF(btrim(company_register_number),'') IS NOT NULL),
+      CONSTRAINT legal_entities_sole_prop_id_chk CHECK (entity_type <> 'SOLE_PROPRIETOR' OR NULLIF(btrim(sole_proprietor_registration_number),'') IS NOT NULL)
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS legal_entities_tax_number_uq ON legal_entities(tax_number) WHERE active=true;
+    CREATE UNIQUE INDEX IF NOT EXISTS legal_entities_ledger_code_uq ON legal_entities(accounting_ledger_code);
+
+    CREATE TABLE IF NOT EXISTS legal_entity_locations (
+      legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+      location_id uuid NOT NULL REFERENCES locations(id) ON DELETE RESTRICT,
+      is_default boolean NOT NULL DEFAULT false,
+      active boolean NOT NULL DEFAULT true,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      PRIMARY KEY (legal_entity_id,location_id)
+    );
+    CREATE INDEX IF NOT EXISTS legal_entity_locations_location_idx ON legal_entity_locations(location_id,active);
+    CREATE UNIQUE INDEX IF NOT EXISTS legal_entity_locations_one_default_uq ON legal_entity_locations(location_id) WHERE active=true AND is_default=true;
   `);
   const seeded = await q(`
     WITH l AS (
@@ -111,6 +168,22 @@ async function seedFixture() {
   `);
   const f = seeded.rows[0];
 
+  const entity = (await q(`
+    INSERT INTO legal_entities(
+      entity_type,legal_name,short_name,company_register_number,tax_number,
+      registered_country_code,registered_postal_code,registered_city,registered_address_line,
+      official_email,currency,default_vat_rate,invoice_prefix,receipt_prefix,accounting_ledger_code,created_by
+    ) VALUES(
+      'COMPANY','E2E Kibocsátó Kft.','E2E Kft.','01-09-999999','12345678123',
+      'HU','1111','Budapest','E2E teszt utca 2.','e2e.issuer@test.local','HUF',27,
+      'E2E','E2E-NY','E2E-LEDGER','browser-e2e'
+    ) RETURNING id
+  `)).rows[0];
+  await q(`
+    INSERT INTO legal_entity_locations(legal_entity_id,location_id,is_default,active)
+    VALUES($1,$2,true,true)
+  `, [entity.id, f.location_id]);
+
   await q(`
     INSERT INTO cash_register_shifts(
       location_id,location_name,business_date,status,opening_cash,opening_note,opened_by,current_cashier
@@ -142,6 +215,7 @@ async function seedFixture() {
 
   return {
     ...f,
+    legal_entity_id: String(entity.id),
     location_id: String(f.location_id),
     employee_id: String(f.employee_id),
     client_id: String(f.client_id),
