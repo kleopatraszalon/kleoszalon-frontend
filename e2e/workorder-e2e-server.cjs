@@ -167,6 +167,37 @@ async function main() {
   app.use('/api/transactions/workorder-finalization', finalizationFast);
   app.use('/api/transactions/workorder-finalization', finalization);
   app.use('/api/workorders', workordersScoped);
+
+  // The production legal-entity GET runs the full Finance/NAV runtime bootstrap.
+  // This focused browser E2E intentionally uses a minimal deterministic schema,
+  // so serve the same read-model directly while all work-order mutations keep
+  // using the real backend routers above.
+  app.get('/api/vir/receipt-compliance/legal-entities/workorders/:id', async (req, res, next) => {
+    try {
+      const workOrder = (await q(`
+        SELECT id::text,work_order_number,location_id::text,employee_id::text,
+               legal_entity_id::text,financial_closed_at,payment_status
+          FROM work_orders
+         WHERE id::text=$1
+         LIMIT 1
+      `, [String(req.params.id)])).rows[0];
+      if (!workOrder) return res.status(404).json({ message: 'A munkalap nem található.' });
+      const choices = (await q(`
+        SELECT e.id::text,e.legal_name,e.short_name,e.tax_number,e.accounting_ledger_code,el.is_default
+          FROM legal_entities e
+          JOIN legal_entity_locations el ON el.legal_entity_id=e.id
+         WHERE el.location_id::text=$1 AND el.active=true AND e.active=true
+         ORDER BY el.is_default DESC,e.legal_name
+      `, [workOrder.location_id])).rows;
+      return res.json({
+        ok: true,
+        work_order: workOrder,
+        choices,
+        locked: Boolean(workOrder.financial_closed_at || String(workOrder.payment_status || '') === 'paid'),
+      });
+    } catch (error) { next(error); }
+  });
+
   app.use('/api/vir/receipt-compliance', receiptCompliance);
 
   app.get('/__e2e/fixture', (_req, res) => res.json(fixture));
