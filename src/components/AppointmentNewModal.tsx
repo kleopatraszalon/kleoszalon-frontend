@@ -126,6 +126,8 @@ export function AppointmentNewModal({
   const [note, setNote] = useState("");
   const [clientQuery, setClientQuery] = useState("");
   const [clientDropdownOpen, setClientDropdownOpen] = useState(false);
+  const [clientSearching, setClientSearching] = useState(false);
+  const [clientSearchError, setClientSearchError] = useState(false);
   const [newClientOpen, setNewClientOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: "", phone: "", email: "", birth_date: "", notes: "" });
   const [clientSaving, setClientSaving] = useState(false);
@@ -142,25 +144,32 @@ export function AppointmentNewModal({
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
 
+  const selectedClient = useMemo(() => clients.find((client) => client.id === clientId) || null, [clients, clientId]);
+
   useEffect(() => {
     let active = true;
-    Promise.all([
-      fetchArray<PickerItem>("/api/locations"),
-      fetchArray<PickerItem>("/api/employees"),
-      fetchArray<PickerItem>("/api/clients"),
-      fetchArray<PickerItem>("/api/services"),
-    ])
-      .then(([locs, emps, cls, svs]) => {
-        if (!active) return;
-        setLocations(locs);
-        setEmployees(emps);
-        setClients(cls);
-        setServices(svs);
-        setLocationId((current) => current || locs[0]?.id || "");
-        setEmployeeId((current) => current || emps[0]?.id || "");
-      })
-      .catch(() => setError("A foglaláshoz szükséges adatok betöltése sikertelen."))
-      .finally(() => active && setLoading(false));
+    void (async () => {
+      const [locResult, employeeResult, serviceResult] = await Promise.allSettled([
+        fetchArray<PickerItem>("/api/locations"),
+        fetchArray<PickerItem>("/api/employees"),
+        fetchArray<PickerItem>("/api/services"),
+      ]);
+      if (!active) return;
+
+      const locs = locResult.status === "fulfilled" ? locResult.value : [];
+      const emps = employeeResult.status === "fulfilled" ? employeeResult.value : [];
+      const svs = serviceResult.status === "fulfilled" ? serviceResult.value : [];
+      setLocations(locs);
+      setEmployees(emps);
+      setServices(svs);
+      setLocationId((current) => current || locs[0]?.id || "");
+      setEmployeeId((current) => current || emps[0]?.id || "");
+
+      if (locResult.status === "rejected" || employeeResult.status === "rejected" || serviceResult.status === "rejected") {
+        setError("A törzsadatok egy része nem tölthető be. A vendégkeresés ettől függetlenül használható.");
+      }
+      setLoading(false);
+    })();
     return () => { active = false; };
   }, []);
 
@@ -179,11 +188,53 @@ export function AppointmentNewModal({
     return () => { active = false; };
   }, [locationId]);
 
+  useEffect(() => {
+    let active = true;
+    const query = clientQuery.trim();
+    if (!query || !locationId) {
+      setClientSearching(false);
+      setClientSearchError(false);
+      if (!clientId) setClients([]);
+      return () => { active = false; };
+    }
+
+    if (selectedClient && clientId && displayName(selectedClient) === clientQuery) {
+      setClientSearching(false);
+      setClientSearchError(false);
+      return () => { active = false; };
+    }
+
+    const timer = window.setTimeout(() => {
+      setClientSearching(true);
+      setClientSearchError(false);
+      fetchArray<PickerItem>(`/api/clients/booking-search?q=${encodeURIComponent(query)}&location_id=${encodeURIComponent(locationId)}`)
+        .then((items) => {
+          if (!active) return;
+          setClients((current) => {
+            const selected = current.find((client) => client.id === clientId);
+            return selected
+              ? [selected, ...items.filter((client) => client.id !== selected.id)]
+              : items;
+          });
+        })
+        .catch(() => {
+          if (!active) return;
+          setClientSearchError(true);
+          setClients((current) => current.filter((client) => client.id === clientId));
+        })
+        .finally(() => { if (active) setClientSearching(false); });
+    }, 140);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [clientQuery, locationId, clientId, selectedClient]);
+
   const selectedServices = useMemo(
     () => selectedServiceIds.map((id) => services.find((service) => service.id === id)).filter(Boolean) as PickerItem[],
     [selectedServiceIds, services],
   );
-  const selectedClient = useMemo(() => clients.find((client) => client.id === clientId) || null, [clients, clientId]);
   const totalDuration = useMemo(
     () => selectedServices.reduce((sum, service) => sum + serviceDuration(service), 0) || initialDurationMinutes,
     [selectedServices, initialDurationMinutes],
@@ -196,13 +247,7 @@ export function AppointmentNewModal({
   const totalPrice = serviceTotal + productTotal;
   const endHM = useMemo(() => addMinutesHM(startHM, totalDuration), [startHM, totalDuration]);
 
-  const visibleClients = useMemo(() => {
-    const query = norm(clientQuery);
-    if (!query) return [];
-    return clients
-      .filter((client) => norm(`${displayName(client)} ${client.phone || ""} ${client.email || ""}`).includes(query))
-      .slice(0, 8);
-  }, [clients, clientQuery]);
+  const visibleClients = useMemo(() => clients.slice(0, 8), [clients]);
 
   const serviceCategories = useMemo(
     () => Array.from(new Set(services.map(serviceGroup))).sort((a, b) => a.localeCompare(b, "hu")),
@@ -259,9 +304,11 @@ export function AppointmentNewModal({
   }, [checkConflicts]);
 
   const chooseClient = (client: PickerItem) => {
+    setClients((current) => [client, ...current.filter((item) => item.id !== client.id)]);
     setClientId(client.id);
     setClientQuery(displayName(client));
     setClientDropdownOpen(false);
+    setClientSearchError(false);
     setError(null);
   };
 
@@ -388,13 +435,13 @@ export function AppointmentNewModal({
             <div>
               <span>Új foglalás</span>
               <h2 id="booking-modal-title">Időpont létrehozása</h2>
-              <p>Munkalap-szerű rögzítés: vendég, szolgáltatás, termék és időzítés egy helyen.</p>
+              <p>Gyors foglalás: vendég, szolgáltatás, termék és időzítés egyetlen áttekinthető nézetben.</p>
             </div>
           </div>
           <button onClick={onClose} aria-label="Bezárás"><X size={20} /></button>
         </header>
 
-        {loading ? <div className="booking-modal-loading">Foglalási adatok betöltése…</div> : (
+        {loading ? <div className="booking-modal-loading">Törzsadatok betöltése…</div> : (
           <div className="booking-modal-body">
             <div className="booking-modal-form">
               {error && <div className="booking-error">{error}</div>}
@@ -403,7 +450,14 @@ export function AppointmentNewModal({
                 <div className="booking-section-title"><MapPin size={17} /><div><h3>Hely és munkatárs</h3><p>Hol és kinél történjen a szolgáltatás?</p></div></div>
                 <div className="booking-two-columns">
                   <label>Telephely
-                    <select value={locationId} onChange={(event) => { setLocationId(event.target.value); setProductLines([]); setProductToAdd(""); }}>
+                    <select value={locationId} onChange={(event) => {
+                      setLocationId(event.target.value);
+                      setProductLines([]);
+                      setProductToAdd("");
+                      setClientId("");
+                      setClientQuery("");
+                      setClients([]);
+                    }}>
                       <option value="">Válasszon telephelyet</option>
                       {locations.map((item) => <option key={item.id} value={item.id}>{displayName(item)}</option>)}
                     </select>
@@ -420,7 +474,7 @@ export function AppointmentNewModal({
               <div className="booking-section booking-client-section">
                 <div className="booking-section-title booking-client-title">
                   <UserRound size={17} />
-                  <div><h3>Vendég</h3><p>Az első karaktertől szűr névre, telefonszámra és e-mailre.</p></div>
+                  <div><h3>Vendég</h3><p>Az első karaktertől szerveroldalon keres névre, telefonra és e-mailre.</p></div>
                   <button type="button" className="booking-new-client-trigger" onClick={() => setNewClientOpen((open) => !open)}>
                     <UserPlus size={15} />{newClientOpen ? "Űrlap bezárása" : "Új vendég"}
                   </button>
@@ -460,7 +514,11 @@ export function AppointmentNewModal({
                   </label>
                   {clientDropdownOpen && clientQuery.trim() && (
                     <div id="booking-client-options" className="booking-client-dropdown" role="listbox">
-                      {visibleClients.length ? visibleClients.map((client) => (
+                      {clientSearching ? (
+                        <div className="booking-client-empty">Vendégek keresése…</div>
+                      ) : clientSearchError ? (
+                        <div className="booking-client-empty booking-client-error">A vendégkeresés átmenetileg nem elérhető. Próbálja újra.</div>
+                      ) : visibleClients.length ? visibleClients.map((client) => (
                         <button
                           type="button"
                           key={client.id}
@@ -483,14 +541,14 @@ export function AppointmentNewModal({
                   <div className="booking-selected-client">
                     <span className="booking-avatar">{displayName(selectedClient).charAt(0)}</span>
                     <div><small>Kiválasztott vendég</small><b>{displayName(selectedClient)}</b><span>{[selectedClient.phone, selectedClient.email].filter(Boolean).join(" · ")}</span></div>
-                    <button type="button" onClick={() => { setClientId(""); setClientQuery(""); setClientDropdownOpen(false); }} aria-label="Vendég kiválasztás törlése"><X size={16} /></button>
+                    <button type="button" onClick={() => { setClientId(""); setClientQuery(""); setClientDropdownOpen(false); setClients([]); }} aria-label="Vendég kiválasztás törlése"><X size={16} /></button>
                   </div>
                 )}
                 <ClientBookingInsights client={selectedClient} />
               </div>
 
               <div className="booking-section booking-items-section">
-                <div className="booking-section-title"><ShoppingBag size={17} /><div><h3>Szolgáltatás és termék</h3><p>A munkalaphoz hasonlóan egy foglaláshoz több szolgáltatás és termék is felvihető.</p></div></div>
+                <div className="booking-section-title"><ShoppingBag size={17} /><div><h3>Szolgáltatás és termék</h3><p>Egy foglaláshoz több szolgáltatás és értékesített termék is rögzíthető.</p></div></div>
 
                 <div className="booking-item-block">
                   <div className="booking-item-block-title"><span><Plus size={16} /> Szolgáltatások</span><b>{selectedServices.length} tétel</b></div>
