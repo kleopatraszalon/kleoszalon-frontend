@@ -86,6 +86,24 @@ async function seedFixture() {
   `);
   const f = seeded.rows[0];
 
+  const legalEntity = (await q(`
+    INSERT INTO legal_entities(
+      entity_type,legal_name,short_name,legal_form,tax_number,company_register_number,
+      registered_country_code,registered_postal_code,registered_city,registered_address_line,
+      currency,default_vat_rate,invoice_prefix,receipt_prefix,accounting_ledger_code,active,created_by
+    ) VALUES(
+      'COMPANY','E2E Kibocsátó Kft.','E2E Kibocsátó','Kft.','12345678901','01-09-999999',
+      'HU','1111','Budapest','E2E teszt utca 1.','HUF',27,'E2E','E2E-NY','E2E-LEDGER',true,'workorder-e2e'
+    )
+    RETURNING id
+  `)).rows[0];
+  await q(`
+    INSERT INTO legal_entity_locations(legal_entity_id,location_id,is_default,active)
+    VALUES($1,$2,true,true)
+    ON CONFLICT(legal_entity_id,location_id)
+    DO UPDATE SET is_default=true,active=true
+  `, [legalEntity.id, f.location_id]);
+
   await q(`
     INSERT INTO cash_register_shifts(
       location_id,location_name,business_date,status,opening_cash,opened_by,current_cashier
@@ -118,6 +136,7 @@ async function seedFixture() {
 
   return {
     ...f,
+    legal_entity_id: String(legalEntity.id),
     location_id: String(f.location_id),
     employee_id: String(f.employee_id),
     client_id: String(f.client_id),
