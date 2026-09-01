@@ -66,6 +66,28 @@ function addMinutes(hm: string, minutes: number): string {
   return toHM(base);
 }
 
+function nextDateInputValue(date: string): string {
+  const [year, month, day] = date.split("-").map((x) => parseInt(x, 10));
+  const d = new Date(year, month - 1, day, 12, 0, 0, 0);
+  d.setDate(d.getDate() + 1);
+  return toDateInputValue(d);
+}
+
+function hmToMinutes(hm: string): number {
+  const [hh, mm] = hm.split(":").map((x) => parseInt(x, 10) || 0);
+  return hh * 60 + mm;
+}
+
+export function buildAppointmentTimeRange(date: string, startHM: string, endHM: string) {
+  const endDate = hmToMinutes(endHM) <= hmToMinutes(startHM)
+    ? nextDateInputValue(date)
+    : date;
+  return {
+    start_time: `${date} ${startHM}`,
+    end_time: `${endDate} ${endHM}`,
+  };
+}
+
 const AdminEventModal: React.FC<Props> = ({
   isOpen,
   onClose,
@@ -158,8 +180,7 @@ const AdminEventModal: React.FC<Props> = ({
   };
 
   const handleSave = () => {
-    const start_time = `${date} ${startHM}`;
-    const end_time = `${date} ${endHM}`;
+    const { start_time, end_time } = buildAppointmentTimeRange(date, startHM, endHM);
     onSaved({
       id: event?.id,
       title: title || "Időpont",
