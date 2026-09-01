@@ -17,6 +17,7 @@ const cashier = backendRequire('./dist/routes/cashier').default;
 const finalizationFast = backendRequire('./dist/routes/workOrderFinalizationFast').default;
 const finalization = backendRequire('./dist/routes/workOrderFinalization').default;
 const workordersScoped = backendRequire('./dist/routes/workordersScoped').default;
+const receiptCompliance = backendRequire('./dist/routes/receiptCompliance').default;
 const me = backendRequire('./dist/routes/me').default;
 const accessControl = backendRequire('./dist/routes/accessControl').default;
 
@@ -28,6 +29,7 @@ async function q(sql, params = []) { return pool.query(sql, params); }
 
 async function seedFixture() {
   await ensureWorkOrderWorkflow(pool);
+  await q(`ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS legal_entity_id uuid REFERENCES legal_entities(id)`);
   await q(`
     CREATE TABLE IF NOT EXISTS service_material_requirements(
       id bigserial PRIMARY KEY,
@@ -85,6 +87,32 @@ async function seedFixture() {
   `);
   const f = seeded.rows[0];
 
+  const legalEntity = (await q(`
+    INSERT INTO legal_entities(
+      entity_type,legal_name,short_name,legal_form,tax_number,company_register_number,
+      registered_country_code,registered_postal_code,registered_city,registered_address_line,
+      currency,default_vat_rate,invoice_prefix,receipt_prefix,accounting_ledger_code,active,created_by
+    ) VALUES(
+      'COMPANY','E2E Kibocsátó Kft.','E2E Kibocsátó','Kft.','12345678901','01-09-999999',
+      'HU','1111','Budapest','E2E teszt utca 1.','HUF',27,'E2E','E2E-NY','E2E-LEDGER',true,'workorder-e2e'
+    )
+    RETURNING id
+  `)).rows[0];
+  await q(`
+    INSERT INTO legal_entity_locations(legal_entity_id,location_id,is_default,active)
+    VALUES($1,$2,true,true)
+    ON CONFLICT(legal_entity_id,location_id)
+    DO UPDATE SET is_default=true,active=true
+  `, [legalEntity.id, f.location_id]);
+
+  await q(`
+    INSERT INTO cash_register_shifts(
+      location_id,location_name,business_date,status,opening_cash,opened_by,current_cashier
+    )
+    VALUES($1,'E2E Recepció Szalon',CURRENT_DATE,'open',0,'workorder-e2e','e2e.reception@test.local')
+    ON CONFLICT DO NOTHING
+  `, [String(f.location_id)]);
+
   await q(`
     INSERT INTO appointment_services(appointment_id,service_id,duration_minutes,price,discount_percent,sort_order)
     VALUES($1,$2,45,10000,0,0)
@@ -109,6 +137,7 @@ async function seedFixture() {
 
   return {
     ...f,
+    legal_entity_id: String(legalEntity.id),
     location_id: String(f.location_id),
     employee_id: String(f.employee_id),
     client_id: String(f.client_id),
@@ -138,6 +167,38 @@ async function main() {
   app.use('/api/transactions/workorder-finalization', finalizationFast);
   app.use('/api/transactions/workorder-finalization', finalization);
   app.use('/api/workorders', workordersScoped);
+
+  // The production legal-entity GET runs the full Finance/NAV runtime bootstrap.
+  // This focused browser E2E intentionally uses a minimal deterministic schema,
+  // so serve the same read-model directly while all work-order mutations keep
+  // using the real backend routers above.
+  app.get('/api/vir/receipt-compliance/legal-entities/workorders/:id', async (req, res, next) => {
+    try {
+      const workOrder = (await q(`
+        SELECT id::text,work_order_number,location_id::text,employee_id::text,
+               legal_entity_id::text,financial_closed_at,payment_status
+          FROM work_orders
+         WHERE id::text=$1
+         LIMIT 1
+      `, [String(req.params.id)])).rows[0];
+      if (!workOrder) return res.status(404).json({ message: 'A munkalap nem található.' });
+      const choices = (await q(`
+        SELECT e.id::text,e.legal_name,e.short_name,e.tax_number,e.accounting_ledger_code,el.is_default
+          FROM legal_entities e
+          JOIN legal_entity_locations el ON el.legal_entity_id=e.id
+         WHERE el.location_id::text=$1 AND el.active=true AND e.active=true
+         ORDER BY el.is_default DESC,e.legal_name
+      `, [workOrder.location_id])).rows;
+      return res.json({
+        ok: true,
+        work_order: workOrder,
+        choices,
+        locked: Boolean(workOrder.financial_closed_at || String(workOrder.payment_status || '') === 'paid'),
+      });
+    } catch (error) { next(error); }
+  });
+
+  app.use('/api/vir/receipt-compliance', receiptCompliance);
 
   app.get('/__e2e/fixture', (_req, res) => res.json(fixture));
   app.get('/__e2e/state/:workOrderId', async (req, res, next) => {

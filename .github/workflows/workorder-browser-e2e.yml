@@ -97,6 +97,81 @@ jobs:
             is_active boolean NOT NULL DEFAULT true,
             order_index integer NOT NULL DEFAULT 0
           );
+          CREATE TABLE IF NOT EXISTS legal_entities (
+            id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+            entity_type text NOT NULL DEFAULT 'COMPANY' CHECK (entity_type IN ('COMPANY','SOLE_PROPRIETOR','OTHER')),
+            legal_name text NOT NULL,
+            short_name text,
+            legal_form text,
+            tax_number varchar(11) NOT NULL,
+            group_tax_number varchar(11),
+            eu_vat_number text,
+            company_register_number text,
+            sole_proprietor_registration_number text,
+            statistical_number text,
+            registered_country_code varchar(2) NOT NULL DEFAULT 'HU',
+            registered_postal_code text NOT NULL,
+            registered_city text NOT NULL,
+            registered_address_line text NOT NULL,
+            main_activity_code text,
+            main_activity_name text,
+            representative_name text,
+            representative_title text,
+            bank_account_number text,
+            iban text,
+            bic text,
+            official_email text,
+            phone text,
+            currency varchar(3) NOT NULL DEFAULT 'HUF',
+            default_vat_rate numeric(6,3) NOT NULL DEFAULT 27,
+            invoice_prefix text NOT NULL DEFAULT 'KLEO',
+            receipt_prefix text NOT NULL DEFAULT 'KLEO-NY',
+            accounting_ledger_code text NOT NULL,
+            active boolean NOT NULL DEFAULT true,
+            created_by text,
+            updated_by text,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CONSTRAINT legal_entities_hu_tax_number_chk CHECK (registered_country_code <> 'HU' OR tax_number ~ '^[0-9]{11}$'),
+            CONSTRAINT legal_entities_company_id_chk CHECK (entity_type <> 'COMPANY' OR NULLIF(btrim(company_register_number),'') IS NOT NULL),
+            CONSTRAINT legal_entities_sole_prop_id_chk CHECK (entity_type <> 'SOLE_PROPRIETOR' OR NULLIF(btrim(sole_proprietor_registration_number),'') IS NOT NULL)
+          );
+          CREATE UNIQUE INDEX IF NOT EXISTS legal_entities_tax_number_uq ON legal_entities(tax_number) WHERE active=true;
+          CREATE UNIQUE INDEX IF NOT EXISTS legal_entities_ledger_code_uq ON legal_entities(accounting_ledger_code);
+          CREATE TABLE IF NOT EXISTS legal_entity_locations (
+            legal_entity_id uuid NOT NULL REFERENCES legal_entities(id) ON DELETE RESTRICT,
+            location_id uuid NOT NULL REFERENCES locations(id) ON DELETE RESTRICT,
+            is_default boolean NOT NULL DEFAULT false,
+            active boolean NOT NULL DEFAULT true,
+            created_at timestamptz NOT NULL DEFAULT now(),
+            PRIMARY KEY (legal_entity_id,location_id)
+          );
+          CREATE INDEX IF NOT EXISTS legal_entity_locations_location_idx ON legal_entity_locations(location_id,active);
+          CREATE UNIQUE INDEX IF NOT EXISTS legal_entity_locations_one_default_uq ON legal_entity_locations(location_id) WHERE active=true AND is_default=true;
+          CREATE TABLE IF NOT EXISTS cash_register_shifts (
+            id bigserial PRIMARY KEY,
+            location_id text NOT NULL,
+            location_name text,
+            business_date date NOT NULL DEFAULT CURRENT_DATE,
+            status varchar(24) NOT NULL DEFAULT 'open',
+            opening_cash numeric(14,2) NOT NULL DEFAULT 0,
+            opening_note text,
+            opened_by text NOT NULL DEFAULT 'workorder-e2e',
+            opened_at timestamptz NOT NULL DEFAULT now(),
+            current_cashier text NOT NULL DEFAULT 'workorder-e2e',
+            closed_by text,
+            closed_at timestamptz,
+            closing_id bigint,
+            report_no text,
+            close_note text,
+            updated_at timestamptz NOT NULL DEFAULT now(),
+            CHECK (status IN ('open','handover_pending','closed'))
+          );
+          CREATE INDEX IF NOT EXISTS cash_register_shifts_history_idx
+            ON cash_register_shifts (location_id,business_date DESC,opened_at DESC);
+          CREATE UNIQUE INDEX IF NOT EXISTS cash_register_shifts_one_open_uq
+            ON cash_register_shifts (location_id)
+            WHERE status IN ('open','handover_pending');
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS booking_source text NOT NULL DEFAULT 'internal';
           ALTER TABLE appointments ADD COLUMN IF NOT EXISTS notes text;
