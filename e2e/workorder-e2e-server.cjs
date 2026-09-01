@@ -29,6 +29,7 @@ async function q(sql, params = []) { return pool.query(sql, params); }
 
 async function seedFixture() {
   await ensureWorkOrderWorkflow(pool);
+  await q(`ALTER TABLE work_orders ADD COLUMN IF NOT EXISTS legal_entity_id uuid REFERENCES legal_entities(id)`);
   await q(`
     CREATE TABLE IF NOT EXISTS service_material_requirements(
       id bigserial PRIMARY KEY,
