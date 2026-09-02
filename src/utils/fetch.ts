@@ -153,6 +153,23 @@ export function toArray<T>(value: unknown): T[] {
   return [];
 }
 
+export function preferActiveLocation<T>(input: string | Request, items: T[]): T[] {
+  const requestUrl = typeof input === "string" ? input : String(input.url || "");
+  if (!/\/api\/locations(?:\?|$)/i.test(requestUrl) || typeof window === "undefined") return items;
+
+  let activeLocationId = "";
+  try {
+    activeLocationId = String(window.localStorage.getItem("kleo_location_id") || "").trim();
+  } catch {
+    return items;
+  }
+  if (!activeLocationId) return items;
+
+  const index = items.findIndex((item: any) => String(item?.id || "") === activeLocationId);
+  if (index <= 0) return items;
+  return [items[index], ...items.slice(0, index), ...items.slice(index + 1)];
+}
+
 export async function fetchJSON<T>(
   input: string | Request,
   init?: RequestInit,
@@ -182,7 +199,7 @@ export async function fetchArray<T>(
     const res = await apiFetch(input, init || {});
     const text = await res.text();
     const raw = safeJson<unknown>(text, []);
-    return toArray<T>(raw);
+    return preferActiveLocation(input, toArray<T>(raw));
   } catch (err: any) {
     const msg = String(err?.message || "");
     if (msg.includes("404") || msg.toLowerCase().includes("not found")) {
