@@ -99,6 +99,21 @@ const productGroup = (item: PickerItem) => item.product_group_name || item.produ
 const combineISO = (date: string, time: string) => new Date(`${date}T${time}:00`).toISOString();
 const norm = (value: unknown) => String(value || "").trim().toLocaleLowerCase("hu-HU");
 
+function nextDateISO(date: string) {
+  const [year, month, day] = date.split("-").map(Number);
+  const next = new Date(year, month - 1, day, 12, 0, 0, 0);
+  next.setDate(next.getDate() + 1);
+  return `${next.getFullYear()}-${pad2(next.getMonth() + 1)}-${pad2(next.getDate())}`;
+}
+
+export function buildAppointmentISO(date: string, startHM: string, endHM: string) {
+  const endDate = hmToMinutes(endHM) <= hmToMinutes(startHM) ? nextDateISO(date) : date;
+  return {
+    start: combineISO(date, startHM),
+    end: combineISO(endDate, endHM),
+  };
+}
+
 export function AppointmentNewModal({
   onSaved,
   onClose,
@@ -283,11 +298,12 @@ export function AppointmentNewModal({
     if (!employeeId || !locationId || !date || !startHM) return;
     setChecking(true);
     try {
+      const range = buildAppointmentISO(date, startHM, endHM);
       const query = new URLSearchParams({
         employee_id: employeeId,
         location_id: locationId,
-        start: combineISO(date, startHM),
-        end: combineISO(date, endHM),
+        start: range.start,
+        end: range.end,
       });
       const result = await fetchJSON<any>(`/api/appointments/conflicts?${query}`, undefined, []);
       setConflicts(Array.isArray(result) ? result : Array.isArray(result?.data) ? result.data : []);
@@ -404,6 +420,7 @@ export function AppointmentNewModal({
     setSaving(true);
     setError(null);
     try {
+      const range = buildAppointmentISO(date, startHM, endHM);
       await apiFetch("/api/appointments", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -411,8 +428,8 @@ export function AppointmentNewModal({
           location_id: locationId,
           employee_id: employeeId,
           client_id: clientId,
-          start_time: combineISO(date, startHM),
-          end_time: combineISO(date, endHM),
+          start_time: range.start,
+          end_time: range.end,
           notes: note,
           services: selectedServices.map((service) => ({ service_id: service.id })),
           products: productLines.map((line) => ({ product_id: line.productId, quantity: line.quantity })),
