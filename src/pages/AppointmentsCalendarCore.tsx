@@ -65,7 +65,7 @@ type Props = {
 };
 
 const START_MINUTES = 7 * 60;
-const END_MINUTES = 21 * 60;
+const END_MINUTES = 24 * 60;
 const SLOT_MINUTES = 15;
 const SLOT_HEIGHT = 30;
 const PX_PER_MINUTE = SLOT_HEIGHT / SLOT_MINUTES;
@@ -188,6 +188,15 @@ function minutesOfDay(value: string) {
   return date.getHours() * 60 + date.getMinutes();
 }
 
+export function appointmentDisplayMinutes(startTime: string, endTime: string) {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const startMinutes = minutesOfDay(startTime);
+  let endMinutes = minutesOfDay(endTime);
+  if (end.getTime() > start.getTime() && isoDate(end) !== isoDate(start)) endMinutes += 24 * 60;
+  return { startMinutes, endMinutes };
+}
+
 function formatTime(value: string) {
   return new Date(value).toLocaleTimeString("hu-HU", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
@@ -204,8 +213,7 @@ function layoutAppointments(items: Appointment[]): PositionedAppointment[] {
   const source = [...items]
     .map((item) => ({
       item,
-      startMinutes: minutesOfDay(item.start_time),
-      endMinutes: minutesOfDay(item.end_time),
+      ...appointmentDisplayMinutes(item.start_time, item.end_time),
     }))
     .filter((entry) => entry.endMinutes > START_MINUTES && entry.startMinutes < END_MINUTES)
     .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes);
