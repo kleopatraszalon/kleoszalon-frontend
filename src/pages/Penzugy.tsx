@@ -30,7 +30,8 @@ import "./TransactionTraceForensics.css";
 
 /** Finance v5 route adapter. */
 export default function Penzugy() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
+  const section = new URLSearchParams(search).get("section");
   const management = hasStoredRole(["admin", "manager"]);
   const legalEntityAccess = hasStoredRole(["admin", "accounting"]);
   if(pathname === "/finance/product-sale") return <ProductSalePage />;
@@ -56,7 +57,8 @@ export default function Penzugy() {
   if(pathname === "/finance/fitness/lockers") return <FitnessLockerPanel />;
   if(pathname === "/finance/fitness") return <FitnessPage />;
   if(pathname.startsWith("/finance/fitness/")) return <FitnessPage />;
-  const legacyFlow = pathname === "/finance/cashier" || pathname.startsWith("/finance/cashier/") || pathname === "/finance/checkout" || pathname.startsWith("/finance/checkout/") || pathname.startsWith("/finance/invoices/");
+  const menuCashierFlow = pathname === "/finance" && ["cashdesk", "cashier", "cash-control"].includes(String(section || ""));
+  const legacyFlow = menuCashierFlow || pathname === "/finance/cashier" || pathname.startsWith("/finance/cashier/") || pathname === "/finance/checkout" || pathname.startsWith("/finance/checkout/") || pathname.startsWith("/finance/invoices/");
   if(legacyFlow) return <PenzugyLegacy />;
   return <>
     <div style={{maxWidth:1680,margin:"14px auto -6px",padding:"0 28px",display:"flex",justifyContent:"flex-end",gap:8,flexWrap:"wrap"}}>
