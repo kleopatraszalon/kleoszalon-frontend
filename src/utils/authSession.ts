@@ -1,4 +1,5 @@
-export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+export const ADMIN_IDLE_TIMEOUT_MS = 12 * 60 * 1000;
+export const IDLE_TIMEOUT_MS = ADMIN_IDLE_TIMEOUT_MS;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
 export const COOKIE_SESSION_KEY = "kleo_cookie_session";
 export const COOKIE_SESSION_MARKER = "active";

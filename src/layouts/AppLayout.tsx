@@ -61,13 +61,14 @@ function IdleAiHelpChat({ pageTitle }: { pageTitle: string }) {
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = useCurrentUser();
   const { language, locale } = useLanguage();
-  const { isAccounting, isElevated, isReceptionist, isHr, isStaff } = useMemo(
+  const { roles, isAccounting, isElevated, isReceptionist, isHr, isStaff } = useMemo(
     () => deriveRoleFlags(user?.role),
     [user?.role],
   );
+  const isAdmin = roles.some((role) => ["admin", "administrator", "rendszergazda", "superadmin", "super_admin"].includes(role));
   const location = useLocation();
   const navigate = useNavigate();
-  const logout = useSessionIdleGuard();
+  const { logout, isLocked } = useSessionIdleGuard(isAdmin);
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed((value) => !value);
 
@@ -190,6 +191,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <IdleAiHelpChat pageTitle={currentPage} />
+
+      {isLocked && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Admin munkamenet zárolva"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2147483647,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            background: "rgba(8, 11, 16, 0.985)",
+            color: "#fff",
+            textAlign: "center",
+          }}
+        >
+          <div style={{ maxWidth: 520 }}>
+            <div style={{ fontSize: 30, fontWeight: 800, marginBottom: 12 }}>Admin munkamenet zárolva</div>
+            <div style={{ fontSize: 16, lineHeight: 1.55, opacity: 0.78 }}>
+              Az admin felület inaktivitás miatt zárolva van.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
