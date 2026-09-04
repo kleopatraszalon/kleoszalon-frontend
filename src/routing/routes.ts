@@ -5,6 +5,7 @@ import { financeRoutes } from "./financeRoutes";
 import { hrRoutes } from "./hrRoutes";
 import { inventoryRoutes } from "./inventoryRoutes";
 import { publicRoutes } from "./publicRoutes";
+import { tenantSettingsRoutes } from "./tenantSettingsRoutes";
 
 export const applicationRoutes: RouteObject[] = [
   ...publicRoutes,
@@ -12,5 +13,6 @@ export const applicationRoutes: RouteObject[] = [
   ...hrRoutes,
   ...financeRoutes,
   ...inventoryRoutes,
+  ...tenantSettingsRoutes,
   ...adminRoutes,
 ];
