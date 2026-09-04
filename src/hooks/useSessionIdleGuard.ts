@@ -58,10 +58,11 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
         credentials: "include",
         cache: "no-store",
         headers,
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, idle_unlock: true }),
       });
       if (!response.ok) {
-        // Hibás admin jelszó esetén a zárolt munkamenetet nem hagyjuk aktívan.
+        // Hibás admin jelszó esetén a backend biztonsági riasztást küld,
+        // majd a zárolt böngészős munkamenetet azonnal megszüntetjük.
         logout("lock_failed");
         return false;
       }
