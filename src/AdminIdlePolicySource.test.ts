@@ -14,6 +14,6 @@ describe("non-admin idle-session policy", () => {
 
   test("idle expiry is a lock, not logout", () => {
     expect(hook).not.toContain('logout("idle")');
-    expect(hook).toMatch(/elapsed >= IDLE_TIMEOUT_MS[\s\S]*setLocked\(true\)/);
+    expect(hook).toMatch(/elapsed >= ADMIN_IDLE_LOCK_MS[\s\S]*setLocked\(true\)/);
   });
 });
