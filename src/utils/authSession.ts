@@ -1,4 +1,4 @@
-export const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+export const ADMIN_IDLE_LOCK_MS = 5 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = "kleo_last_activity_at";
 export const COOKIE_SESSION_KEY = "kleo_cookie_session";
 export const COOKIE_SESSION_MARKER = "active";
@@ -99,6 +99,11 @@ export function getLastActivityAt(): number | null {
   } catch {
     return null;
   }
+}
+
+export function clearAdminIdleActivity(): void {
+  try { localStorage.removeItem(LAST_ACTIVITY_KEY); } catch {}
+  try { sessionStorage.removeItem(LAST_ACTIVITY_KEY); } catch {}
 }
 
 export function clearLocalAuthenticatedSession(): void {

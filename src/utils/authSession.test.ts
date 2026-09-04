@@ -1,7 +1,8 @@
 import {
+  ADMIN_IDLE_LOCK_MS,
+  clearAdminIdleActivity,
   clearAuthenticatedSession,
   getLastActivityAt,
-  IDLE_TIMEOUT_MS,
   markSessionActivity,
 } from './authSession';
 
@@ -10,16 +11,18 @@ beforeEach(() => {
   sessionStorage.clear();
 });
 
-test('idle timeout follows the five minute VIR requirement', () => {
-  expect(IDLE_TIMEOUT_MS).toBe(5 * 60 * 1000);
+test('admin idle lock follows the five minute VIR requirement', () => {
+  expect(ADMIN_IDLE_LOCK_MS).toBe(5 * 60 * 1000);
 });
 
-test('session activity is stored as a shared browser timestamp', () => {
+test('admin activity is stored as a shared browser timestamp and can be removed for non-admin sessions', () => {
   markSessionActivity(123456789);
   expect(getLastActivityAt()).toBe(123456789);
+  clearAdminIdleActivity();
+  expect(getLastActivityAt()).toBeNull();
 });
 
-test('logout clears authentication state without deleting unrelated UI preferences', () => {
+test('explicit logout clears authentication state without deleting unrelated UI preferences', () => {
   localStorage.setItem('kleo_token', 'secret-token');
   localStorage.setItem('kleo_account_type', 'admin');
   localStorage.setItem('kleo.sidebar.collapsed', 'true');
