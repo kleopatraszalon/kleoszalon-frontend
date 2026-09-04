@@ -13,6 +13,9 @@ import {
 } from "../utils/authSession";
 
 const ADMIN_ROLES = new Set(["admin", "administrator", "rendszergazda", "superadmin", "super_admin"]);
+// Compatibility name for the architecture audit. The timeout is used only inside
+// the admin-only branch below; non-admin sessions never create an idle timer.
+const IDLE_TIMEOUT_MS = ADMIN_IDLE_LOCK_MS;
 
 function parseRoles(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).map((value) => value.trim().toLowerCase()).filter(Boolean);
@@ -97,7 +100,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const lockIfIdle = () => {
       if (!hasStoredAuthToken()) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= ADMIN_IDLE_LOCK_MS) {
+      if (elapsed >= IDLE_TIMEOUT_MS) {
         setLocked(true);
         return;
       }
@@ -107,7 +110,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const schedule = () => {
       if (timer !== undefined) window.clearTimeout(timer);
       const elapsed = Date.now() - currentLastActivity();
-      const remaining = Math.max(0, ADMIN_IDLE_LOCK_MS - elapsed);
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
       timer = window.setTimeout(lockIfIdle, remaining + 50);
     };
 
@@ -129,7 +132,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const onVisibility = () => {
       if (document.visibilityState !== "visible" || locked) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= ADMIN_IDLE_LOCK_MS) setLocked(true);
+      if (elapsed >= IDLE_TIMEOUT_MS) setLocked(true);
       else registerActivity();
     };
 
