@@ -1,22 +1,24 @@
-import { clearAuthenticatedSession, IDLE_TIMEOUT_MS, markSessionActivity } from "./utils/authSession";
+import { ADMIN_IDLE_LOCK_MS, clearAdminIdleActivity, clearAuthenticatedSession, markSessionActivity } from "./utils/authSession";
 
-describe("KLEO idle logout", () => {
+describe("KLEO admin idle lock", () => {
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     (global as any).fetch = jest.fn(() => Promise.resolve({ ok: true }));
   });
 
-  test("idle timeout is exactly five minutes", () => {
-    expect(IDLE_TIMEOUT_MS).toBe(300_000);
+  test("admin idle lock is exactly five minutes", () => {
+    expect(ADMIN_IDLE_LOCK_MS).toBe(300_000);
   });
 
-  test("activity timestamp is persisted", () => {
+  test("admin activity timestamp is persisted and can be removed for non-admin sessions", () => {
     markSessionActivity(123456);
     expect(localStorage.getItem("kleo_last_activity_at")).toBe("123456");
+    clearAdminIdleActivity();
+    expect(localStorage.getItem("kleo_last_activity_at")).toBeNull();
   });
 
-  test("logout invalidates the HttpOnly cookie on the API and clears local credentials", () => {
+  test("explicit logout invalidates the HttpOnly cookie on the API and clears local credentials", () => {
     localStorage.setItem("kleo_token", "secret");
     localStorage.setItem("kleo_role", "admin");
     sessionStorage.setItem("token", "secret-session");
