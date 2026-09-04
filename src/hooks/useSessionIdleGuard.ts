@@ -130,7 +130,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const verifyThenRegisterActivity = () => {
       if (locked) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= ADMIN_IDLE_LOCK_MS) {
+      if (elapsed >= IDLE_TIMEOUT_MS) {
         setLocked(true);
         return;
       }
