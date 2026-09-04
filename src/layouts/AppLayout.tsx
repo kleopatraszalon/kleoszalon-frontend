@@ -6,6 +6,7 @@ import HrSidebar from "../components/HrSidebar";
 import AccountingSidebar from "../components/AccountingSidebar";
 import AccessBoundary from "../components/AccessBoundary";
 import AppTopbar from "../components/AppTopbar";
+import AdminIdleLock from "../components/AdminIdleLock";
 import { VirHungarianPageGuide, resolveVirGuidePage } from "../components/VirHungarianPageGuide";
 import { translateMenuLabel, useLanguage } from "../i18n/LanguageProvider";
 import { useCurrentUser } from "../hooks/useCurrentUser";
@@ -67,7 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   );
   const location = useLocation();
   const navigate = useNavigate();
-  const logout = useSessionIdleGuard();
+  const idleGuard = useSessionIdleGuard(user?.role, user?.email);
   const [collapsed, setCollapsed] = useState(false);
   const toggleSidebar = () => setCollapsed((value) => !value);
 
@@ -155,7 +156,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           showBack={showBack}
           today={today}
           onBack={goBack}
-          onLogout={logout}
+          onLogout={() => idleGuard.logout()}
           onToggleSidebar={toggleSidebar}
         />
 
@@ -190,6 +191,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <IdleAiHelpChat pageTitle={currentPage} />
+      {idleGuard.locked && (
+        <AdminIdleLock
+          unlocking={idleGuard.unlocking}
+          error={idleGuard.unlockError}
+          onUnlock={idleGuard.unlock}
+        />
+      )}
     </div>
   );
 }
