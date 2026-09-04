@@ -43,7 +43,32 @@ async function seedFixture() {
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now(),
       UNIQUE(service_id,product_id)
-    )
+    );
+
+    CREATE TABLE IF NOT EXISTS cash_register_shifts (
+      id bigserial PRIMARY KEY,
+      location_id text NOT NULL,
+      location_name text,
+      business_date date NOT NULL,
+      status varchar(24) NOT NULL DEFAULT 'open',
+      opening_cash numeric(14,2) NOT NULL DEFAULT 0,
+      opening_note text,
+      opened_by text NOT NULL,
+      opened_at timestamptz NOT NULL DEFAULT now(),
+      current_cashier text NOT NULL,
+      closed_by text,
+      closed_at timestamptz,
+      closing_id bigint,
+      report_no text,
+      close_note text,
+      updated_at timestamptz NOT NULL DEFAULT now(),
+      CHECK (status IN ('open','handover_pending','closed'))
+    );
+    CREATE INDEX IF NOT EXISTS cash_register_shifts_history_idx
+      ON cash_register_shifts (location_id,business_date DESC,opened_at DESC);
+    CREATE UNIQUE INDEX IF NOT EXISTS cash_register_shifts_one_open_uq
+      ON cash_register_shifts (location_id)
+      WHERE status IN ('open','handover_pending');
   `);
   const seeded = await q(`
     WITH l AS (
@@ -114,6 +139,13 @@ async function seedFixture() {
   `, [String(f.location_id)]);
 
   await q(`
+    INSERT INTO cash_register_shifts(
+      location_id,location_name,business_date,status,opening_cash,opening_note,opened_by,current_cashier
+    )
+    VALUES($1,'E2E Recepció Szalon',CURRENT_DATE,'open',0,'Browser E2E nyitott pénztári műszak',$2,$2)
+  `, [String(f.location_id), 'e2e.reception@test.local']);
+
+  await q(`
     INSERT INTO appointment_services(appointment_id,service_id,duration_minutes,price,discount_percent,sort_order)
     VALUES($1,$2,45,10000,0,0)
   `, [f.appointment_id, f.service_id]);
@@ -167,6 +199,7 @@ async function main() {
   app.use('/api/transactions/workorder-finalization', finalizationFast);
   app.use('/api/transactions/workorder-finalization', finalization);
   app.use('/api/workorders', workordersScoped);
+  app.use('/api/vir/receipt-compliance', receiptCompliance);
 
   // The production legal-entity GET runs the full Finance/NAV runtime bootstrap.
   // This focused browser E2E intentionally uses a minimal deterministic schema,
