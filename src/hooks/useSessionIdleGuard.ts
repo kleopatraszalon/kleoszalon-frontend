@@ -100,7 +100,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const lockIfIdle = () => {
       if (!hasStoredAuthToken()) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= IDLE_TIMEOUT_MS) {
+      if (elapsed >= ADMIN_IDLE_LOCK_MS) {
         setLocked(true);
         return;
       }
@@ -125,15 +125,24 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
       schedule();
     };
 
+    // Focus/visibility must check expiry BEFORE recording new activity. This
+    // prevents an already-expired admin session from being silently revived.
+    const verifyThenRegisterActivity = () => {
+      if (locked) return;
+      const elapsed = Date.now() - currentLastActivity();
+      if (elapsed >= ADMIN_IDLE_LOCK_MS) {
+        setLocked(true);
+        return;
+      }
+      registerActivity();
+    };
+
     const onStorage = (event: StorageEvent) => {
       if (event.key === LAST_ACTIVITY_KEY && !locked) schedule();
     };
 
     const onVisibility = () => {
-      if (document.visibilityState !== "visible" || locked) return;
-      const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= IDLE_TIMEOUT_MS) setLocked(true);
-      else registerActivity();
+      if (document.visibilityState === "visible") verifyThenRegisterActivity();
     };
 
     if (!getLastActivityAt()) markSessionActivity(fallbackActivityAt);
@@ -144,7 +153,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     window.addEventListener("keydown", registerActivity);
     window.addEventListener("touchstart", registerActivity, passive);
     window.addEventListener("scroll", registerActivity, passive);
-    window.addEventListener("focus", onVisibility);
+    window.addEventListener("focus", verifyThenRegisterActivity);
     window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -154,7 +163,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
       window.removeEventListener("keydown", registerActivity);
       window.removeEventListener("touchstart", registerActivity);
       window.removeEventListener("scroll", registerActivity);
-      window.removeEventListener("focus", onVisibility);
+      window.removeEventListener("focus", verifyThenRegisterActivity);
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
