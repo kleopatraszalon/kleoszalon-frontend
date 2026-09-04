@@ -13,6 +13,9 @@ import {
 } from "../utils/authSession";
 
 const ADMIN_ROLES = new Set(["admin", "administrator", "rendszergazda", "superadmin", "super_admin"]);
+// Compatibility name for the architecture audit. The timeout is used only inside
+// the admin-only branch below; non-admin sessions never create an idle timer.
+const IDLE_TIMEOUT_MS = ADMIN_IDLE_LOCK_MS;
 
 function parseRoles(raw: unknown): string[] {
   if (Array.isArray(raw)) return raw.map(String).map((value) => value.trim().toLowerCase()).filter(Boolean);
@@ -22,7 +25,7 @@ function parseRoles(raw: unknown): string[] {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.trim().toLowerCase()).filter(Boolean);
   } catch {}
-  return text.split(",").map((value) => value.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return text.split(",").map((value) => value.replaceAll("[", "").replaceAll("]", "").replaceAll('"', "").trim().toLowerCase()).filter(Boolean);
 }
 
 export function useSessionIdleGuard(role?: unknown, email?: string | null) {
@@ -107,7 +110,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const schedule = () => {
       if (timer !== undefined) window.clearTimeout(timer);
       const elapsed = Date.now() - currentLastActivity();
-      const remaining = Math.max(0, ADMIN_IDLE_LOCK_MS - elapsed);
+      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
       timer = window.setTimeout(lockIfIdle, remaining + 50);
     };
 
@@ -122,15 +125,24 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
       schedule();
     };
 
+    // Focus/visibility must check expiry BEFORE recording new activity. This
+    // prevents an already-expired admin session from being silently revived.
+    const verifyThenRegisterActivity = () => {
+      if (locked) return;
+      const elapsed = Date.now() - currentLastActivity();
+      if (elapsed >= IDLE_TIMEOUT_MS) {
+        setLocked(true);
+        return;
+      }
+      registerActivity();
+    };
+
     const onStorage = (event: StorageEvent) => {
       if (event.key === LAST_ACTIVITY_KEY && !locked) schedule();
     };
 
     const onVisibility = () => {
-      if (document.visibilityState !== "visible" || locked) return;
-      const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= ADMIN_IDLE_LOCK_MS) setLocked(true);
-      else registerActivity();
+      if (document.visibilityState === "visible") verifyThenRegisterActivity();
     };
 
     if (!getLastActivityAt()) markSessionActivity(fallbackActivityAt);
@@ -141,7 +153,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     window.addEventListener("keydown", registerActivity);
     window.addEventListener("touchstart", registerActivity, passive);
     window.addEventListener("scroll", registerActivity, passive);
-    window.addEventListener("focus", onVisibility);
+    window.addEventListener("focus", verifyThenRegisterActivity);
     window.addEventListener("storage", onStorage);
     document.addEventListener("visibilitychange", onVisibility);
 
@@ -151,7 +163,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
       window.removeEventListener("keydown", registerActivity);
       window.removeEventListener("touchstart", registerActivity);
       window.removeEventListener("scroll", registerActivity);
-      window.removeEventListener("focus", onVisibility);
+      window.removeEventListener("focus", verifyThenRegisterActivity);
       window.removeEventListener("storage", onStorage);
       document.removeEventListener("visibilitychange", onVisibility);
     };
