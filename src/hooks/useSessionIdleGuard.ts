@@ -25,7 +25,7 @@ function parseRoles(raw: unknown): string[] {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.trim().toLowerCase()).filter(Boolean);
   } catch {}
-  return text.split(",").map((value) => value.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return text.split(",").map((value) => value.replaceAll("[", "").replaceAll("]", "").replaceAll('"', "").trim().toLowerCase()).filter(Boolean);
 }
 
 export function useSessionIdleGuard(role?: unknown, email?: string | null) {
