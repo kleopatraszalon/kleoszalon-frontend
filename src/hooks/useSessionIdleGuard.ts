@@ -22,7 +22,7 @@ function parseRoles(raw: unknown): string[] {
     const parsed = JSON.parse(text);
     if (Array.isArray(parsed)) return parsed.map(String).map((value) => value.trim().toLowerCase()).filter(Boolean);
   } catch {}
-  return text.split(",").map((value) => value.replace(/[\[\]"]/g, "").trim().toLowerCase()).filter(Boolean);
+  return text.split(",").map((value) => value.split("[").join("").split("]").join("").split('"').join("").trim().toLowerCase()).filter(Boolean);
 }
 
 export function useSessionIdleGuard(role?: unknown, email?: string | null) {
@@ -58,10 +58,11 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
         credentials: "include",
         cache: "no-store",
         headers,
-        body: JSON.stringify({ identifier, password }),
+        body: JSON.stringify({ identifier, password, idle_unlock: true }),
       });
       if (!response.ok) {
-        // Hibás admin jelszó esetén a zárolt munkamenetet nem hagyjuk aktívan.
+        // Hibás admin jelszó esetén a backend biztonsági riasztást küld,
+        // majd a zárolt böngészős munkamenetet azonnal megszüntetjük.
         logout("lock_failed");
         return false;
       }
