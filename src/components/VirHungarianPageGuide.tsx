@@ -64,14 +64,41 @@ export function resolveVirGuidePage(pathname: string): GuideKey | null { return 
 export function VirHungarianPageGuide({ page, children }: { page: GuideKey; children: ReactNode }) {
   const { language } = useLanguage();
   const guide = language === "en" ? VIR_ENGLISH_GUIDES[page] : VIR_HUNGARIAN_GUIDES[page];
-  return <div className="vir-hu-intelligence-page">
+  const displayTitle = guide.title.replace(/^VIR\s*·\s*/i, "");
+  return <div className={`vir-hu-intelligence-page vir-guide-${page}`}>
     <style>{`
       .vir-hu-intelligence-page > .vir-management-page > .vir-management-header > div:first-child{display:none}
       .vir-hu-intelligence-page > div:not(.vir-management-page) > h1:first-child{display:none}
       .vir-hu-intelligence-page > div:not(.vir-management-page) > h1:first-child + p{display:none}
+      .vir-hu-intelligence-page > .vir-guide-hero{border:1px solid rgba(15,23,42,.08);border-radius:18px;background:linear-gradient(135deg,#fff 0%,#fff 70%,#fff6fb 100%);box-shadow:0 10px 32px rgba(15,23,42,.06);padding:22px 24px;margin-bottom:18px}
+      .vir-hu-intelligence-page > .vir-guide-hero .vir-panel-title{font-size:clamp(22px,2vw,29px);line-height:1.15;letter-spacing:-.025em;color:#111827}
+      .vir-hu-intelligence-page > .vir-guide-hero .vir-panel-muted{max-width:1100px;line-height:1.55;color:#5b6472}
+      .vir-hu-intelligence-page > .vir-guide-hero .vir-badge-row{gap:8px}
+      .vir-hu-intelligence-page > .vir-guide-hero .vir-badge{border-radius:999px;padding:6px 10px;background:#f4f6f9;border:1px solid #e7eaf0;color:#344054;font-weight:650}
+      .vir-guide-p3 > .vir-management-page > .vir-panel > .vir-panel-title,
+      .vir-guide-p5 > .vir-management-page > .vir-panel > .vir-panel-title{display:none}
+      .vir-guide-p3 > .vir-management-page > .vir-panel,
+      .vir-guide-p5 > .vir-management-page > .vir-panel{border-radius:18px;box-shadow:0 8px 26px rgba(15,23,42,.05);border-color:#e8ebf0}
+      .vir-guide-p3 > .vir-management-page > .vir-management-actions,
+      .vir-guide-p5 > .vir-management-page > .vir-management-actions{gap:10px;padding:12px 14px;border:1px solid #e8ebf0;border-radius:16px;background:#fff;box-shadow:0 6px 20px rgba(15,23,42,.04)}
+      .vir-guide-p3 .vir-button,
+      .vir-guide-p5 .vir-tabs button{border-radius:12px;min-height:38px}
+      .vir-guide-p4 .p4-hero-copy{display:none}
+      .vir-guide-p4 .p4-hero{min-height:0;padding:0;background:transparent;border:0;box-shadow:none;justify-content:flex-end;margin-bottom:12px}
+      .vir-guide-p4 .p4-control-copy{display:none}
+      .vir-guide-p4 .p4-control-card{justify-content:flex-end;min-height:0}
+      .vir-guide-p4 .p4-module-kicker,
+      .vir-guide-p4 .p4-module-header h2{display:none}
+      .vir-guide-p4 .p4-module-header{align-items:flex-start;gap:16px}
+      .vir-guide-p4 .p4-module-header p{margin:0;max-width:900px;line-height:1.55}
+      @media (max-width:720px){
+        .vir-hu-intelligence-page > .vir-guide-hero{padding:18px}
+        .vir-guide-p4 .p4-hero{justify-content:stretch}
+        .vir-guide-p4 .p4-hero-status{width:100%}
+      }
     `}</style>
-    <section className="vir-panel" style={{marginBottom:18}}>
-      <div className="vir-panel-title" style={{fontSize:24}}>{guide.title}</div>
+    <section className="vir-panel vir-guide-hero">
+      <div className="vir-panel-title">{displayTitle}</div>
       <div className="vir-panel-muted" style={{marginTop:8}}><strong>{language === "en" ? "Purpose:" : "Mire jó?"}</strong> {guide.purpose}</div>
       <div className="vir-badge-row" style={{marginTop:12}}>{guide.features.map(feature=><span className="vir-badge" key={feature}>{feature}</span>)}</div>
     </section>
