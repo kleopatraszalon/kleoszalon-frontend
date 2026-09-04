@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import withBase from "../utils/apiBase";
 import {
+  ADMIN_IDLE_LOCK_MS,
+  clearAdminIdleActivity,
   clearAuthenticatedSession,
   getLastActivityAt,
   getSessionBearerToken,
   hasStoredAuthToken,
-  IDLE_TIMEOUT_MS,
   LAST_ACTIVITY_KEY,
   markSessionActivity,
 } from "../utils/authSession";
@@ -31,7 +32,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const isAdmin = useMemo(() => parseRoles(role).some((item) => ADMIN_ROLES.has(item)), [role]);
 
-  const logout = useCallback((reason?: "idle" | "lock_failed") => {
+  const logout = useCallback((reason?: "lock_failed") => {
     clearAuthenticatedSession();
     if (reason) {
       try { sessionStorage.setItem("kleo_logout_reason", reason); } catch {}
@@ -77,16 +78,16 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
   }, [email, isAdmin, locked, logout, unlocking]);
 
   useEffect(() => {
-    if (!hasStoredAuthToken()) return;
-
-    // Az 5 perces inaktivitási szabály kizárólag adminisztrátorra vonatkozik.
-    // Recepciós, szalonvezető, munkatárs, HR, könyvelés stb. nem kap időzített
-    // automatikus kiléptetést és nem kap idle zárolást sem.
+    // Nem-admin felhasználónál NINCS inaktivitási időzítő, nincs automatikus
+    // kijelentkeztetés és nincs zároló ablak. Ez a return a token-ellenőrzés és
+    // minden timer/event listener létrehozása előtt fut.
     if (!isAdmin) {
       setLocked(false);
-      try { localStorage.removeItem(LAST_ACTIVITY_KEY); } catch {}
+      clearAdminIdleActivity();
       return;
     }
+
+    if (!hasStoredAuthToken()) return;
 
     let timer: number | undefined;
     let lastWriteAt = 0;
@@ -96,7 +97,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const lockIfIdle = () => {
       if (!hasStoredAuthToken()) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= IDLE_TIMEOUT_MS) {
+      if (elapsed >= ADMIN_IDLE_LOCK_MS) {
         setLocked(true);
         return;
       }
@@ -106,7 +107,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const schedule = () => {
       if (timer !== undefined) window.clearTimeout(timer);
       const elapsed = Date.now() - currentLastActivity();
-      const remaining = Math.max(0, IDLE_TIMEOUT_MS - elapsed);
+      const remaining = Math.max(0, ADMIN_IDLE_LOCK_MS - elapsed);
       timer = window.setTimeout(lockIfIdle, remaining + 50);
     };
 
@@ -128,7 +129,7 @@ export function useSessionIdleGuard(role?: unknown, email?: string | null) {
     const onVisibility = () => {
       if (document.visibilityState !== "visible" || locked) return;
       const elapsed = Date.now() - currentLastActivity();
-      if (elapsed >= IDLE_TIMEOUT_MS) setLocked(true);
+      if (elapsed >= ADMIN_IDLE_LOCK_MS) setLocked(true);
       else registerActivity();
     };
 
