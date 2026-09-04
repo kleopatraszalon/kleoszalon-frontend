@@ -2,13 +2,14 @@ import fs from "fs";
 import path from "path";
 const read=(p:string)=>fs.readFileSync(path.join(process.cwd(),p),"utf8");
 
-test("Stage17 idle hardening checks expiry before focus activity",()=>{
+test("Stage17 admin idle hardening locks after five minutes without logging out non-admin users",()=>{
   const session=read("src/utils/authSession.ts");
   const idleGuard=read("src/hooks/useSessionIdleGuard.ts");
-  expect(session).toMatch(/5\s*\*\s*60\s*\*\s*1000/);
-  expect(idleGuard).toMatch(/verifyThenRegisterActivity/);
-  expect(idleGuard).toMatch(/elapsed\s*>=\s*IDLE_TIMEOUT_MS/);
+  expect(session).toMatch(/ADMIN_IDLE_LOCK_MS\s*=\s*5\s*\*\s*60\s*\*\s*1000/);
+  expect(idleGuard).toMatch(/if \(!isAdmin\)[\s\S]*clearAdminIdleActivity\(\)[\s\S]*return;/);
+  expect(idleGuard).toMatch(/elapsed\s*>=\s*ADMIN_IDLE_LOCK_MS[\s\S]*setLocked\(true\)/);
   expect(idleGuard).toMatch(/visibilitychange/);
+  expect(idleGuard).not.toMatch(/logout\("idle"\)/);
 });
 
 test("Stage17 uses shared language, audit, recycle-bin and filter infrastructure",()=>{
