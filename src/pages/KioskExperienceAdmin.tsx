@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Camera, CheckCircle2, ImagePlus, Loader2, MapPinned, Plus, RefreshCw, Save,
-  Scissors, Settings2, ToggleLeft, ToggleRight, Trash2, Upload, X,
+  CheckCircle2, ExternalLink, Grid3X3, ImagePlus, Loader2, MapPinned, Move,
+  Plus, RefreshCw, RotateCcw, Save, Scissors, Settings2, ShieldCheck, Sparkles,
+  ToggleLeft, ToggleRight, Trash2, Upload, X,
 } from "lucide-react";
 import {
   getKioskAdminLocations,
@@ -14,256 +15,90 @@ import {
 import "./KioskExperienceAdmin.css";
 
 type MappingViewKey = "hair" | "face" | "bodyFront" | "bodyBack";
-type HairStyle = {
-  id: string;
-  name: string;
-  type: string;
-  imageUrl: string;
-  x: number;
-  y: number;
-  scale: number;
-  rotate: number;
-  enabled: boolean;
-};
+type HairProvider = "perfectcorp" | "banuba" | "local";
+type MappingZone = { id: string; label: string; x: number; y: number; w: number; h: number; enabled: boolean };
+type MappingTransform = { x: number; y: number; scale: number };
+type HairStyle = { id: string; name: string; type: string; imageUrl: string; x: number; y: number; scale: number; rotate: number; enabled: boolean };
 type MappingConfig = {
-  enabled: boolean;
-  title: string;
-  subtitle: string;
-  accent: string;
-  surface: string;
-  showLabels: boolean;
-  showGuide: boolean;
-  imageFit: "contain" | "cover";
-  viewImages: Record<MappingViewKey, string>;
+  enabled: boolean; title: string; subtitle: string; accent: string; surface: string;
+  showLabels: boolean; showGuide: boolean; imageFit: "contain" | "cover"; gridSnap: boolean;
+  viewImages: Record<MappingViewKey, string>; viewTransforms: Record<MappingViewKey, MappingTransform>;
+  zones: Record<MappingViewKey, MappingZone[]>;
 };
 type HairConfig = {
-  enabled: boolean;
-  title: string;
-  subtitle: string;
-  accent: string;
-  allowCamera: boolean;
-  allowUpload: boolean;
-  showFaceGuide: boolean;
-  styles: HairStyle[];
+  enabled: boolean; title: string; subtitle: string; accent: string; allowCamera: boolean; allowUpload: boolean;
+  showFaceGuide: boolean; provider: HairProvider; useExternalEngine: boolean; aiMode: "template" | "reference";
+  remoteConsentText: string; styles: HairStyle[];
 };
-
 type ExperienceConfig = { mapping: MappingConfig; hairMirror: HairConfig };
 
-const VIEW_LABELS: Record<MappingViewKey, string> = {
-  hair: "Haj / fejbőr",
-  face: "Arc",
-  bodyFront: "Test · elöl",
-  bodyBack: "Test · hátul",
+const VIEW_LABELS: Record<MappingViewKey, string> = { hair: "Haj / fejbőr", face: "Arc", bodyFront: "Test · elöl", bodyBack: "Test · hátul" };
+const z = (id:string,label:string,x:number,y:number,w:number,h:number):MappingZone => ({id,label,x,y,w,h,enabled:true});
+const DEFAULT_ZONES: Record<MappingViewKey, MappingZone[]> = {
+  hair:[z("scalp","Fejbőr",50,20,45,20),z("hairline","Hajvonal",50,33,38,9),z("hair-roots","Hajtő",50,43,44,13),z("hair-length-left","Bal hajhossz",27,62,22,42),z("hair-length-right","Jobb hajhossz",73,62,22,42),z("hair-ends","Hajvégek",50,86,55,15)],
+  face:[z("forehead","Homlok",50,20,27,11),z("temple-left","Bal halánték",31,32,13,11),z("temple-right","Jobb halánték",69,32,13,11),z("eye-left","Bal szemkörnyék",38,39,17,9),z("eye-right","Jobb szemkörnyék",62,39,17,9),z("nose","Orr",50,49,14,18),z("cheek-left","Bal orca",34,53,20,17),z("cheek-right","Jobb orca",66,53,20,17),z("upper-lip","Felső ajak",50,63,20,8),z("chin","Áll",50,75,23,13),z("jaw-left","Bal állív",35,70,17,11),z("jaw-right","Jobb állív",65,70,17,11),z("neck-front","Nyak",50,91,28,12)],
+  bodyFront:[z("decollete","Dekoltázs",50,19,31,10),z("arm-left-front","Bal kar",28,36,13,32),z("arm-right-front","Jobb kar",72,36,13,32),z("abdomen","Has",50,42,27,22),z("waist-left","Bal derék",39,48,12,18),z("waist-right","Jobb derék",61,48,12,18),z("thigh-left-front","Bal comb",42,67,15,29),z("thigh-right-front","Jobb comb",58,67,15,29),z("shin-left","Bal lábszár",43,88,13,22),z("shin-right","Jobb lábszár",57,88,13,22)],
+  bodyBack:[z("shoulders","Vállöv",50,22,37,11),z("upper-back","Felső hát",50,33,29,15),z("lower-back","Derék / alsó hát",50,48,27,15),z("arm-left-back","Bal kar",28,37,13,32),z("arm-right-back","Jobb kar",72,37,13,32),z("glute-left","Bal far",43,59,17,14),z("glute-right","Jobb far",57,59,17,14),z("thigh-left-back","Bal comb",42,73,15,27),z("thigh-right-back","Jobb comb",58,73,15,27),z("calf-left","Bal vádli",43,91,13,19),z("calf-right","Jobb vádli",57,91,13,19)],
 };
-
+const ZERO_TRANSFORMS: Record<MappingViewKey, MappingTransform> = { hair:{x:0,y:0,scale:1},face:{x:0,y:0,scale:1},bodyFront:{x:0,y:0,scale:1},bodyBack:{x:0,y:0,scale:1} };
 const DEFAULTS: ExperienceConfig = {
-  mapping: {
-    enabled: true,
-    title: "Mutasd meg pontosan, melyik terület érdekel.",
-    subtitle: "Jelöld ki a haj, arc vagy test területét. A rendszer az aktuális szolgáltatásokból ajánl kezelést.",
-    accent: "#ec008c",
-    surface: "#f7f2ec",
-    showLabels: true,
-    showGuide: true,
-    imageFit: "contain",
-    viewImages: { hair: "", face: "", bodyFront: "", bodyBack: "" },
-  },
-  hairMirror: {
-    enabled: true,
-    title: "Milyen haj állna jól?",
-    subtitle: "Fotóalapú frizurapróba",
-    accent: "#ec008c",
-    allowCamera: true,
-    allowUpload: true,
-    showFaceGuide: true,
-    styles: [],
-  },
+  mapping:{enabled:true,title:"Mutasd meg pontosan, melyik terület érdekel.",subtitle:"Jelöld ki a haj, arc vagy test területét. A rendszer az aktuális szolgáltatásokból ajánl kezelést.",accent:"#ec008c",surface:"#f7f2ec",showLabels:true,showGuide:true,imageFit:"contain",gridSnap:true,viewImages:{hair:"",face:"",bodyFront:"",bodyBack:""},viewTransforms:ZERO_TRANSFORMS,zones:DEFAULT_ZONES},
+  hairMirror:{enabled:true,title:"Milyen haj állna jól?",subtitle:"Professzionális virtuális frizurapróba",accent:"#ec008c",allowCamera:true,allowUpload:true,showFaceGuide:true,provider:"perfectcorp",useExternalEngine:false,aiMode:"template",remoteConsentText:"A frizurapróbához a kiválasztott fotót a külső AI szolgáltató dolgozza fel. A feldolgozás csak az Ön kifejezett jóváhagyása után indul.",styles:[]},
 };
 
 function mergeConfig(theme: Record<string, any>): ExperienceConfig {
-  const raw = theme?.kioskExperiences || {};
-  const mapping = raw.mapping || {};
-  const hair = raw.hairMirror || {};
-  return {
-    mapping: {
-      ...DEFAULTS.mapping,
-      ...mapping,
-      viewImages: { ...DEFAULTS.mapping.viewImages, ...(mapping.viewImages || {}) },
-    },
-    hairMirror: {
-      ...DEFAULTS.hairMirror,
-      ...hair,
-      styles: Array.isArray(hair.styles) ? hair.styles : [],
-    },
-  };
+  const raw=theme?.kioskExperiences||{}, mapping=raw.mapping||{}, hair=raw.hairMirror||{}, images=mapping.viewImages||{}, zones=mapping.zones||{}, transforms=mapping.viewTransforms||{};
+  const mergedZones=(Object.keys(VIEW_LABELS) as MappingViewKey[]).reduce((acc,key)=>{const legacy=key==="bodyFront"?"body-front":key==="bodyBack"?"body-back":key;const src=Array.isArray(zones[key])?zones[key]:Array.isArray(zones[legacy])?zones[legacy]:DEFAULT_ZONES[key];acc[key]=src.map((zone:MappingZone)=>({...zone,w:Number(zone.w||16),h:Number(zone.h||10),enabled:zone.enabled!==false}));return acc;},{} as Record<MappingViewKey,MappingZone[]>);
+  const mergedTransforms=(Object.keys(VIEW_LABELS) as MappingViewKey[]).reduce((acc,key)=>{acc[key]={...ZERO_TRANSFORMS[key],...(transforms[key]||{})};return acc;},{} as Record<MappingViewKey,MappingTransform>);
+  return {mapping:{...DEFAULTS.mapping,...mapping,viewImages:{...DEFAULTS.mapping.viewImages,...images,bodyFront:images.bodyFront||images["body-front"]||"",bodyBack:images.bodyBack||images["body-back"]||""},viewTransforms:mergedTransforms,zones:mergedZones},hairMirror:{...DEFAULTS.hairMirror,...hair,styles:Array.isArray(hair.styles)?hair.styles:Array.isArray(hair.hairs)?hair.hairs:[]}};
 }
-
-function readImage(file: File) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const image = new Image();
-    image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
-    image.onerror = () => { URL.revokeObjectURL(url); reject(new Error("A kép nem olvasható.")); };
-    image.src = url;
-  });
+function readImage(file:File){return new Promise<HTMLImageElement>((resolve,reject)=>{const url=URL.createObjectURL(file),image=new Image();image.onload=()=>{URL.revokeObjectURL(url);resolve(image)};image.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("A kép nem olvasható."))};image.src=url;});}
+async function optimizeImage(file:File,kind:"mapping"|"hair"){
+  const allowed=kind==="hair"?/^image\/(png|webp)$/i:/^image\/(jpeg|png|webp)$/i;if(!allowed.test(file.type))throw new Error(kind==="hair"?"Hajhoz átlátszó PNG vagy WebP képet tölts fel.":"JPG, PNG vagy WebP kép tölthető fel.");if(file.size>12*1024*1024)throw new Error("A kép legfeljebb 12 MB lehet.");
+  const image=await readImage(file),maxSide=kind==="hair"?960:1280,ratio=Math.min(1,maxSide/Math.max(image.naturalWidth||1,image.naturalHeight||1)),width=Math.max(1,Math.round(image.naturalWidth*ratio)),height=Math.max(1,Math.round(image.naturalHeight*ratio)),canvas=document.createElement("canvas");canvas.width=width;canvas.height=height;const ctx=canvas.getContext("2d");if(!ctx)throw new Error("A böngésző nem tudja feldolgozni a képet.");ctx.clearRect(0,0,width,height);ctx.drawImage(image,0,0,width,height);let quality=kind==="hair"?.9:.82,dataUrl=canvas.toDataURL("image/webp",quality),target=kind==="hair"?420000:360000;while(dataUrl.length>target&&quality>.5){quality-=.07;dataUrl=canvas.toDataURL("image/webp",quality)}if(dataUrl.length>560000)throw new Error("A kép tömörítés után is túl nagy.");return dataUrl;
 }
+function toggleButton(active:boolean,label:string,onClick:()=>void){return <button type="button" className={`kea-switch ${active?"on":""}`} onClick={onClick}>{active?<ToggleRight size={23}/>:<ToggleLeft size={23}/>}<span>{label}</span></button>}
+const clamp=(value:number,min:number,max:number)=>Math.min(max,Math.max(min,value));
 
-async function optimizeImage(file: File, kind: "mapping" | "hair") {
-  const allowed = kind === "hair" ? /^image\/(png|webp)$/i : /^image\/(jpeg|png|webp)$/i;
-  if (!allowed.test(file.type)) {
-    throw new Error(kind === "hair" ? "Hajhoz átlátszó hátterű PNG vagy WebP képet tölts fel." : "JPG, PNG vagy WebP kép tölthető fel.");
-  }
-  if (file.size > 12 * 1024 * 1024) throw new Error("A kép legfeljebb 12 MB lehet.");
-  const image = await readImage(file);
-  const maxSide = kind === "hair" ? 960 : 1280;
-  const ratio = Math.min(1, maxSide / Math.max(image.naturalWidth || 1, image.naturalHeight || 1));
-  const width = Math.max(1, Math.round(image.naturalWidth * ratio));
-  const height = Math.max(1, Math.round(image.naturalHeight * ratio));
-  const canvas = document.createElement("canvas");
-  canvas.width = width; canvas.height = height;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) throw new Error("A böngésző nem tudja feldolgozni a képet.");
-  ctx.clearRect(0, 0, width, height);
-  ctx.drawImage(image, 0, 0, width, height);
-  let quality = kind === "hair" ? 0.9 : 0.82;
-  let dataUrl = canvas.toDataURL("image/webp", quality);
-  const target = kind === "hair" ? 420_000 : 360_000;
-  while (dataUrl.length > target && quality > 0.5) {
-    quality -= 0.07;
-    dataUrl = canvas.toDataURL("image/webp", quality);
-  }
-  if (dataUrl.length > 560_000) throw new Error("A kép tömörítés után is túl nagy. Válassz kisebb képet.");
-  return dataUrl;
-}
-
-function toggleButton(active: boolean, label: string, onClick: () => void) {
-  return <button type="button" className={`kea-switch ${active ? "on" : ""}`} onClick={onClick}>
-    {active ? <ToggleRight size={23}/> : <ToggleLeft size={23}/>}<span>{label}</span>
-  </button>;
-}
-
-export default function KioskExperienceAdmin() {
-  const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"mapping" | "hair">("mapping");
-  const [loading, setLoading] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [busyImage, setBusyImage] = useState("");
-  const [locationId, setLocationId] = useState("");
-  const [menu, setMenu] = useState<KioskMenu | null>(null);
-  const [sections, setSections] = useState<KioskSection[]>([]);
-  const [productSections, setProductSections] = useState<KioskProductSection[]>([]);
-  const [config, setConfig] = useState<ExperienceConfig>(DEFAULTS);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-
-  const load = useCallback(async () => {
-    setLoading(true); setError(""); setNotice("");
-    try {
-      const locationData = await getKioskAdminLocations();
-      const resolved = locationData.device?.location_id || locationData.locations.find(x => x.is_device_location)?.id || locationData.locations[0]?.id || "";
-      if (!resolved) throw new Error("Nem található a kiosk telephelye.");
-      setLocationId(resolved);
-      const data = await getKioskAdminMenu(resolved);
-      if (!data.menu) throw new Error("A kiosk menü még nincs inicializálva.");
-      setMenu(data.menu);
-      setSections(data.sections || []);
-      setProductSections(data.productSections || []);
-      setConfig(mergeConfig(data.menu.theme || {}));
-    } catch (e: any) {
-      setError(e?.response?.data?.error || e?.message || "A Mapping / Hair admin nem tölthető be.");
-    } finally { setLoading(false); }
-  }, []);
-
-  useEffect(() => { if (open) void load(); }, [open, load]);
-
-  const hairCount = useMemo(() => config.hairMirror.styles.filter(s => s.enabled !== false && s.imageUrl).length, [config.hairMirror.styles]);
-
-  const save = async () => {
-    if (!menu) return;
-    setSaving(true); setError(""); setNotice("");
-    try {
-      const nextTheme = { ...(menu.theme || {}), kioskExperiences: config };
-      await saveKioskSettings(menu.id, {
-        name: menu.name,
-        is_active: menu.is_active,
-        theme: nextTheme,
-        sections: sections.map(s => ({ id: s.id, title: s.title, subtitle: s.subtitle, imageUrl: s.imageUrl, enabled: s.enabled, order: s.order })),
-        productSections: productSections.map(s => ({ id: s.id, title: s.title, subtitle: s.subtitle, imageUrl: s.imageUrl, enabled: s.enabled, order: s.order })),
-      });
-      setMenu({ ...menu, theme: nextTheme });
-      setNotice("Mentve és publikálva a kiosk konfigurációba.");
-    } catch (e: any) {
-      setError(e?.response?.data?.error || e?.message || "A mentés sikertelen.");
-    } finally { setSaving(false); }
-  };
-
-  const uploadMapping = async (key: MappingViewKey, file?: File) => {
-    if (!file) return;
-    setBusyImage(`mapping-${key}`); setError("");
-    try {
-      const imageUrl = await optimizeImage(file, "mapping");
-      setConfig(current => ({ ...current, mapping: { ...current.mapping, viewImages: { ...current.mapping.viewImages, [key]: imageUrl } } }));
-      setNotice(`${VIEW_LABELS[key]} kép előkészítve. Mentés után lesz élő.`);
-    } catch (e: any) { setError(e?.message || "Képfeldolgozási hiba."); }
-    finally { setBusyImage(""); }
-  };
-
-  const addHairStyle = () => {
-    const id = `hair-${Date.now()}`;
-    setConfig(current => ({ ...current, hairMirror: { ...current.hairMirror, styles: [...current.hairMirror.styles, { id, name: "Új frizura", type: "Fotó", imageUrl: "", x: 0, y: 0, scale: 1, rotate: 0, enabled: true }] } }));
-  };
-
-  const patchHairStyle = (id: string, patch: Partial<HairStyle>) => {
-    setConfig(current => ({ ...current, hairMirror: { ...current.hairMirror, styles: current.hairMirror.styles.map(style => style.id === id ? { ...style, ...patch } : style) } }));
-  };
-
-  const uploadHair = async (id: string, file?: File) => {
-    if (!file) return;
-    setBusyImage(`hair-${id}`); setError("");
-    try {
-      const imageUrl = await optimizeImage(file, "hair");
-      patchHairStyle(id, { imageUrl });
-      setNotice("Valódi hajfotó előkészítve. Mentés után jelenik meg a hajpróbában.");
-    } catch (e: any) { setError(e?.message || "Képfeldolgozási hiba."); }
-    finally { setBusyImage(""); }
-  };
+export default function KioskExperienceAdmin(){
+  const [open,setOpen]=useState(false),[tab,setTab]=useState<"mapping"|"hair">("mapping"),[loading,setLoading]=useState(false),[saving,setSaving]=useState(false),[busyImage,setBusyImage]=useState(""),[locationId,setLocationId]=useState(""),[menu,setMenu]=useState<KioskMenu|null>(null),[sections,setSections]=useState<KioskSection[]>([]),[productSections,setProductSections]=useState<KioskProductSection[]>([]),[config,setConfig]=useState<ExperienceConfig>(DEFAULTS),[error,setError]=useState(""),[notice,setNotice]=useState(""),[activeView,setActiveView]=useState<MappingViewKey>("face"),[selectedZoneId,setSelectedZoneId]=useState(""),[dragging,setDragging]=useState<{id:string;pointerId:number;dx:number;dy:number}|null>(null);
+  const stageRef=useRef<HTMLDivElement>(null);
+  const load=useCallback(async()=>{setLoading(true);setError("");setNotice("");try{const locationData=await getKioskAdminLocations(),resolved=locationData.device?.location_id||locationData.locations.find(x=>x.is_device_location)?.id||locationData.locations[0]?.id||"";if(!resolved)throw new Error("Nem található a kiosk telephelye.");setLocationId(resolved);const data=await getKioskAdminMenu(resolved);if(!data.menu)throw new Error("A kiosk menü még nincs inicializálva.");setMenu(data.menu);setSections(data.sections||[]);setProductSections(data.productSections||[]);const merged=mergeConfig(data.menu.theme||{});setConfig(merged);setSelectedZoneId(merged.mapping.zones.face[0]?.id||"")}catch(e:any){setError(e?.response?.data?.error||e?.message||"A Mapping / Hair admin nem tölthető be.")}finally{setLoading(false)}},[]);
+  useEffect(()=>{if(open)void load()},[open,load]);
+  const currentZones=config.mapping.zones[activeView]||[],selectedZone=currentZones.find(zone=>zone.id===selectedZoneId)||null,currentTransform=config.mapping.viewTransforms[activeView]||ZERO_TRANSFORMS[activeView],hairCount=useMemo(()=>config.hairMirror.styles.filter(s=>s.enabled!==false&&s.imageUrl).length,[config.hairMirror.styles]);
+  const save=async()=>{if(!menu)return;setSaving(true);setError("");setNotice("");try{const nextTheme={...(menu.theme||{}),kioskExperiences:config};await saveKioskSettings(menu.id,{name:menu.name,is_active:menu.is_active,theme:nextTheme,sections:sections.map(s=>({id:s.id,title:s.title,subtitle:s.subtitle,imageUrl:s.imageUrl,enabled:s.enabled,order:s.order})),productSections:productSections.map(s=>({id:s.id,title:s.title,subtitle:s.subtitle,imageUrl:s.imageUrl,enabled:s.enabled,order:s.order}))});setMenu({...menu,theme:nextTheme});setNotice("Mentve és publikálva a kiosk konfigurációba.")}catch(e:any){setError(e?.response?.data?.error||e?.message||"A mentés sikertelen.")}finally{setSaving(false)}};
+  const uploadMapping=async(key:MappingViewKey,file?:File)=>{if(!file)return;setBusyImage(`mapping-${key}`);setError("");try{const imageUrl=await optimizeImage(file,"mapping");setConfig(c=>({...c,mapping:{...c.mapping,viewImages:{...c.mapping.viewImages,[key]:imageUrl}}}));setNotice(`${VIEW_LABELS[key]} kép előkészítve. Mentés után lesz élő.`)}catch(e:any){setError(e?.message||"Képfeldolgozási hiba.")}finally{setBusyImage("")}};
+  const patchZone=(key:MappingViewKey,id:string,patch:Partial<MappingZone>)=>setConfig(c=>({...c,mapping:{...c.mapping,zones:{...c.mapping.zones,[key]:c.mapping.zones[key].map(zone=>zone.id===id?{...zone,...patch}:zone)}}}));
+  const patchTransform=(patch:Partial<MappingTransform>)=>setConfig(c=>({...c,mapping:{...c.mapping,viewTransforms:{...c.mapping.viewTransforms,[activeView]:{...c.mapping.viewTransforms[activeView],...patch}}}}));
+  const selectView=(key:MappingViewKey)=>{setActiveView(key);setSelectedZoneId(config.mapping.zones[key]?.[0]?.id||"");setDragging(null)};
+  const addZone=()=>{const id=`custom-${Date.now()}`,next:MappingZone={id,label:"Új zóna",x:50,y:50,w:18,h:12,enabled:true};setConfig(c=>({...c,mapping:{...c.mapping,zones:{...c.mapping.zones,[activeView]:[...c.mapping.zones[activeView],next]}}}));setSelectedZoneId(id)};
+  const deleteZone=(id:string)=>{const remaining=currentZones.filter(zone=>zone.id!==id);setConfig(c=>({...c,mapping:{...c.mapping,zones:{...c.mapping.zones,[activeView]:c.mapping.zones[activeView].filter(zone=>zone.id!==id)}}}));setSelectedZoneId(remaining[0]?.id||"")};
+  const resetView=()=>{setConfig(c=>({...c,mapping:{...c.mapping,zones:{...c.mapping.zones,[activeView]:DEFAULT_ZONES[activeView].map(zone=>({...zone}))},viewTransforms:{...c.mapping.viewTransforms,[activeView]:{...ZERO_TRANSFORMS[activeView]}}}}));setSelectedZoneId(DEFAULT_ZONES[activeView][0]?.id||"")};
+  const pointerPosition=(event:React.PointerEvent)=>{const rect=stageRef.current?.getBoundingClientRect();return rect?{x:((event.clientX-rect.left)/rect.width)*100,y:((event.clientY-rect.top)/rect.height)*100}:null};
+  const beginZoneDrag=(event:React.PointerEvent<HTMLButtonElement>,zone:MappingZone)=>{const point=pointerPosition(event);if(!point)return;event.preventDefault();event.currentTarget.setPointerCapture(event.pointerId);setSelectedZoneId(zone.id);setDragging({id:zone.id,pointerId:event.pointerId,dx:point.x-zone.x,dy:point.y-zone.y})};
+  const moveZone=(event:React.PointerEvent<HTMLButtonElement>,zone:MappingZone)=>{if(!dragging||dragging.id!==zone.id||dragging.pointerId!==event.pointerId)return;const point=pointerPosition(event);if(!point)return;const step=config.mapping.gridSnap?2:.25,x=clamp(Math.round((point.x-dragging.dx)/step)*step,0,100),y=clamp(Math.round((point.y-dragging.dy)/step)*step,0,100);patchZone(activeView,zone.id,{x,y})};
+  const endZoneDrag=(event:React.PointerEvent<HTMLButtonElement>)=>{if(dragging?.pointerId===event.pointerId)setDragging(null)};
+  const addHairStyle=()=>{const id=`hair-${Date.now()}`;setConfig(c=>({...c,hairMirror:{...c.hairMirror,styles:[...c.hairMirror.styles,{id,name:"Új frizura",type:"Fotó",imageUrl:"",x:0,y:0,scale:1,rotate:0,enabled:true}]}}))};
+  const patchHairStyle=(id:string,patch:Partial<HairStyle>)=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,styles:c.hairMirror.styles.map(style=>style.id===id?{...style,...patch}:style)}}));
+  const uploadHair=async(id:string,file?:File)=>{if(!file)return;setBusyImage(`hair-${id}`);setError("");try{const imageUrl=await optimizeImage(file,"hair");patchHairStyle(id,{imageUrl});setNotice("Valódi hajfotó előkészítve. Mentés után megjelenik a helyi tartalék hajpróbában.")}catch(e:any){setError(e?.message||"Képfeldolgozási hiba.")}finally{setBusyImage("")}};
+  const provider=config.hairMirror.provider;
 
   return <>
-    <button className="kea-launcher" type="button" onClick={() => setOpen(true)}><MapPinned size={18}/><span>Mapping & haj admin</span></button>
-    {open && <div className="kea-overlay" role="dialog" aria-modal="true" aria-label="Face Body Mapping és hajpróba admin">
-      <section className="kea-shell">
-        <header className="kea-header">
-          <div><span className="kea-eyebrow">KIOSK EXPERIENCE ADMIN</span><h2>Face / Body Mapping + hajpróba</h2><p>Kinézet, képek, kamerafunkciók és valódi haj-overlayek szerkesztése.</p></div>
-          <div className="kea-header-actions"><button type="button" onClick={() => void load()} disabled={loading}><RefreshCw size={17}/></button><button className="primary" type="button" onClick={() => void save()} disabled={!menu || saving}>{saving ? <Loader2 className="spin" size={17}/> : <Save size={17}/>} Mentés és publikálás</button><button type="button" onClick={() => setOpen(false)}><X size={20}/></button></div>
-        </header>
-        {error && <div className="kea-alert error">{error}</div>}
-        {notice && <div className="kea-alert success"><CheckCircle2 size={17}/>{notice}</div>}
-        <nav className="kea-tabs"><button className={tab === "mapping" ? "active" : ""} onClick={() => setTab("mapping")}><MapPinned size={17}/> Face / Body Mapping</button><button className={tab === "hair" ? "active" : ""} onClick={() => setTab("hair")}><Scissors size={17}/> Hajpróba <b>{hairCount}</b></button></nav>
-        {loading ? <div className="kea-loading"><Loader2 className="spin"/><span>Betöltés…</span></div> : <div className="kea-content">
-          {tab === "mapping" && <div className="kea-grid">
-            <article className="kea-card"><div className="kea-card-head"><div><span>MEGJELENÉS</span><h3>Mapping felület</h3></div><Settings2 size={20}/></div>
-              <div className="kea-switch-row">{toggleButton(config.mapping.enabled, "Mapping bekapcsolva", () => setConfig(c => ({ ...c, mapping: { ...c.mapping, enabled: !c.mapping.enabled } })))}{toggleButton(config.mapping.showLabels, "Zónanevek", () => setConfig(c => ({ ...c, mapping: { ...c.mapping, showLabels: !c.mapping.showLabels } })))}{toggleButton(config.mapping.showGuide, "Segédgrafika", () => setConfig(c => ({ ...c, mapping: { ...c.mapping, showGuide: !c.mapping.showGuide } })))}</div>
-              <label className="kea-field"><span>Főcím</span><input value={config.mapping.title} onChange={e => setConfig(c => ({ ...c, mapping: { ...c.mapping, title: e.target.value } }))}/></label>
-              <label className="kea-field"><span>Leírás</span><textarea value={config.mapping.subtitle} onChange={e => setConfig(c => ({ ...c, mapping: { ...c.mapping, subtitle: e.target.value } }))}/></label>
-              <div className="kea-field-row"><label className="kea-field"><span>Kiemelő szín</span><input type="color" value={config.mapping.accent} onChange={e => setConfig(c => ({ ...c, mapping: { ...c.mapping, accent: e.target.value } }))}/></label><label className="kea-field"><span>Háttér</span><input type="color" value={config.mapping.surface} onChange={e => setConfig(c => ({ ...c, mapping: { ...c.mapping, surface: e.target.value } }))}/></label><label className="kea-field"><span>Kép illesztése</span><select value={config.mapping.imageFit} onChange={e => setConfig(c => ({ ...c, mapping: { ...c.mapping, imageFit: e.target.value as "contain" | "cover" } }))}><option value="contain">Teljes kép</option><option value="cover">Kitöltés</option></select></label></div>
-            </article>
-            <article className="kea-card kea-wide"><div className="kea-card-head"><div><span>KÉPEK</span><h3>Haj / arc / test nézetek</h3><p>Mind a négy nézethez külön fotó tölthető fel. A hotspotok a fotó fölött maradnak.</p></div><ImagePlus size={20}/></div>
-              <div className="kea-mapping-images">{(Object.keys(VIEW_LABELS) as MappingViewKey[]).map(key => <div className="kea-image-editor" key={key}><div className="kea-image-preview">{config.mapping.viewImages[key] ? <img src={config.mapping.viewImages[key]} alt=""/> : <span><MapPinned size={30}/><b>{VIEW_LABELS[key]}</b></span>}</div><div><b>{VIEW_LABELS[key]}</b><small>JPG / PNG / WebP · automatikus optimalizálás</small><label className="kea-upload"><Upload size={15}/>{busyImage === `mapping-${key}` ? "Feldolgozás…" : "Kép feltöltése"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!busyImage} onChange={e => void uploadMapping(key, e.target.files?.[0])}/></label>{config.mapping.viewImages[key] && <button className="kea-link-danger" onClick={() => setConfig(c => ({ ...c, mapping: { ...c.mapping, viewImages: { ...c.mapping.viewImages, [key]: "" } } }))}>Kép törlése</button>}</div></div>)}</div>
-            </article>
-          </div>}
-          {tab === "hair" && <div className="kea-grid">
-            <article className="kea-card"><div className="kea-card-head"><div><span>HAJPRÓBA</span><h3>Fotóalapú mód</h3><p>A régi rajzolt SVG hajakat a kiosk nem használja: csak feltöltött PNG/WebP hajfotókat.</p></div><Camera size={20}/></div>
-              <div className="kea-switch-row">{toggleButton(config.hairMirror.enabled, "Hajpróba bekapcsolva", () => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, enabled: !c.hairMirror.enabled } })))}{toggleButton(config.hairMirror.allowCamera, "Kamera engedélyezve", () => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, allowCamera: !c.hairMirror.allowCamera } })))}{toggleButton(config.hairMirror.allowUpload, "Fotó feltöltés", () => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, allowUpload: !c.hairMirror.allowUpload } })))}{toggleButton(config.hairMirror.showFaceGuide, "Arc segédkeret", () => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, showFaceGuide: !c.hairMirror.showFaceGuide } })))}</div>
-              <label className="kea-field"><span>Cím</span><input value={config.hairMirror.title} onChange={e => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, title: e.target.value } }))}/></label><label className="kea-field"><span>Alcím</span><input value={config.hairMirror.subtitle} onChange={e => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, subtitle: e.target.value } }))}/></label><label className="kea-field compact"><span>Kiemelő szín</span><input type="color" value={config.hairMirror.accent} onChange={e => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, accent: e.target.value } }))}/></label>
-            </article>
-            <article className="kea-card kea-wide"><div className="kea-card-head"><div><span>VALÓDI HAJAK</span><h3>Frizura overlay könyvtár</h3><p>Átlátszó hátterű, fotorealisztikus PNG/WebP hajképeket tölts fel. A kiosk ezeket a vendég fotójára illeszti.</p></div><button className="kea-add" type="button" onClick={addHairStyle}><Plus size={16}/> Új frizura</button></div>
-              {!config.hairMirror.styles.length && <div className="kea-empty"><Scissors size={34}/><b>Nincs feltöltött valódi haj.</b><span>Az „Új frizura” gombbal adj hozzá PNG/WebP overlayt. A régi stilizált rajzok nem fognak megjelenni.</span></div>}
-              <div className="kea-hair-list">{config.hairMirror.styles.map((style, index) => <div className={`kea-hair-row ${style.enabled ? "" : "off"}`} key={style.id}><div className="kea-hair-preview">{style.imageUrl ? <img src={style.imageUrl} alt=""/> : <Scissors size={28}/>}</div><div className="kea-hair-fields"><input value={style.name} onChange={e => patchHairStyle(style.id, { name: e.target.value })} placeholder="Frizura neve"/><input value={style.type} onChange={e => patchHairStyle(style.id, { type: e.target.value })} placeholder="Típus"/><label className="kea-upload small"><Upload size={14}/>{busyImage === `hair-${style.id}` ? "Feldolgozás…" : "PNG/WebP haj feltöltése"}<input type="file" accept="image/png,image/webp" disabled={!!busyImage} onChange={e => void uploadHair(style.id, e.target.files?.[0])}/></label></div><div className="kea-hair-adjust"><label><span>X</span><input type="number" value={style.x} onChange={e => patchHairStyle(style.id, { x: Number(e.target.value) || 0 })}/></label><label><span>Y</span><input type="number" value={style.y} onChange={e => patchHairStyle(style.id, { y: Number(e.target.value) || 0 })}/></label><label><span>Méret</span><input type="number" min="0.4" max="2" step="0.05" value={style.scale} onChange={e => patchHairStyle(style.id, { scale: Number(e.target.value) || 1 })}/></label><label><span>Forg.</span><input type="number" min="-45" max="45" value={style.rotate} onChange={e => patchHairStyle(style.id, { rotate: Number(e.target.value) || 0 })}/></label></div><div className="kea-hair-actions"><button title="Aktív / inaktív" onClick={() => patchHairStyle(style.id, { enabled: !style.enabled })}>{style.enabled ? <ToggleRight/> : <ToggleLeft/>}</button><button title="Feljebb" disabled={index === 0} onClick={() => setConfig(c => { const list = [...c.hairMirror.styles]; [list[index - 1], list[index]] = [list[index], list[index - 1]]; return { ...c, hairMirror: { ...c.hairMirror, styles: list } }; })}>↑</button><button title="Lejjebb" disabled={index === config.hairMirror.styles.length - 1} onClick={() => setConfig(c => { const list = [...c.hairMirror.styles]; [list[index + 1], list[index]] = [list[index], list[index + 1]]; return { ...c, hairMirror: { ...c.hairMirror, styles: list } }; })}>↓</button><button className="danger" title="Törlés" onClick={() => setConfig(c => ({ ...c, hairMirror: { ...c.hairMirror, styles: c.hairMirror.styles.filter(s => s.id !== style.id) } }))}><Trash2 size={16}/></button></div></div>)}</div>
-            </article>
-          </div>}
-        </div>}
-        <footer className="kea-footer"><span>Telephely: <b>{locationId || "—"}</b></span><button className="primary" type="button" onClick={() => void save()} disabled={!menu || saving}>{saving ? <Loader2 className="spin" size={17}/> : <Save size={17}/>} Mentés és publikálás</button></footer>
-      </section>
-    </div>}
+    <button className="kea-launcher" type="button" onClick={()=>setOpen(true)}><MapPinned size={18}/><span>Mapping & haj admin</span></button>
+    {open&&<div className="kea-overlay" role="dialog" aria-modal="true" aria-label="Face Body Mapping és hajpróba admin"><section className="kea-shell">
+      <header className="kea-header"><div><span className="kea-eyebrow">KIOSK EXPERIENCE STUDIO</span><h2>Face / Body Mapping + professzionális hajpróba</h2><p>Zónaszerkesztő, nézetenkénti fotók és külső AI hajmotor konfiguráció.</p></div><div className="kea-header-actions"><button onClick={()=>void load()} disabled={loading} aria-label="Frissítés"><RefreshCw size={17}/></button><button className="primary" onClick={()=>void save()} disabled={!menu||saving}>{saving?<Loader2 className="spin" size={17}/>:<Save size={17}/>} Mentés és publikálás</button><button onClick={()=>setOpen(false)} aria-label="Bezárás"><X size={20}/></button></div></header>
+      {error&&<div className="kea-alert error">{error}</div>}{notice&&<div className="kea-alert success"><CheckCircle2 size={17}/>{notice}</div>}
+      <nav className="kea-tabs"><button className={tab==="mapping"?"active":""} onClick={()=>setTab("mapping")}><MapPinned size={17}/> Mapping Studio</button><button className={tab==="hair"?"active":""} onClick={()=>setTab("hair")}><Scissors size={17}/> Hair VTO <b>{hairCount}</b></button></nav>
+      {loading?<div className="kea-loading"><Loader2 className="spin"/><span>Betöltés…</span></div>:<div className="kea-content">
+        {tab==="mapping"&&<>
+          <div className="kea-studio-top"><article className="kea-card"><div className="kea-card-head"><div><span>MEGJELENÉS</span><h3>Mapping felület</h3></div><Settings2 size={20}/></div><div className="kea-switch-row">{toggleButton(config.mapping.enabled,"Mapping bekapcsolva",()=>setConfig(c=>({...c,mapping:{...c.mapping,enabled:!c.mapping.enabled}})))}{toggleButton(config.mapping.showLabels,"Zónanevek",()=>setConfig(c=>({...c,mapping:{...c.mapping,showLabels:!c.mapping.showLabels}})))}{toggleButton(config.mapping.showGuide,"Segédgrafika",()=>setConfig(c=>({...c,mapping:{...c.mapping,showGuide:!c.mapping.showGuide}})))}{toggleButton(config.mapping.gridSnap,"2% rácsra illesztés",()=>setConfig(c=>({...c,mapping:{...c.mapping,gridSnap:!c.mapping.gridSnap}})))}</div><label className="kea-field"><span>Főcím</span><input value={config.mapping.title} onChange={e=>setConfig(c=>({...c,mapping:{...c.mapping,title:e.target.value}}))}/></label><label className="kea-field"><span>Leírás</span><textarea value={config.mapping.subtitle} onChange={e=>setConfig(c=>({...c,mapping:{...c.mapping,subtitle:e.target.value}}))}/></label><div className="kea-field-row"><label className="kea-field"><span>Kiemelő szín</span><input type="color" value={config.mapping.accent} onChange={e=>setConfig(c=>({...c,mapping:{...c.mapping,accent:e.target.value}}))}/></label><label className="kea-field"><span>Háttér</span><input type="color" value={config.mapping.surface} onChange={e=>setConfig(c=>({...c,mapping:{...c.mapping,surface:e.target.value}}))}/></label><label className="kea-field"><span>Kép illesztése</span><select value={config.mapping.imageFit} onChange={e=>setConfig(c=>({...c,mapping:{...c.mapping,imageFit:e.target.value as "contain"|"cover"}}))}><option value="contain">Teljes kép</option><option value="cover">Kitöltés</option></select></label></div></article>
+          <article className="kea-card"><div className="kea-card-head"><div><span>NÉZET</span><h3>Fotó és transzformáció</h3><p>A kiosk ugyanilyen pozíciót és méretet használ.</p></div><ImagePlus size={20}/></div><div className="kea-view-tabs">{(Object.keys(VIEW_LABELS) as MappingViewKey[]).map(key=><button key={key} className={activeView===key?"active":""} onClick={()=>selectView(key)}>{VIEW_LABELS[key]}</button>)}</div><div className="kea-photo-row"><div className="kea-mini-preview">{config.mapping.viewImages[activeView]?<img src={config.mapping.viewImages[activeView]} alt=""/>:<span>Nincs saját kép</span>}</div><div><label className="kea-upload"><Upload size={15}/>{busyImage===`mapping-${activeView}`?"Feldolgozás…":"Kép feltöltása"}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!busyImage} onChange={e=>void uploadMapping(activeView,e.target.files?.[0])}/></label>{config.mapping.viewImages[activeView]&&<button className="kea-link-danger" onClick={()=>setConfig(c=>({...c,mapping:{...c.mapping,viewImages:{...c.mapping.viewImages,[activeView]:""}}}))}>Kép eltávolítása</button>}</div></div><div className="kea-transform-grid"><label><span>X</span><input type="number" value={currentTransform.x} onChange={e=>patchTransform({x:Number(e.target.value)})}/></label><label><span>Y</span><input type="number" value={currentTransform.y} onChange={e=>patchTransform({y:Number(e.target.value)})}/></label><label><span>Méret</span><input type="number" min=".5" max="2" step=".05" value={currentTransform.scale} onChange={e=>patchTransform({scale:clamp(Number(e.target.value)||1,.5,2)})}/></label></div></article></div>
+          <article className="kea-card kea-zone-studio"><div className="kea-card-head"><div><span>INTERAKTÍV ZÓNAEDITOR</span><h3>Zónák helyezése és méretezése</h3><p>Fogd meg és húzd a zónát a megfelelő testrészre. A kijelölt zóna mérete, neve és láthatósága jobbra szerkeszthető.</p></div><div className="kea-zone-tools"><button onClick={addZone}><Plus size={15}/> Új zóna</button><button onClick={resetView}><RotateCcw size={15}/> Alaphelyzet</button></div></div><div className="kea-zone-layout"><div className="kea-stage-wrap"><div className="kea-stage-label"><Grid3X3 size={14}/>{VIEW_LABELS[activeView]} · {currentZones.length} zóna</div><div ref={stageRef} className={`kea-map-stage ${config.mapping.gridSnap?"grid":""}`} style={{backgroundColor:config.mapping.surface}}>{config.mapping.viewImages[activeView]?<img className="kea-map-photo" src={config.mapping.viewImages[activeView]} alt="" style={{objectFit:config.mapping.imageFit,left:`calc(50% + ${currentTransform.x}%)`,top:`calc(50% + ${currentTransform.y}%)`,transform:`translate(-50%,-50%) scale(${currentTransform.scale})`}}/>:<div className="kea-map-placeholder"><MapPinned size={42}/><b>Tölts fel fotót ehhez a nézethez</b><span>A zónák addig is szerkeszthetők.</span></div>}{currentZones.map(zone=><button key={zone.id} type="button" className={`kea-map-zone ${selectedZoneId===zone.id?"selected":""} ${zone.enabled?"":"disabled"}`} style={{left:`${zone.x}%`,top:`${zone.y}%`,width:`${zone.w}%`,height:`${zone.h}%`,borderColor:config.mapping.accent}} onPointerDown={event=>beginZoneDrag(event,zone)} onPointerMove={event=>moveZone(event,zone)} onPointerUp={endZoneDrag} onPointerCancel={endZoneDrag} onClick={()=>setSelectedZoneId(zone.id)}><Move size={13}/>{config.mapping.showLabels&&<b>{zone.label}</b>}</button>)}</div></div><aside className="kea-zone-inspector"><div className="kea-zone-list">{currentZones.map(zone=><button key={zone.id} className={selectedZoneId===zone.id?"active":""} onClick={()=>setSelectedZoneId(zone.id)}><span>{zone.label}</span><small>{Math.round(zone.x)} / {Math.round(zone.y)}</small></button>)}</div>{selectedZone?<div className="kea-zone-form"><label className="kea-field"><span>Zónanév</span><input value={selectedZone.label} onChange={e=>patchZone(activeView,selectedZone.id,{label:e.target.value})}/></label><div className="kea-number-grid"><label><span>X %</span><input type="number" min="0" max="100" value={selectedZone.x} onChange={e=>patchZone(activeView,selectedZone.id,{x:clamp(Number(e.target.value),0,100)})}/></label><label><span>Y %</span><input type="number" min="0" max="100" value={selectedZone.y} onChange={e=>patchZone(activeView,selectedZone.id,{y:clamp(Number(e.target.value),0,100)})}/></label><label><span>Szélesség %</span><input type="number" min="4" max="80" value={selectedZone.w} onChange={e=>patchZone(activeView,selectedZone.id,{w:clamp(Number(e.target.value),4,80)})}/></label><label><span>Magasság %</span><input type="number" min="4" max="80" value={selectedZone.h} onChange={e=>patchZone(activeView,selectedZone.id,{h:clamp(Number(e.target.value),4,80)})}/></label></div>{toggleButton(selectedZone.enabled,"Zóna aktív",()=>patchZone(activeView,selectedZone.id,{enabled:!selectedZone.enabled}))}<button className="kea-danger-button" onClick={()=>deleteZone(selectedZone.id)}><Trash2 size={15}/> Zóna törlése</button></div>:<div className="kea-empty">Válassz ki egy zónát.</div>}</aside></div></article>
+        </>}
+        {tab==="hair"&&<div className="kea-hair-stack"><article className="kea-card kea-provider-card"><div className="kea-card-head"><div><span>PROFESSZIONÁLIS HAJMOTOR</span><h3>Virtual Try-On szolgáltató</h3><p>A külső motor kulcsa biztonsági okból nem kerül a böngészőbe vagy a kiosk konfigurációba.</p></div><Sparkles size={21}/></div><div className="kea-provider-grid"><button className={provider==="perfectcorp"?"active recommended":""} onClick={()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,provider:"perfectcorp"}}))}><span>AJÁNLOTT · FOTÓ AI</span><b>Perfect Corp / YouCam API</b><p>Valódi frizura-transzfer, gyári template-ek és saját referenciafrizura. Női és férfi stílusok.</p><i>Generatív eredmény</i></button><button className={provider==="banuba"?"active":""} onClick={()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,provider:"banuba"}}))}><span>LIVE AR</span><b>Banuba Hair VTO</b><p>Valós idejű fej- és hajvonal-követés, WebGL-alapú böngészős virtuális próba.</p><i>Élő kamerás élmény</i></button><button className={provider==="local"?"active":""} onClick={()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,provider:"local"}}))}><span>TARTALÉK</span><b>Helyi fotó-overlay</b><p>A jelenlegi saját PNG/WebP hajkönyvtár. Külső szolgáltató nélkül is működik.</p><i>Nincs API-költség</i></button></div><div className="kea-provider-settings">{toggleButton(config.hairMirror.useExternalEngine,"Külső motor használata, ha a backend kulcs konfigurálva van",()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,useExternalEngine:!c.hairMirror.useExternalEngine}})))}<label className="kea-field"><span>AI mód</span><select value={config.hairMirror.aiMode} onChange={e=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,aiMode:e.target.value as "template"|"reference"}}))}><option value="template">Gyári frizura template-ek</option><option value="reference">Saját referenciafrizurák</option></select></label><label className="kea-field kea-grow"><span>Külső feldolgozás hozzájárulási szövege</span><textarea value={config.hairMirror.remoteConsentText} onChange={e=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,remoteConsentText:e.target.value}}))}/></label></div><div className="kea-security-note"><ShieldCheck size={20}/><div><b>Biztonságos integráció</b><span>Perfect Corp esetén az API-kulcs kizárólag a backend környezeti változója lehet. A kiosk csak a saját API-nkat hívhatja. Amíg nincs szolgáltatói kulcs, automatikusan a helyi hajkönyvtár marad használható.</span></div></div><div className="kea-doc-links"><a href="https://docs.perfectcorp.com/reference/ai_hairstyle/section/overview/integration-guide" target="_blank" rel="noreferrer">Perfect Corp dokumentáció <ExternalLink size={13}/></a><a href="https://www.banuba.com/virtual-hairstyle-try-on" target="_blank" rel="noreferrer">Banuba Hair VTO <ExternalLink size={13}/></a></div></article>
+        <article className="kea-card"><div className="kea-card-head"><div><span>HAJPRÓBA UI</span><h3>Kamera és helyi tartalék katalógus</h3><p>A valódi, átlátszó hajképek tartalékként akkor is használhatók, ha a külső AI nem elérhető.</p></div><Scissors size={20}/></div><div className="kea-switch-row">{toggleButton(config.hairMirror.enabled,"Hajpróba bekapcsolva",()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,enabled:!c.hairMirror.enabled}})))}{toggleButton(config.hairMirror.allowCamera,"Kamera",()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,allowCamera:!c.hairMirror.allowCamera}})))}{toggleButton(config.hairMirror.allowUpload,"Fotó feltöltés",()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,allowUpload:!c.hairMirror.allowUpload}})))}{toggleButton(config.hairMirror.showFaceGuide,"Arc-pozicionáló",()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,showFaceGuide:!c.hairMirror.showFaceGuide}})))}</div><div className="kea-field-row"><label className="kea-field"><span>Cím</span><input value={config.hairMirror.title} onChange={e=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,title:e.target.value}}))}/></label><label className="kea-field"><span>Alcím</span><input value={config.hairMirror.subtitle} onChange={e=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,subtitle:e.target.value}}))}/></label><label className="kea-field"><span>Kiemelő szín</span><input type="color" value={config.hairMirror.accent} onChange={e=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,accent:e.target.value}}))}/></label></div><div className="kea-card-head kea-list-head"><div><span>HELYI HAJKÖNYVTÁR</span><h3>Valódi hajképek</h3></div><button className="kea-add" onClick={addHairStyle}><Plus size={15}/> Új frizura</button></div>{!config.hairMirror.styles.length?<div className="kea-empty"><ImagePlus size={26}/><b>Még nincs helyi hajfotó.</b><span>Átlátszó, fotórealisztikus PNG/WebP hajképet tölts fel, vagy aktiváld a professzionális szolgáltatót backend kulccsal.</span></div>:<div className="kea-hair-list">{config.hairMirror.styles.map(style=><div className={`kea-hair-row ${style.enabled?"":"off"}`} key={style.id}><div className="kea-hair-preview">{style.imageUrl?<img src={style.imageUrl} alt=""/>:<Scissors size={24}/>}</div><div className="kea-hair-fields"><input value={style.name} onChange={e=>patchHairStyle(style.id,{name:e.target.value})} placeholder="Frizura neve"/><input value={style.type} onChange={e=>patchHairStyle(style.id,{type:e.target.value})} placeholder="Típus"/><label className="kea-upload small"><Upload size={13}/>{busyImage===`hair-${style.id}`?"Feldolgozás…":"PNG/WebP haj"}<input type="file" accept="image/png,image/webp" disabled={!!busyImage} onChange={e=>void uploadHair(style.id,e.target.files?.[0])}/></label></div><div className="kea-hair-adjust"><label><span>X</span><input type="number" value={style.x} onChange={e=>patchHairStyle(style.id,{x:Number(e.target.value)})}/></label><label><span>Y</span><input type="number" value={style.y} onChange={e=>patchHairStyle(style.id,{y:Number(e.target.value)})}/></label><label><span>Méret</span><input type="number" min=".4" max="2" step=".05" value={style.scale} onChange={e=>patchHairStyle(style.id,{scale:Number(e.target.value)})}/></label><label><span>Forgatás</span><input type="number" min="-45" max="45" value={style.rotate} onChange={e=>patchHairStyle(style.id,{rotate:Number(e.target.value)})}/></label></div><div className="kea-hair-actions"><button title={style.enabled?"Kikapcsolás":"Bekapcsolás"} onClick={()=>patchHairStyle(style.id,{enabled:!style.enabled})}>{style.enabled?<ToggleRight size={19}/>:<ToggleLeft size={19}/>}</button><button className="danger" title="Törlés" onClick={()=>setConfig(c=>({...c,hairMirror:{...c.hairMirror,styles:c.hairMirror.styles.filter(item=>item.id!==style.id)}}))}><Trash2 size={15}/></button></div></div>)}</div>}</article></div>}
+      </div>}
+      <footer className="kea-footer"><span>Telephely: {locationId||"—"} · A zónák százalékos koordinátái minden kiosk felbontáson arányosan maradnak a helyükön.</span><button className="primary" onClick={()=>void save()} disabled={!menu||saving}>{saving?<Loader2 className="spin" size={16}/>:<Save size={16}/>} Mentés</button></footer>
+    </section></div>}
   </>;
 }
