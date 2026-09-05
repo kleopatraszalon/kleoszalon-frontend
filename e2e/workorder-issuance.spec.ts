@@ -45,6 +45,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
 
   const failedCoreResponses: string[] = [];
   const failedRequests: string[] = [];
+  const responseDiagnostics: Promise<void>[] = [];
   page.on('requestfailed', requestItem => failedRequests.push(`${requestItem.method()} ${requestItem.url()} ${requestItem.failure()?.errorText || ''}`));
   page.on('response', response => {
     if (response.url().includes('/api/') && response.status() >= 400 && (
@@ -52,7 +53,17 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
       response.url().includes('/workorders/') ||
       response.url().includes('/workorder-finalization/') ||
       response.url().includes('/cashier/')
-    )) failedCoreResponses.push(`${response.status()} ${response.url()}`);
+    )) {
+      const diagnostic = response.text()
+        .then(body => {
+          const compactBody = body.replace(/\s+/g, ' ').trim().slice(0, 1200);
+          failedCoreResponses.push(`${response.status()} ${response.url()}${compactBody ? ` :: ${compactBody}` : ''}`);
+        })
+        .catch(() => {
+          failedCoreResponses.push(`${response.status()} ${response.url()}`);
+        });
+      responseDiagnostics.push(diagnostic);
+    }
   });
 
   await page.goto(`/workorders/new?appointment_id=${encodeURIComponent(fixture.appointment_id)}`);
@@ -108,6 +119,7 @@ test('recepciós munkalap kiadás: időpont → fizetés → készlet → archiv
   expect(state.movementCount).toBe(1);
   expect(state.archive?.pdf_generated_at).toBeTruthy();
 
+  await Promise.allSettled(responseDiagnostics);
   expect(failedRequests, `Hálózati hibák: ${failedRequests.join(', ')}`).toEqual([]);
   expect(failedCoreResponses, `Core API hibák: ${failedCoreResponses.join(', ')}`).toEqual([]);
 });
